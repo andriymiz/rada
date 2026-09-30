@@ -6,7 +6,6 @@ use App\Enums\ImportStatus;
 use App\Enums\SourceDocumentStatus;
 use App\Enums\StagedRecordStatus;
 use App\Enums\VoteResult;
-use App\Models\CouncilSession;
 use App\Models\Deputy;
 use App\Models\Import;
 use App\Models\Question;
@@ -33,14 +32,12 @@ class SessionPdfImportService
             return 0;
         }
 
-        return DB::transaction(function () use ($import, $pages, $sessionPages): int {
-            $session = $import->session ?: CouncilSession::firstOrCreate(
-                ['session_number' => '99'],
-                [
-                    'title' => '99 сесія восьмого скликання Зборівської міської ради',
-                    'status' => 'held',
-                ],
-            );
+        return DB::transaction(function () use ($import, $sessionPages): int {
+            $session = $import->session;
+
+            if ($session === null) {
+                return 0;
+            }
 
             $records = 0;
 

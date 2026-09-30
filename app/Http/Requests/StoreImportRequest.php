@@ -21,7 +21,7 @@ class StoreImportRequest extends FormRequest
                 'mimetypes:application/pdf,application/x-pdf',
                 'max:'.config('rada.pdf_max_kilobytes'),
             ],
-            'session_id' => ['nullable', 'integer', 'exists:council_sessions,id'],
+            'session_number' => ['required', 'string', 'max:64'],
         ];
     }
 

@@ -24,7 +24,6 @@ class ImportController extends Controller
     public function create(): View
     {
         return view('imports.create', [
-            'sessions' => CouncilSession::orderByDesc('held_at')->get(),
             'maxKilobytes' => config('rada.pdf_max_kilobytes'),
         ]);
     }
@@ -34,10 +33,17 @@ class ImportController extends Controller
         SourceDocumentUploadService $uploadService,
         SessionPdfImportService $pdfImportService,
     ): RedirectResponse {
+        $session = CouncilSession::firstOrCreate(
+            ['session_number' => $request->string('session_number')->toString()],
+            [
+                'title' => 'Сесія №'.$request->string('session_number')->toString(),
+                'status' => 'held',
+            ],
+        );
         $import = $uploadService->upload(
             $request->file('document'),
             $request->user(),
-            $request->integer('session_id') ?: null,
+            $session->id,
         );
         $pdfImportService->import($import->load('sourceDocument'));
 
