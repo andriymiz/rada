@@ -150,7 +150,7 @@ class VoteExportController extends Controller
 
     private function motionUid(?string $date, int $sessionId, string $number): string
     {
-        return ($date ?? 'session-'.$sessionId).'-'.$number;
+        return ($date ?? 'session-'.$sessionId).'-'.$sessionId.'-'.$number;
     }
 
     private function download(string $filename, array $headers, iterable $rows, callable $columns): StreamedResponse
