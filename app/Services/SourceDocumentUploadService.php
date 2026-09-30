@@ -18,7 +18,7 @@ use Throwable;
 
 class SourceDocumentUploadService
 {
-    public function upload(UploadedFile $file, User $user, ?int $sessionId = null): Import
+    public function upload(UploadedFile $file, User $user, ?string $sessionNumber = null): Import
     {
         $sha256 = hash_file('sha256', $file->getRealPath());
 
@@ -39,7 +39,7 @@ class SourceDocumentUploadService
         }
 
         try {
-            return DB::transaction(function () use ($file, $user, $sessionId, $sha256, $path): Import {
+            return DB::transaction(function () use ($file, $user, $sessionNumber, $sha256, $path): Import {
                 $document = SourceDocument::create([
                     'uploaded_by' => $user->id,
                     'disk' => 'private',
@@ -53,7 +53,7 @@ class SourceDocumentUploadService
 
                 $import = Import::create([
                     'source_document_id' => $document->id,
-                    'session_id' => $sessionId,
+                    'session_number' => $sessionNumber,
                     'uploaded_by' => $user->id,
                     'status' => ImportStatus::Pending,
                 ]);

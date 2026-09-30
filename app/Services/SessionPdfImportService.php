@@ -6,9 +6,7 @@ use App\Enums\ImportStatus;
 use App\Enums\SourceDocumentStatus;
 use App\Enums\StagedRecordStatus;
 use App\Enums\VoteResult;
-use App\Models\Deputy;
 use App\Models\Import;
-use App\Models\Question;
 use Illuminate\Support\Facades\DB;
 
 class SessionPdfImportService
@@ -33,9 +31,7 @@ class SessionPdfImportService
         }
 
         return DB::transaction(function () use ($import, $sessionPages): int {
-            $session = $import->session;
-
-            if ($session === null) {
+            if ($import->session_number === null) {
                 return 0;
             }
 
@@ -45,13 +41,14 @@ class SessionPdfImportService
                 preg_match('/№(\d+)\(.*?\) №(\d+)\s+(.*?)РІШЕННЯ\s+(?:НЕ\s+)?ПРИЙНЯТО/u', $page, $questionMatch);
 
                 if (! isset($questionMatch[2])) {
+                    $import->stagedRecords()->create([
+                        'raw_payload' => ['page' => $page],
+                        'status' => StagedRecordStatus::Rejected,
+                        'validation_error' => 'Не вдалося розпізнати номер питання та його заголовок.',
+                    ]);
+                    $records++;
                     continue;
                 }
-
-                $question = Question::updateOrCreate(
-                    ['session_id' => $session->id, 'question_number' => $questionMatch[2]],
-                    ['title' => trim($questionMatch[3])],
-                );
 
                 preg_match_all(
                     '/([\p{L}’ʼ\'-]+\s+[А-ЯІЇЄҐA-Z]\.[А-ЯІЇЄҐA-Zа-яіїєґ]?\.?)\s*-\s*(Відсутній|Утримався|Не голосував|За|Проти)/u',
@@ -63,16 +60,16 @@ class SessionPdfImportService
                 foreach ($votes as $vote) {
                     $name = trim($vote[1]);
                     $rawResult = $vote[2];
-                    $deputy = Deputy::firstOrCreate(['name' => $name], ['is_active' => true]);
-
                     $import->stagedRecords()->updateOrCreate(
-                        ['question_id' => $question->id, 'original_name' => $name],
+                        ['question_number' => $questionMatch[2], 'deputy_name' => $name],
                         [
-                            'deputy_id' => $deputy->id,
+                            'question_title' => trim($questionMatch[3]),
+                            'original_name' => $name,
                             'raw_result' => $rawResult,
                             'recognized_result' => $this->result($rawResult),
                             'raw_payload' => ['page' => $page],
                             'status' => StagedRecordStatus::Pending,
+                            'validation_error' => null,
                         ],
                     );
                     $records++;
@@ -80,7 +77,7 @@ class SessionPdfImportService
             }
 
             if ($records > 0) {
-                $import->update(['session_id' => $session->id, 'status' => ImportStatus::NeedsReview]);
+                $import->update(['status' => ImportStatus::NeedsReview]);
                 $import->sourceDocument->update(['status' => SourceDocumentStatus::Processed]);
             }
 
