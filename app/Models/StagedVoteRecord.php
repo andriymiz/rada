@@ -14,6 +14,7 @@ class StagedVoteRecord extends Model
         'question_id',
         'question_number',
         'question_title',
+        'voting_result',
         'deputy_id',
         'deputy_name',
         'original_name',

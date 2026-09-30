@@ -31,6 +31,7 @@ class ImportConfirmationTest extends TestCase
             'import_id' => $import->id,
             'question_number' => '1',
             'question_title' => 'Питання',
+            'voting_result' => 'Прийнято',
             'deputy_name' => 'Іваненко І.І.',
             'original_name' => 'Іваненко І.І.',
             'raw_result' => 'За',
@@ -43,6 +44,10 @@ class ImportConfirmationTest extends TestCase
 
         $this->assertDatabaseCount('roll_call_votes', 1);
         $this->assertDatabaseHas('imports', ['id' => $import->id, 'status' => ImportStatus::Confirmed->value]);
+        $this->assertDatabaseHas('questions', [
+            'question_number' => '1',
+            'voting_result' => 'Прийнято',
+        ]);
         $this->assertDatabaseHas('staged_vote_records', [
             'id' => $record->id,
             'status' => StagedRecordStatus::Confirmed->value,
