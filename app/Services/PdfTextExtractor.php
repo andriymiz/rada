@@ -26,19 +26,19 @@ class PdfTextExtractor
 
         $maps = [];
 
-        foreach ($objects as $number => $object) {
-            if (! str_contains($object, '/ToUnicode')) {
+        foreach ($objects as $object) {
+            if (! preg_match('/\/ToUnicode\s+(\d+)\s+0\s+R/', $object, $unicodeReference)) {
                 continue;
             }
 
-            preg_match('/stream\s*\r?\n(.*?)endstream/s', $object, $stream);
+            preg_match('/stream\s*\r?\n(.*?)endstream/s', $objects[(int) $unicodeReference[1]] ?? '', $stream);
             $decoded = isset($stream[1]) ? @gzuncompress(rtrim($stream[1], "\r\n")) : false;
 
             if ($decoded === false) {
                 continue;
             }
 
-            $maps[$number] = $this->parseCMap($decoded);
+            $maps[(int) $unicodeReference[1]] = $this->parseCMap($decoded);
         }
 
         $pages = [];
@@ -121,14 +121,18 @@ class PdfTextExtractor
                 continue;
             }
 
-            if ($token[4] === 'T*') {
+            if ($token[0] === 'T*') {
                 $text .= "\n";
                 continue;
             }
 
-            $hexStrings = $token[2] !== '' ? [$token[2]] : preg_match_all('/<([0-9A-Fa-f]+)>/', $token[3], $parts)
-                ? $parts[1]
-                : [];
+            $hexStrings = [$token[2]];
+
+            if ($token[2] === '') {
+                $hexStrings = preg_match_all('/<([0-9A-Fa-f]+)>/', $token[3], $parts)
+                    ? $parts[1]
+                    : [];
+            }
 
             foreach ($hexStrings as $hex) {
                 $characters = $fonts[$font] ?? [];

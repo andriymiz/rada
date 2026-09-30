@@ -21,6 +21,11 @@ class SessionPdfImportService
         $path = $import->sourceDocument->disk === 'private'
             ? storage_path('app/private/'.$import->sourceDocument->path)
             : storage_path('app/'.$import->sourceDocument->path);
+
+        if (! is_file($path)) {
+            return 0;
+        }
+
         $pages = $this->extractor->pages($path);
         $sessionPages = array_values(array_filter($pages, static fn (string $page): bool => preg_match('/№\d+\(.*?\) №\d+/u', $page) === 1));
 
