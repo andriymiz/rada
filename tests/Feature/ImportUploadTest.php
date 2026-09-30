@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\ImportStatus;
 use App\Enums\SourceDocumentStatus;
-use App\Models\AuditLog;
 use App\Models\SourceDocument;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,10 +31,11 @@ class ImportUploadTest extends TestCase
         ]);
 
         $response->assertRedirect();
+        $response->assertSessionHas('error');
         $document = SourceDocument::firstOrFail();
 
-        $this->assertSame(SourceDocumentStatus::Uploaded, $document->status);
-        $this->assertSame(ImportStatus::Pending, $document->imports()->firstOrFail()->status);
+        $this->assertSame(SourceDocumentStatus::Rejected, $document->status);
+        $this->assertSame(ImportStatus::Failed, $document->imports()->firstOrFail()->status);
         Storage::disk('private')->assertExists($document->path);
         $this->assertDatabaseHas('audit_logs', [
             'event' => 'source_document.uploaded',

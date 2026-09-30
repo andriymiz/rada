@@ -94,7 +94,7 @@ class PdfTextExtractor
     }
 
     /**
-     * @param array<string, array<int, string>> $fonts
+     * @param  array<string, array<int, string>>  $fonts
      */
     private function extractPage(string $object, array $fonts): string
     {
@@ -118,11 +118,13 @@ class PdfTextExtractor
         foreach ($tokens as $token) {
             if ($token[1] !== '') {
                 $font = $token[1];
+
                 continue;
             }
 
             if ($token[0] === 'T*') {
                 $text .= "\n";
+
                 continue;
             }
 

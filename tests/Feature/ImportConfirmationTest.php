@@ -74,6 +74,19 @@ class ImportConfirmationTest extends TestCase
         $this->assertDatabaseHas('imports', ['id' => $import->id, 'status' => ImportStatus::NeedsReview->value]);
     }
 
+    public function test_another_user_cannot_view_confirm_or_delete_an_import(): void
+    {
+        [$owner, $import] = $this->createImport();
+        $otherUser = User::factory()->create();
+
+        $this->actingAs($otherUser)->get(route('imports.show', $import))->assertForbidden();
+        $this->actingAs($otherUser)->post(route('imports.confirm', $import))->assertForbidden();
+        $this->actingAs($otherUser)->delete(route('imports.destroy', $import))->assertForbidden();
+
+        $this->assertDatabaseHas('imports', ['id' => $import->id, 'uploaded_by' => $owner->id]);
+        $this->assertDatabaseCount('roll_call_votes', 0);
+    }
+
     public function test_cancel_removes_import_document_and_staging_records(): void
     {
         [$user, $import] = $this->createImport();

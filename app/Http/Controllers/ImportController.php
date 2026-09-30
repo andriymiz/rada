@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreImportRequest;
+use App\Models\AuditLog;
 use App\Models\Import;
 use App\Services\ImportConfirmationService;
-use App\Services\SourceDocumentUploadService;
 use App\Services\SessionPdfImportService;
+use App\Services\SourceDocumentUploadService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ImportController extends Controller
@@ -38,7 +42,12 @@ class ImportController extends Controller
             $request->user(),
             $request->string('session_number')->toString(),
         );
-        $pdfImportService->import($import->load('sourceDocument'));
+        $records = $pdfImportService->import($import);
+
+        if ($records === 0) {
+            return redirect()->route('imports.show', $import)
+                ->with('error', 'PDF збережено, але не вдалося розпізнати сторінки сесії. Чернетку можна видалити.');
+        }
 
         return redirect()->route('imports.show', $import)
             ->with('status', 'PDF завантажено та імпортовано до staging для перевірки.');
@@ -46,19 +55,22 @@ class ImportController extends Controller
 
     public function show(Import $import): View
     {
-        abort_unless($import->uploaded_by === request()->user()->id, 403);
+        Gate::authorize('view', $import);
 
         return view('imports.show', [
             'import' => $import->load(['sourceDocument', 'uploader', 'session', 'stagedRecords']),
         ]);
     }
 
-    public function confirm(Import $import, ImportConfirmationService $confirmationService): RedirectResponse
-    {
-        abort_unless($import->uploaded_by === request()->user()->id, 403);
+    public function confirm(
+        Request $request,
+        Import $import,
+        ImportConfirmationService $confirmationService,
+    ): RedirectResponse {
+        Gate::authorize('update', $import);
 
         try {
-            $confirmationService->confirm($import, request()->user());
+            $confirmationService->confirm($import, $request->user());
         } catch (\RuntimeException $exception) {
             return back()->withErrors(['import' => $exception->getMessage()]);
         }
@@ -67,16 +79,17 @@ class ImportController extends Controller
             ->with('status', 'Імпорт підтверджено та підготовлено до експорту.');
     }
 
-    public function destroy(Import $import): RedirectResponse
+    public function destroy(Request $request, Import $import): RedirectResponse
     {
-        abort_unless($import->uploaded_by === request()->user()->id, 403);
+        Gate::authorize('delete', $import);
 
+        $import->loadMissing('sourceDocument');
         $document = $import->sourceDocument;
         $disk = $document->disk;
         $path = $document->path;
 
-        \App\Models\AuditLog::create([
-            'user_id' => request()->user()->id,
+        AuditLog::create([
+            'user_id' => $request->user()->id,
             'event' => 'import.cancelled',
             'auditable_type' => Import::class,
             'auditable_id' => $import->id,
@@ -85,7 +98,7 @@ class ImportController extends Controller
 
         $import->delete();
         $document->delete();
-        \Illuminate\Support\Facades\Storage::disk($disk)->delete($path);
+        Storage::disk($disk)->delete($path);
 
         return redirect()->route('imports.index')->with('status', 'Чернетку імпорту видалено.');
     }

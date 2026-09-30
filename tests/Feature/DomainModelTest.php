@@ -57,10 +57,10 @@ class DomainModelTest extends TestCase
             'confirmed_at' => now(),
         ]);
 
-        $this->assertSame($department->id, $user->department->id);
-        $this->assertSame($session->id, $question->session->id);
-        $this->assertSame($deputy->id, $vote->deputy->id);
+        $this->assertSame($department->id, $user->load('department')->department->id);
+        $this->assertSame($session->id, $question->load('session')->session->id);
+        $this->assertSame($deputy->id, $vote->load('deputy')->deputy->id);
         $this->assertSame('Recognized name from source', $vote->original_name);
-        $this->assertSame($user->id, $document->uploader->id);
+        $this->assertSame($user->id, $document->load('uploader')->uploader->id);
     }
 }

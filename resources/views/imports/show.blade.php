@@ -8,6 +8,9 @@
         <p><strong>Файл:</strong> {{ $import->sourceDocument->original_name }}</p>
         <p><strong>Статус імпорту:</strong> {{ $import->status->value }}</p>
         <p><strong>Статус документа:</strong> {{ $import->sourceDocument->status->value }}</p>
+        @if ($import->notes)
+            <p><strong>Примітки:</strong> {{ $import->notes }}</p>
+        @endif
         <p><strong>SHA-256:</strong> <code>{{ $import->sourceDocument->sha256 }}</code></p>
         <p><strong>Розмір:</strong> {{ number_format($import->sourceDocument->size / 1024, 1) }} KiB</p>
         <p><strong>Сесія:</strong> {{ $import->session?->title ?? 'Сесія №'.$import->session_number }}</p>

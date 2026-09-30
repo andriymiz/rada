@@ -8,6 +8,9 @@ use App\Enums\StagedRecordStatus;
 use App\Enums\VoteResult;
 use App\Models\Import;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
+use RuntimeException;
 
 class SessionPdfImportService
 {
@@ -15,26 +18,35 @@ class SessionPdfImportService
 
     public function import(Import $import): int
     {
-        $path = $import->sourceDocument->disk === 'private'
-            ? storage_path('app/private/'.$import->sourceDocument->path)
-            : storage_path('app/'.$import->sourceDocument->path);
+        $import->loadMissing('sourceDocument');
+        $document = $import->sourceDocument;
+
+        if ($import->session_number === null) {
+            throw new InvalidArgumentException('A session number is required to import a PDF.');
+        }
+
+        $path = Storage::disk($document->disk)->path($document->path);
 
         if (! is_file($path)) {
-            return 0;
+            throw new RuntimeException('The uploaded PDF could not be found in storage.');
         }
 
         $pages = $this->extractor->pages($path);
         $sessionPages = array_values(array_filter($pages, static fn (string $page): bool => preg_match('/№\d+\(.*?\) №\d+/u', $page) === 1));
 
         if ($sessionPages === []) {
+            DB::transaction(function () use ($document, $import): void {
+                $import->update([
+                    'status' => ImportStatus::Failed,
+                    'notes' => 'Не вдалося знайти у PDF сторінки сесії для імпорту.',
+                ]);
+                $document->update(['status' => SourceDocumentStatus::Rejected]);
+            });
+
             return 0;
         }
 
-        return DB::transaction(function () use ($import, $sessionPages): int {
-            if ($import->session_number === null) {
-                return 0;
-            }
-
+        return DB::transaction(function () use ($document, $import, $sessionPages): int {
             $records = 0;
 
             foreach ($sessionPages as $page) {
@@ -47,6 +59,7 @@ class SessionPdfImportService
                         'validation_error' => 'Не вдалося розпізнати номер питання та його заголовок.',
                     ]);
                     $records++;
+
                     continue;
                 }
 
@@ -95,7 +108,7 @@ class SessionPdfImportService
 
             if ($records > 0) {
                 $import->update(['status' => ImportStatus::NeedsReview]);
-                $import->sourceDocument->update(['status' => SourceDocumentStatus::Processed]);
+                $document->update(['status' => SourceDocumentStatus::Processed]);
             }
 
             return $records;

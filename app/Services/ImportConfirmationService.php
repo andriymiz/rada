@@ -20,7 +20,11 @@ class ImportConfirmationService
     public function confirm(Import $import, User $user): void
     {
         DB::transaction(function () use ($import, $user): void {
-            $import = Import::query()->whereKey($import->id)->lockForUpdate()->firstOrFail();
+            $import = Import::query()
+                ->with('sourceDocument')
+                ->whereKey($import->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             if ($import->status === ImportStatus::Confirmed) {
                 return;
