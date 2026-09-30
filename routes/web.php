@@ -14,7 +14,8 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
-    Route::get('/exports/votes.csv', VoteExportController::class)->name('exports.votes');
+    Route::get('/exports/motions.csv', [VoteExportController::class, 'motions'])->name('exports.motions');
+    Route::get('/exports/votings.csv', [VoteExportController::class, 'votings'])->name('exports.votings');
 
     Route::get('/imports', [ImportController::class, 'index'])->name('imports.index');
     Route::get('/imports/create', [ImportController::class, 'create'])->name('imports.create');
