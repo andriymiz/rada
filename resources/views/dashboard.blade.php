@@ -10,5 +10,6 @@
         <p>Неперевірених staging-записів: <strong>{{ $pendingCount }}</strong></p>
         <p>Підтверджених голосів: <strong>{{ $confirmedCount }}</strong></p>
         <a class="button" href="{{ route('imports.index') }}">Перейти до імпортів</a>
+        <a class="button" href="{{ route('exports.votes') }}">Завантажити CSV голосувань</a>
     </section>
 @endsection

@@ -27,6 +27,7 @@
     @auth
         <a href="{{ route('dashboard') }}">Панель</a>
         <a href="{{ route('imports.index') }}">Імпорти</a>
+        <a href="{{ route('exports.votes') }}">Експорт голосувань</a>
         <form method="post" action="{{ route('logout') }}">@csrf <button type="submit">Вийти</button></form>
     @endauth
 </header>
