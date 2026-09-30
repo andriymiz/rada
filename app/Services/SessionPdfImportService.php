@@ -57,6 +57,7 @@ class SessionPdfImportService
                     PREG_SET_ORDER,
                 );
 
+                $pageRecords = 0;
                 foreach ($votes as $vote) {
                     $name = trim($vote[1]);
                     $rawResult = $vote[2];
@@ -72,6 +73,18 @@ class SessionPdfImportService
                             'validation_error' => null,
                         ],
                     );
+                    $records++;
+                    $pageRecords++;
+                }
+
+                if ($pageRecords === 0) {
+                    $import->stagedRecords()->create([
+                        'question_number' => $questionMatch[2],
+                        'question_title' => trim($questionMatch[3]),
+                        'raw_payload' => ['page' => $page],
+                        'status' => StagedRecordStatus::Rejected,
+                        'validation_error' => 'Не знайдено жодного розпізнаного голосу.',
+                    ]);
                     $records++;
                 }
             }
