@@ -72,7 +72,6 @@
                     @endforeach
                 </ul>
             </div>
-        </div>
         @endif
         @yield('content')
     </div>
