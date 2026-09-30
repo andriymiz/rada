@@ -6,6 +6,7 @@ use App\Http\Requests\StoreImportRequest;
 use App\Models\CouncilSession;
 use App\Models\Import;
 use App\Services\SourceDocumentUploadService;
+use App\Services\SessionPdfImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -31,15 +32,17 @@ class ImportController extends Controller
     public function store(
         StoreImportRequest $request,
         SourceDocumentUploadService $uploadService,
+        SessionPdfImportService $pdfImportService,
     ): RedirectResponse {
         $import = $uploadService->upload(
             $request->file('document'),
             $request->user(),
             $request->integer('session_id') ?: null,
         );
+        $pdfImportService->import($import->load('sourceDocument'));
 
         return redirect()->route('imports.show', $import)
-            ->with('status', 'PDF завантажено. Розпізнавання ще не виконується.');
+            ->with('status', 'PDF завантажено та імпортовано до staging для перевірки.');
     }
 
     public function show(Import $import): View
