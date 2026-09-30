@@ -12,12 +12,16 @@ class StagedVoteRecord extends Model
     protected $fillable = [
         'import_id',
         'question_id',
+        'question_number',
+        'question_title',
         'deputy_id',
+        'deputy_name',
         'original_name',
         'raw_result',
         'recognized_result',
         'raw_payload',
         'status',
+        'validation_error',
         'reviewed_by',
         'reviewed_at',
     ];

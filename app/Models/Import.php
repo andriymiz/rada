@@ -12,6 +12,7 @@ class Import extends Model
     protected $fillable = [
         'source_document_id',
         'session_id',
+        'session_number',
         'uploaded_by',
         'status',
         'notes',

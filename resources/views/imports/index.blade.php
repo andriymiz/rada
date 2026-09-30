@@ -4,6 +4,7 @@
 
 @section('content')
     <h1>Імпорти</h1>
+    @if (session('status')) <p>{{ session('status') }}</p> @endif
     <p>Документи зберігаються приватно. PDF parser/OCR буде доданий після аналізу дозволеного зразка.</p>
     <p><a class="button" href="{{ route('imports.create') }}">Завантажити PDF</a></p>
     @if ($imports->isEmpty())

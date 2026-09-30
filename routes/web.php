@@ -18,4 +18,6 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/imports/create', [ImportController::class, 'create'])->name('imports.create');
     Route::post('/imports', [ImportController::class, 'store'])->name('imports.store');
     Route::get('/imports/{import}', [ImportController::class, 'show'])->name('imports.show');
+    Route::post('/imports/{import}/confirm', [ImportController::class, 'confirm'])->name('imports.confirm');
+    Route::delete('/imports/{import}', [ImportController::class, 'destroy'])->name('imports.destroy');
 });
