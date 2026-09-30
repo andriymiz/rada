@@ -15,7 +15,7 @@ class QuestionFactory extends Factory
         return [
             'session_id' => CouncilSession::factory(),
             'question_number' => (string) $this->faker->unique()->numberBetween(1, 999999),
-            'title' => 'Тестове питання',
+            'title' => 'Test question',
         ];
     }
 }

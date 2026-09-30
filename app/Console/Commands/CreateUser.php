@@ -13,25 +13,25 @@ class CreateUser extends Command
 
     public function handle(): int
     {
-        $name = $this->ask('Ім’я користувача');
-        $email = $this->ask('Електронна пошта');
+        $name = $this->ask('User name');
+        $email = $this->ask('Email address');
 
         if (! is_string($name) || trim($name) === '' || ! is_string($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->error('Вкажіть ім’я та коректну адресу електронної пошти.');
+            $this->error('Enter a name and a valid email address.');
 
             return self::FAILURE;
         }
 
         if (User::where('email', $email)->exists()) {
-            $this->error('Користувач із такою адресою вже існує.');
+            $this->error('A user with this email address already exists.');
 
             return self::FAILURE;
         }
 
-        $password = $this->secret('Пароль (не менше 12 символів)');
+        $password = $this->secret('Password (at least 12 characters)');
 
         if (! is_string($password) || mb_strlen($password) < 12) {
-            $this->error('Пароль має містити щонайменше 12 символів.');
+            $this->error('The password must contain at least 12 characters.');
 
             return self::FAILURE;
         }
@@ -43,7 +43,7 @@ class CreateUser extends Command
             'is_active' => true,
         ]);
 
-        $this->info('Обліковий запис створено.');
+        $this->info('User account created.');
 
         return self::SUCCESS;
     }

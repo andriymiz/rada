@@ -51,7 +51,7 @@ class DomainModelTest extends TestCase
         $vote = RollCallVote::create([
             'question_id' => $question->id,
             'deputy_id' => $deputy->id,
-            'original_name' => 'Розпізнане ім’я з джерела',
+            'original_name' => 'Recognized name from source',
             'result' => VoteResult::For,
             'confirmed_by' => $user->id,
             'confirmed_at' => now(),
@@ -60,7 +60,7 @@ class DomainModelTest extends TestCase
         $this->assertSame($department->id, $user->department->id);
         $this->assertSame($session->id, $question->session->id);
         $this->assertSame($deputy->id, $vote->deputy->id);
-        $this->assertSame('Розпізнане ім’я з джерела', $vote->original_name);
+        $this->assertSame('Recognized name from source', $vote->original_name);
         $this->assertSame($user->id, $document->uploader->id);
     }
 }

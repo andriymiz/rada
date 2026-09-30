@@ -14,17 +14,17 @@ class DatabaseSeeder extends Seeder
     {
         Department::firstOrCreate(
             ['slug' => 'demo-department'],
-            ['name' => 'Демонстраційний підрозділ'],
+            ['name' => 'Demonstration department'],
         );
 
-        foreach (['Демонстраційний депутат 1', 'Демонстраційний депутат 2'] as $name) {
+        foreach (['Demonstration deputy 1', 'Demonstration deputy 2'] as $name) {
             Deputy::firstOrCreate(['name' => $name], ['is_active' => true]);
         }
 
         $session = CouncilSession::firstOrCreate(
             ['session_number' => 'demo-01'],
             [
-                'title' => 'Демонстраційна сесія',
+                'title' => 'Demonstration session',
                 'held_at' => null,
                 'status' => 'scheduled',
             ],
@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
 
         Question::firstOrCreate(
             ['session_id' => $session->id, 'question_number' => 'demo-01'],
-            ['title' => 'Демонстраційне питання (без результатів голосування)'],
+            ['title' => 'Demonstration question (no voting results)'],
         );
     }
 }

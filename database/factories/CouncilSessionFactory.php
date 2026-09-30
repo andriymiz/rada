@@ -14,7 +14,7 @@ class CouncilSessionFactory extends Factory
         $number = $this->faker->unique()->numberBetween(1, 999999);
 
         return [
-            'title' => 'Тестова сесія '.$number,
+            'title' => 'Test session '.$number,
             'session_number' => (string) $number,
             'held_at' => $this->faker->date(),
             'status' => 'scheduled',

@@ -13,7 +13,7 @@ class DeputyFactory extends Factory
     {
         return [
             'external_id' => null,
-            'name' => 'Тестовий депутат '.$this->faker->unique()->numberBetween(1, 999999),
+            'name' => 'Test deputy '.$this->faker->unique()->numberBetween(1, 999999),
             'is_active' => true,
         ];
     }
