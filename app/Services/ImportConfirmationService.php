@@ -49,8 +49,14 @@ class ImportConfirmationService
             foreach ($records as $record) {
                 $question = Question::firstOrCreate(
                     ['session_id' => $session->id, 'question_number' => $record->question_number],
-                    ['title' => $record->question_title],
+                    [
+                        'title' => $record->question_title,
+                        'voting_result' => $record->voting_result,
+                    ],
                 );
+                if ($question->voting_result === null && $record->voting_result !== null) {
+                    $question->update(['voting_result' => $record->voting_result]);
+                }
                 $deputy = Deputy::firstOrCreate(
                     ['name' => $record->deputy_name],
                     ['is_active' => true],

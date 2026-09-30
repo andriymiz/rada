@@ -12,13 +12,11 @@ class VoteExportController extends Controller
         $totals = DB::table('roll_call_votes')
             ->whereNotNull('confirmed_at')
             ->select('question_id')
-            ->selectRaw('COUNT(*) AS votes_total')
-            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS votes_for', ['for'])
-            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS votes_against', ['against'])
-            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS votes_abstained', ['abstained'])
-            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS votes_not_voted', ['not_voted'])
-            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS votes_absent', ['absent'])
-            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS votes_unknown', ['unknown'])
+            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS voting_for', ['for'])
+            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS voting_against', ['against'])
+            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS voting_abstain', ['abstained'])
+            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS not_voting', ['not_voted'])
+            ->selectRaw('SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) AS absent', ['absent'])
             ->groupBy('question_id');
 
         $rows = DB::table('questions')
@@ -32,55 +30,79 @@ class VoteExportController extends Controller
                 'sessions.id as session_id',
                 'sessions.session_number',
                 'sessions.held_at as session_date',
-                'sessions.title as session_title',
-                'questions.question_number as motion_number',
-                'questions.title as motion_text',
-                'totals.votes_total',
-                'totals.votes_for',
-                'totals.votes_against',
-                'totals.votes_abstained',
-                'totals.votes_not_voted',
-                'totals.votes_absent',
-                'totals.votes_unknown',
+                'questions.question_number',
+                'questions.title',
+                'questions.project_number',
+                'questions.voting_result',
+                'questions.decision_document_url',
+                'questions.decision_document_name',
+                'totals.voting_for',
+                'totals.voting_against',
+                'totals.voting_abstain',
+                'totals.not_voting',
+                'totals.absent',
             ])
             ->cursor();
 
-        return $this->download(
-            'motions.csv',
-            [
-                'motion_id',
-                'session_id',
-                'session_number',
-                'session_date',
-                'session_title',
-                'motion_number',
-                'motion_text',
-                'votes_total',
-                'votes_for',
-                'votes_against',
-                'votes_abstained',
-                'votes_not_voted',
-                'votes_absent',
-                'votes_unknown',
-            ],
-            $rows,
-            static fn (object $motion): array => [
-                $motion->motion_id,
-                $motion->session_id,
-                $motion->session_number,
+        $headers = [
+            'uid',
+            'date',
+            'authorityName',
+            'authorityId',
+            'authorityCattutc',
+            'convocation',
+            'legislativeSession',
+            'number',
+            'title',
+            'projectNumber',
+            'votingFor',
+            'votingAgainst',
+            'votingAbstain',
+            'notVoting',
+            'absent',
+            'votingResult',
+            'textUrl',
+            'text',
+        ];
+
+        return $this->download('motions.csv', $headers, $rows, function (object $motion): array {
+            $votingResult = $motion->voting_result;
+            if ($votingResult === null && $motion->voting_for === null) {
+                $votingResult = 'Не розглядали';
+            } elseif (
+                $votingResult === null
+                && (int) $motion->voting_for === 0
+                && (int) $motion->voting_against === 0
+                && (int) $motion->voting_abstain === 0
+                && ((int) $motion->not_voting > 0 || (int) $motion->absent > 0)
+            ) {
+                $votingResult = 'Не голосували';
+            }
+
+            return [
+                $this->motionUid($motion->session_date, $motion->session_id, $motion->question_number),
                 $motion->session_date,
-                $motion->session_title,
-                $motion->motion_number,
-                $motion->motion_text,
-                $motion->votes_total ?? 0,
-                $motion->votes_for ?? 0,
-                $motion->votes_against ?? 0,
-                $motion->votes_abstained ?? 0,
-                $motion->votes_not_voted ?? 0,
-                $motion->votes_absent ?? 0,
-                $motion->votes_unknown ?? 0,
-            ],
-        );
+                config('rada.open_data.authority_name'),
+                config('rada.open_data.authority_id'),
+                config('rada.open_data.authority_cattutc'),
+                config('rada.open_data.convocation'),
+                $motion->session_number,
+                preg_match('/^\d+$/D', $motion->question_number) === 1 ? (int) $motion->question_number : '',
+                $motion->title,
+                $motion->project_number,
+                $motion->voting_for,
+                $motion->voting_against,
+                $motion->voting_abstain,
+                $motion->not_voting,
+                $motion->absent,
+                $votingResult,
+                is_string($motion->decision_document_url)
+                    && preg_match('/^https?:\/\//i', $motion->decision_document_url) === 1
+                    ? $motion->decision_document_url
+                    : '',
+                $motion->decision_document_name,
+            ];
+        });
     }
 
     public function votings(): StreamedResponse
@@ -95,26 +117,40 @@ class VoteExportController extends Controller
             ->orderBy('questions.id')
             ->orderBy('votes.id')
             ->select([
-                'votes.id as voting_id',
-                'questions.id as motion_id',
-                'deputies.external_id as deputy_external_id',
-                'deputies.name as deputy_name',
+                'sessions.id as session_id',
+                'sessions.held_at as session_date',
+                'questions.question_number',
+                'questions.title as motion_title',
+                'deputies.external_id as voter_id',
+                'deputies.name as voter_name',
                 'votes.result',
             ])
             ->cursor();
 
         return $this->download(
             'votings.csv',
-            ['voting_id', 'motion_id', 'deputy_external_id', 'deputy_name', 'vote'],
+            ['motionUid', 'voterId', 'voterName', 'motionTitle', 'result'],
             $rows,
-            static fn (object $voting): array => [
-                $voting->voting_id,
-                $voting->motion_id,
-                $voting->deputy_external_id,
-                $voting->deputy_name,
-                $voting->result,
+            fn (object $voting): array => [
+                $this->motionUid($voting->session_date, $voting->session_id, $voting->question_number),
+                $voting->voter_id,
+                $voting->voter_name,
+                $voting->motion_title,
+                match ($voting->result) {
+                    'for' => 'За',
+                    'against' => 'Проти',
+                    'abstained' => 'Утримався',
+                    'not_voted' => 'Не голосував',
+                    'absent' => 'Відсутній',
+                    default => '',
+                },
             ],
         );
+    }
+
+    private function motionUid(?string $date, int $sessionId, string $number): string
+    {
+        return ($date ?? 'session-'.$sessionId).'-'.$number;
     }
 
     private function download(string $filename, array $headers, iterable $rows, callable $columns): StreamedResponse

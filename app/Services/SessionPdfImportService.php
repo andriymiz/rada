@@ -38,7 +38,7 @@ class SessionPdfImportService
             $records = 0;
 
             foreach ($sessionPages as $page) {
-                preg_match('/№(\d+)\(.*?\) №(\d+)\s+(.*?)РІШЕННЯ\s+(?:НЕ\s+)?ПРИЙНЯТО/u', $page, $questionMatch);
+                preg_match('/№(\d+)\(.*?\) №(\d+)\s+(.*?)РІШЕННЯ\s+(НЕ\s+)?ПРИЙНЯТО/u', $page, $questionMatch);
 
                 if (! isset($questionMatch[2])) {
                     $import->stagedRecords()->create([
@@ -49,6 +49,8 @@ class SessionPdfImportService
                     $records++;
                     continue;
                 }
+
+                $votingResult = ($questionMatch[4] ?? '') === 'НЕ' ? 'Не прийнято' : 'Прийнято';
 
                 preg_match_all(
                     '/([\p{L}’ʼ\'-]+\s+[А-ЯІЇЄҐA-Z]\.[А-ЯІЇЄҐA-Zа-яіїєґ]?\.?)\s*-\s*(Відсутній|Утримався|Не голосував|За|Проти)/u',
@@ -65,6 +67,7 @@ class SessionPdfImportService
                         ['question_number' => $questionMatch[2], 'deputy_name' => $name],
                         [
                             'question_title' => trim($questionMatch[3]),
+                            'voting_result' => $votingResult,
                             'original_name' => $name,
                             'raw_result' => $rawResult,
                             'recognized_result' => $this->result($rawResult),
@@ -81,6 +84,7 @@ class SessionPdfImportService
                     $import->stagedRecords()->create([
                         'question_number' => $questionMatch[2],
                         'question_title' => trim($questionMatch[3]),
+                        'voting_result' => $votingResult,
                         'raw_payload' => ['page' => $page],
                         'status' => StagedRecordStatus::Rejected,
                         'validation_error' => 'Не знайдено жодного розпізнаного голосу.',
