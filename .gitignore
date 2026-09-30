@@ -21,6 +21,16 @@ Homestead.yaml
 Homestead.json
 /.vagrant
 .phpunit.result.cache
+/.phpunit.cache
+/bootstrap/cache/*.php
+/storage/app/private/
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*
+/database/database.sqlite
+*.pdf
 
 /public/build
 /storage/pail
