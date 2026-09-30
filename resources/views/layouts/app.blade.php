@@ -3,56 +3,42 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#1769ff">
+    <meta name="theme-color" content="#ffffff">
     <title>@yield('title', 'Портал ради') — RADA</title>
     @vite('resources/css/app.css')
 </head>
 <body class="bg-base-200 text-base-content antialiased">
-<div class="h-1.5 bg-gradient-to-r from-primary via-accent to-secondary"></div>
-<header class="border-b border-base-300/70 bg-base-100/95">
-    <div class="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between gap-4">
-            <a class="group flex items-center gap-3 rounded-2xl" href="{{ auth()->check() ? route('dashboard') : route('login') }}">
-                <span class="grid size-12 place-items-center rounded-2xl bg-primary text-xl font-black tracking-tight text-primary-content shadow-lg shadow-primary/20">R</span>
-                <span>
-                    <span class="block text-lg font-black tracking-tight">RADA</span>
-                    <span class="block text-xs font-medium text-base-content/60">Цифрові сервіси ради</span>
-                </span>
+<header class="border-b-2 border-black bg-base-100">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex min-h-[4.5rem] items-center gap-5 sm:gap-8">
+            <a class="flex shrink-0 items-center gap-3" href="{{ auth()->check() ? route('dashboard') : route('login') }}" aria-label="RADA — головна сторінка">
+                <span class="grid size-8 place-items-center rounded-lg bg-black text-sm font-black text-white">R</span>
+                <span class="hidden text-sm font-bold tracking-tight sm:inline">RADA</span>
             </a>
             @auth
-                <div class="hidden items-center gap-3 sm:flex">
-                    <span class="max-w-48 truncate text-sm font-semibold">{{ auth()->user()->name }}</span>
+                <nav aria-label="Головна навігація" class="flex min-w-0 flex-1 items-center gap-6 overflow-x-auto whitespace-nowrap text-sm font-medium [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-8">
+                    <a class="border-b-2 py-6 {{ request()->routeIs('dashboard') ? 'border-black font-bold' : 'border-transparent hover:border-black' }}" href="{{ route('dashboard') }}">Огляд</a>
+                    <a class="border-b-2 py-6 {{ request()->routeIs('imports.*') ? 'border-black font-bold' : 'border-transparent hover:border-black' }}" href="{{ route('imports.index') }}">Документи та імпорти</a>
+                    <details class="dropdown">
+                        <summary class="cursor-pointer list-none py-6 hover:underline">Відкриті дані <span aria-hidden="true">⌄</span></summary>
+                        <ul class="menu dropdown-content z-10 mt-0 w-64 rounded-none border border-black/15 bg-base-100 p-2 shadow-lg">
+                            <li><a href="{{ route('exports.motions') }}">Порядок денний <span class="text-xs text-base-content/50">motions.csv</span></a></li>
+                            <li><a href="{{ route('exports.votings') }}">Поіменні голоси <span class="text-xs text-base-content/50">votings.csv</span></a></li>
+                        </ul>
+                    </details>
+                </nav>
+                <div class="flex shrink-0 items-center gap-2">
+                    <span class="hidden max-w-48 truncate text-sm font-medium lg:inline">{{ auth()->user()->name }}</span>
                     <form method="post" action="{{ route('logout') }}">
                         @csrf
-                        <button class="btn btn-ghost btn-sm rounded-full" type="submit">Вийти</button>
+                        <button class="btn btn-ghost btn-sm rounded-full font-semibold" type="submit">Вийти</button>
                     </form>
                 </div>
             @endauth
         </div>
-        @auth
-            <nav aria-label="Головна навігація" class="flex flex-wrap items-center gap-2">
-                <a class="btn btn-sm rounded-full {{ request()->routeIs('dashboard') ? 'btn-primary' : 'btn-ghost' }}" href="{{ route('dashboard') }}">Огляд</a>
-                <a class="btn btn-sm rounded-full {{ request()->routeIs('imports.*') ? 'btn-primary' : 'btn-ghost' }}" href="{{ route('imports.index') }}">Документи та імпорти</a>
-                <div class="hidden flex-1 sm:block"></div>
-                <details class="dropdown dropdown-end">
-                    <summary class="btn btn-sm btn-outline rounded-full">Відкриті дані <span aria-hidden="true">⌄</span></summary>
-                    <ul class="menu dropdown-content z-10 mt-2 w-64 rounded-2xl border border-base-300 bg-base-100 p-2 shadow-xl">
-                        <li><a href="{{ route('exports.motions') }}">Порядок денний <span class="text-xs text-base-content/50">motions.csv</span></a></li>
-                        <li><a href="{{ route('exports.votings') }}">Поіменні голоси <span class="text-xs text-base-content/50">votings.csv</span></a></li>
-                    </ul>
-                </details>
-                <div class="flex w-full items-center justify-between border-t border-base-300 pt-3 sm:hidden">
-                    <span class="max-w-48 truncate text-sm font-semibold">{{ auth()->user()->name }}</span>
-                    <form method="post" action="{{ route('logout') }}">
-                        @csrf
-                        <button class="btn btn-ghost btn-sm rounded-full" type="submit">Вийти</button>
-                    </form>
-                </div>
-            </nav>
-        @endauth
     </div>
 </header>
-<main class="mx-auto min-h-[70vh] w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+<main class="mx-auto min-h-[75vh] w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
     <div class="mx-auto max-w-6xl">
         @if (session('status'))
             <div class="alert alert-success mb-6 rounded-2xl shadow-sm" role="status">

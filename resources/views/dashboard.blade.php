@@ -3,25 +3,31 @@
 @section('title', 'Панель')
 
 @section('content')
-    <section class="relative isolate overflow-hidden rounded-[2rem] bg-primary px-6 py-8 text-primary-content shadow-xl shadow-primary/15 sm:px-10 sm:py-12">
-        <div aria-hidden="true" class="absolute -right-16 -top-24 -z-10 size-72 rounded-full bg-white/10 sm:size-96"></div>
-        <div aria-hidden="true" class="absolute -bottom-28 right-1/3 -z-10 size-56 rounded-full bg-secondary/30 blur-2xl"></div>
-        <div class="max-w-2xl">
-            <span class="badge badge-secondary mb-5 border-0 px-4 py-3 font-bold text-secondary-content">РОБОЧИЙ ПРОСТІР РАДИ</span>
-            <h1 class="text-3xl font-black leading-tight tracking-tight sm:text-5xl">Важливі справи —<br class="hidden sm:block"> в одному місці</h1>
-            <p class="mt-4 max-w-xl text-base leading-7 text-primary-content/80 sm:text-lg">Завантажуйте документи засідань, перевіряйте розпізнані голоси та готуйте підтверджені дані до експорту.</p>
-            <a class="btn btn-secondary mt-7 rounded-full px-6 font-bold shadow-lg shadow-black/10" href="{{ route('imports.create') }}">
-                Завантажити документ
-                <span aria-hidden="true">→</span>
+    <section class="grid overflow-hidden border border-black/10 bg-base-100 lg:grid-cols-[1.1fr_0.9fr]">
+        <div class="px-6 py-10 sm:px-10 sm:py-14 lg:px-14">
+            <p class="text-sm font-bold uppercase tracking-[0.12em] text-base-content/55">Цифрові сервіси ради</p>
+            <h1 class="mt-8 max-w-2xl text-4xl font-medium leading-[1.08] tracking-tight sm:text-6xl">Робочий простір<br>для важливих справ</h1>
+            <p class="mt-5 max-w-xl text-lg leading-7 text-base-content/65">Документи засідань, перевірка поіменних голосувань і відкриті дані — в одному місці.</p>
+            <a class="btn btn-primary mt-7 h-12 rounded-full px-7" href="{{ route('imports.create') }}">
+                Завантажити документ <span aria-hidden="true">→</span>
             </a>
         </div>
+        <aside class="flex items-center bg-base-200 px-6 py-9 sm:px-10 lg:px-12">
+            <div>
+                <div class="flex items-center gap-4">
+                    <span class="grid size-10 shrink-0 place-items-center bg-secondary text-2xl" aria-hidden="true">!</span>
+                    <h2 class="text-xl font-medium">Перевіряйте перед підтвердженням</h2>
+                </div>
+                <p class="mt-5 leading-6">Розпізнані записи — це чернетки. Звірте їх із документом, перш ніж переносити дані до підтверджених голосів.</p>
+            </div>
+        </aside>
     </section>
 
     <section aria-labelledby="overview-heading" class="mt-10">
         <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
-                <p class="text-sm font-bold uppercase tracking-[0.16em] text-primary">Огляд системи</p>
-                <h2 id="overview-heading" class="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Стан роботи</h2>
+                <p class="text-sm font-bold uppercase tracking-[0.12em] text-base-content/55">Огляд системи</p>
+                <h2 id="overview-heading" class="mt-1 text-2xl font-medium tracking-tight sm:text-3xl">Стан роботи</h2>
             </div>
             <a class="link link-primary font-bold" href="{{ route('imports.index') }}">Усі імпорти <span aria-hidden="true">→</span></a>
         </div>
@@ -61,8 +67,8 @@
 
     <section aria-labelledby="services-heading" class="mt-10">
         <div class="mb-5">
-            <p class="text-sm font-bold uppercase tracking-[0.16em] text-primary">Сервіси</p>
-            <h2 id="services-heading" class="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Що потрібно зробити?</h2>
+            <p class="text-sm font-bold uppercase tracking-[0.12em] text-base-content/55">Сервіси</p>
+            <h2 id="services-heading" class="mt-1 text-2xl font-medium tracking-tight sm:text-3xl">Що потрібно зробити?</h2>
         </div>
         <div class="grid gap-4 lg:grid-cols-3">
             <a class="group card rounded-3xl border border-base-300/70 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg" href="{{ route('imports.create') }}">
