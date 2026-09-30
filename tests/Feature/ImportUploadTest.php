@@ -28,6 +28,7 @@ class ImportUploadTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('imports.store'), [
             'document' => UploadedFile::fake()->create('minutes.pdf', 50, 'application/pdf'),
+            'session_number' => 'test-01',
         ]);
 
         $response->assertRedirect();
@@ -49,10 +50,12 @@ class ImportUploadTest extends TestCase
 
         $this->actingAs($user)->post(route('imports.store'), [
             'document' => UploadedFile::fake()->createWithContent('first.pdf', $payload),
+            'session_number' => 'test-01',
         ])->assertRedirect();
 
         $this->actingAs($user)->from(route('imports.create'))->post(route('imports.store'), [
             'document' => UploadedFile::fake()->createWithContent('second.pdf', $payload),
+            'session_number' => 'test-01',
         ])->assertSessionHasErrors('document');
 
         $this->assertDatabaseCount('source_documents', 1);
@@ -66,6 +69,7 @@ class ImportUploadTest extends TestCase
             ->from(route('imports.create'))
             ->post(route('imports.store'), [
                 'document' => UploadedFile::fake()->createWithContent('notes.txt', 'not a PDF'),
+                'session_number' => 'test-01',
             ])
             ->assertSessionHasErrors('document');
 
