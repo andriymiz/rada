@@ -128,7 +128,7 @@ class VoteExportTest extends TestCase
             'name' => 'Іваненко Іван',
         ]);
 
-        RollCallVote::create([
+        $confirmedVote = RollCallVote::create([
             'question_id' => $question->id,
             'deputy_id' => $deputy->id,
             'original_name' => 'Іваненко Іван',
@@ -152,7 +152,7 @@ class VoteExportTest extends TestCase
         $this->assertSame([
             ['voting_id', 'motion_id', 'deputy_external_id', 'deputy_name', 'vote'],
             [
-                '1',
+                (string) $confirmedVote->id,
                 (string) $question->id,
                 'dep-123',
                 'Іваненко Іван',
