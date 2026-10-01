@@ -13,12 +13,14 @@
 - PHP 8.3 або новіший із розширеннями Laravel, зокрема `mbstring`, `openssl`, `pdo`, `fileinfo`, `tokenizer`, `xml`, `ctype`, `json` і `bcmath`.
 - Composer 2.
 - SQLite для локального запуску або PostgreSQL/MySQL для спільного середовища.
-- Node.js/npm потрібні лише якщо надалі буде додано frontend-збірку; поточний інтерфейс використовує Blade і звичайний CSS.
+- Node.js/npm потрібні для frontend-збірки на Vite, Tailwind CSS і daisyUI. Інтерфейс залишається на Blade.
 
 ## Запуск локально
 
 ```sh
 composer install
+npm install
+npm run build
 cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
