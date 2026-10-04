@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@theme {
+    --font-sans: 'e-Ukraine', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-heading: 'e-Ukraine Head', 'e-Ukraine', ui-sans-serif, system-ui, sans-serif;
+    --font-logo: 'e-Ukraine Head Logo', 'e-Ukraine Head', sans-serif;
+}
+
+body {
+    font-family: var(--font-sans);
+}
+
+.rada-gradient {
+    background: linear-gradient(135deg, #00B2F1 0%, #FFFFFF 50%, #ABD145 100%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+}
+
+.font-logo {
+    font-family: var(--font-logo);
+}
