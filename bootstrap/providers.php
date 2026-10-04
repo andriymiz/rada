@@ -1,7 +1,11 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\Filament\PublicPanelProvider;
+use App\Providers\Filament\RadaPanelProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\Filament\PublicPanelProvider::class,
-    App\Providers\Filament\RadaPanelProvider::class,
+    AppServiceProvider::class,
+    PublicPanelProvider::class,
+    RadaPanelProvider::class,
 ];
