@@ -36,7 +36,7 @@ class RadaPanelTheme
             ])
             ->font(
                 'e-Ukraine',
-                url: Vite::asset('resources/css/fonts.css'),
+                url: fn (): string => Vite::asset('resources/css/fonts.css'),
                 provider: LocalFontProvider::class,
             );
     }
