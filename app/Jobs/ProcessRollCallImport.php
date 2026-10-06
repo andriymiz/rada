@@ -25,6 +25,7 @@ class ProcessRollCallImport implements ShouldQueue
     {
         $this->rollCallImport->update([
             'status' => RollCallImportStatus::Processing,
+            'error_message' => null,
         ]);
 
         Sleep::for(3)->seconds();
@@ -38,7 +39,8 @@ class ProcessRollCallImport implements ShouldQueue
         ]);
 
         $this->rollCallImport->update([
-            'status' => RollCallImportStatus::Completed,
+            'status' => RollCallImportStatus::AwaitingReview,
+            'parsed_result' => $parsedResult,
             'processed_at' => now(),
         ]);
 
@@ -58,6 +60,7 @@ class ProcessRollCallImport implements ShouldQueue
 
         $this->rollCallImport->update([
             'status' => RollCallImportStatus::Failed,
+            'error_message' => $exception?->getMessage() ?? 'Не вдалося визначити причину помилки.',
             'processed_at' => null,
         ]);
 

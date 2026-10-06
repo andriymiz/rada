@@ -24,9 +24,9 @@ class RollCallImportProcessed extends Notification
     public function toDatabase(object $notifiable): array
     {
         $notification = FilamentNotification::make()
-            ->title($this->successful ? 'Імпорт завершено' : 'Помилка імпорту')
+            ->title($this->successful ? 'Імпорт потребує підтвердження' : 'Помилка імпорту')
             ->body($this->successful
-                ? "Файл «{$this->filename}» успішно оброблено."
+                ? "Файл «{$this->filename}» оброблено. Перевірте та підтвердіть усі питання."
                 : "Не вдалося обробити файл «{$this->filename}».");
 
         return ($this->successful ? $notification->success() : $notification->danger())

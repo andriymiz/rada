@@ -9,6 +9,7 @@ enum RollCallImportStatus: string implements HasColor, HasLabel
 {
     case Queued = 'queued';
     case Processing = 'processing';
+    case AwaitingReview = 'awaiting_review';
     case Completed = 'completed';
     case Failed = 'failed';
 
@@ -17,7 +18,8 @@ enum RollCallImportStatus: string implements HasColor, HasLabel
         return match ($this) {
             self::Queued => 'У черзі',
             self::Processing => 'Обробляється',
-            self::Completed => 'Оброблено',
+            self::AwaitingReview => 'Очікує підтвердження',
+            self::Completed => 'Завершено',
             self::Failed => 'Помилка',
         };
     }
@@ -27,6 +29,7 @@ enum RollCallImportStatus: string implements HasColor, HasLabel
         return match ($this) {
             self::Queued => 'gray',
             self::Processing => 'info',
+            self::AwaitingReview => 'warning',
             self::Completed => 'success',
             self::Failed => 'danger',
         };

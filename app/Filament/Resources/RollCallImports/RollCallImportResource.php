@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\RollCallImports;
 
 use App\Enums\RollCallImportStatus;
-use App\Filament\Resources\RollCallImports\Pages\CreateRollCallImport;
+use App\Filament\Resources\RollCallImports\Pages\EditRollCallImport;
 use App\Filament\Resources\RollCallImports\Pages\ListRollCallImports;
 use App\Filament\Resources\RollCallImports\Pages\ViewRollCallImport;
 use App\Filament\Resources\RollCallImports\Schemas\RollCallImportForm;
@@ -46,17 +46,19 @@ class RollCallImportResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return false;
+        return $record instanceof RollCallImport
+            && $record->status === RollCallImportStatus::AwaitingReview
+            && parent::canEdit($record);
     }
 
     public static function canDelete(Model $record): bool
     {
-        return false;
+        return true;
     }
 
     public static function canDeleteAny(): bool
     {
-        return false;
+        return true;
     }
 
     public static function canView(Model $record): bool
@@ -75,8 +77,8 @@ class RollCallImportResource extends Resource
     {
         return [
             'index' => ListRollCallImports::route('/'),
-            'create' => CreateRollCallImport::route('/create'),
             'view' => ViewRollCallImport::route('/{record}'),
+            'edit' => EditRollCallImport::route('/{record}/edit'),
         ];
     }
 }
