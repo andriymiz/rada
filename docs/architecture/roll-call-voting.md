@@ -54,6 +54,10 @@ The portal's `votings` resource has no vote-event identifier, so it cannot disti
 
 The portal requires `motions.text` even when the item has no published decision, so the source record must have a document filename in that case as well. `textUrl`, when supplied, must be an HTTP or HTTPS URL.
 
+## PDF import parsing
+
+`RollCallPdfParser` extracts the session label, one agenda item per page, project number, title, result, vote totals, and voter names and choices. Party headings and role labels such as the council chair are ignored; a separately listed chairperson vote is parsed like any other individual vote. The parser checks that individual votes add up to the totals printed on each page. The queue job writes the parsed structure to the application log with the import ID and filename; it does not yet persist the parsed records to the voting tables. The parser is exercised against the six-page file in `tests/Fixtures/roll-call-votes-99.pdf`.
+
 ## Identifier and schema notes
 
 The portal recommends a stable motion UID such as `YYYY-MM-DD-agenda-number`. The database stores the UID as required, unique text rather than deriving it from mutable display labels. Importers should generate it deterministically from the meeting date and agenda number and retain the same value on later cumulative exports.

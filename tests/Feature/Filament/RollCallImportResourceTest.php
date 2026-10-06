@@ -11,9 +11,12 @@ use App\Models\ParliamentarySession;
 use App\Models\RollCallImport;
 use App\Models\User;
 use App\Notifications\RollCallImportProcessed;
+use App\Services\RollCallPdfParser;
 use Carbon\CarbonInterval;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -153,8 +156,14 @@ it('marks the import complete and notifies its uploader after the simulated work
     $import = RollCallImport::factory()->create();
 
     Sleep::fake();
+    Storage::fake('local');
+    Storage::disk('local')->put(
+        $import->file_path,
+        File::get(base_path('tests/Fixtures/roll-call-votes-99.pdf')),
+    );
+    Log::spy();
 
-    (new ProcessRollCallImport($import))->handle();
+    (new ProcessRollCallImport($import))->handle(app(RollCallPdfParser::class));
 
     $import->refresh();
     $notification = $import->user->notifications()->firstOrFail();
@@ -163,6 +172,15 @@ it('marks the import complete and notifies its uploader after the simulated work
         ->and($import->processed_at)->not->toBeNull()
         ->and($notification->data['title'])->toBe('Імпорт завершено')
         ->and($notification->data['format'])->toBe('filament');
+
+    Log::shouldHaveReceived('info')
+        ->once()
+        ->with('Roll-call PDF parsed', Mockery::on(fn (array $context): bool => $context['roll_call_import_id'] === $import->id
+            && $context['filename'] === $import->original_filename
+            && $context['parsed_result']['page_count'] === 6
+            && count($context['parsed_result']['motions']) === 6
+            && $context['parsed_result']['motions'][5]['question_number'] === 6
+            && count($context['parsed_result']['motions'][5]['votes']) === 16));
 
     Sleep::assertSlept(fn (CarbonInterval $duration): bool => $duration->totalSeconds === 3.0);
 });
