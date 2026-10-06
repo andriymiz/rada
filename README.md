@@ -6,6 +6,8 @@ An internal information system for Zboriv City Council, designed to digitize and
 
 - A landing page.
 - Admin panel sign-in at `/panel`.
+- A history of roll-call vote PDF imports, with processing currently simulated by a queued job.
+- A normalized roll-call voting data model designed for Popolo concepts and future open-data exports.
 
 ## Technology Stack
 
@@ -46,6 +48,8 @@ php artisan migrate
 
 After startup, open the URL displayed by `composer run dev` (usually `http://localhost:8000`). The public page is available at `/`, and the admin panel at `/panel`.
 
+PDF import processing is currently a three-second simulation; parsing voting data will be implemented later. `composer run dev` starts a queue listener locally. Other environments must run a Laravel queue worker, for example with `php artisan queue:work`.
+
 ## Useful Commands
 
 ```bash
@@ -72,13 +76,14 @@ php artisan boost:update
 - `resources/css/` — application styles and the Filament theme;
 - `routes/` — application routes;
 - `tests/` — automated tests.
+- `docs/architecture/roll-call-voting.md` — roll-call voting data model, Popolo alignment, and open-data field mapping.
 
 ## Planned Development
 
 The technical specification describes the gradual addition of modules and shared capabilities, including:
 
 - role-based access control and an organizational structure;
-- roll-call voting;
+- roll-call vote entry and PDF processing;
 - registers for council and executive committee decisions, mayoral orders, and meeting minutes;
 - management of sessions, council members, and committees;
 - data import, export, and publication of open datasets;
