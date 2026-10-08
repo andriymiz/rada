@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int|null $session_id
+ * @property int|null $plenary_meeting_id
  * @property int $user_id
  * @property string $file_path
  * @property string $original_filename
@@ -25,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $parsed_result
  * @property Carbon|null $processed_at
  */
-#[Fillable(['session_id', 'user_id', 'file_path', 'original_filename', 'status', 'error_message', 'parsed_result', 'processed_at'])]
+#[Fillable(['session_id', 'plenary_meeting_id', 'user_id', 'file_path', 'original_filename', 'status', 'error_message', 'parsed_result', 'processed_at'])]
 class RollCallImport extends Model
 {
     /** @use HasFactory<RollCallImportFactory> */
@@ -84,6 +85,12 @@ class RollCallImport extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(ParliamentarySession::class, 'session_id');
+    }
+
+    /** @return BelongsTo<PlenaryMeeting, $this> */
+    public function plenaryMeeting(): BelongsTo
+    {
+        return $this->belongsTo(PlenaryMeeting::class);
     }
 
     /** @return BelongsTo<User, $this> */

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RollCallImports\Pages;
 
+use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use App\Filament\Resources\RollCallImports\Schemas\RollCallImportForm;
 use App\Jobs\ProcessRollCallImport;
@@ -12,7 +13,16 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListRollCallImports extends ListRecords
 {
+    use HasRadaBreadcrumbs;
+
     protected static string $resource = RollCallImportResource::class;
+
+    protected static ?string $breadcrumb = 'Імпорти';
+
+    public function hasResourceBreadcrumbs(): bool
+    {
+        return false;
+    }
 
     protected function getHeaderActions(): array
     {

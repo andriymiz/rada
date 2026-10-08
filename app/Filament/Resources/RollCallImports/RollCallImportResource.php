@@ -21,11 +21,15 @@ class RollCallImportResource extends Resource
 {
     protected static ?string $model = RollCallImport::class;
 
+    protected static ?string $slug = 'meetings/imports';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $modelLabel = 'імпорт голосувань';
+    protected static ?string $modelLabel = 'імпорт';
 
-    protected static ?string $pluralModelLabel = 'Імпорти голосувань';
+    protected static ?string $pluralModelLabel = 'Імпорти';
+
+    protected static ?string $navigationParentItem = 'Засідання';
 
     protected static ?string $recordTitleAttribute = 'original_filename';
 

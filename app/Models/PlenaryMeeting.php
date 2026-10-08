@@ -39,4 +39,15 @@ class PlenaryMeeting extends Model
     {
         return $this->hasMany(Motion::class);
     }
+
+    /** @return HasMany<RollCallImport, $this> */
+    public function rollCallImports(): HasMany
+    {
+        return $this->hasMany(RollCallImport::class);
+    }
+
+    public function displayName(): string
+    {
+        return "Пленарне засідання ради — {$this->parliamentarySession->name} ({$this->parliamentarySession->convocation->name})";
+    }
 }

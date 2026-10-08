@@ -2,12 +2,10 @@
 
 namespace App\Filament\Resources\RollCallImports\Schemas;
 
-use App\Models\ParliamentaryConvocation;
-use App\Models\ParliamentarySession;
+use App\Filament\Resources\PlenaryMeetings\Schemas\PlenaryMeetingForm;
+use App\Models\PlenaryMeeting;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class RollCallImportForm
@@ -17,28 +15,23 @@ class RollCallImportForm
         return $schema
             ->columns(2)
             ->components([
-                Select::make('convocation_id')
-                    ->label('Скликання')
-                    ->options(fn (): array => ParliamentaryConvocation::query()
-                        ->orderBy('id')
-                        ->pluck('name', 'id')
+                Select::make('plenary_meeting_id')
+                    ->label('Засідання')
+                    ->options(fn (): array => PlenaryMeeting::query()
+                        ->with(['organization', 'parliamentarySession.convocation'])
+                        ->orderByDesc('date')
+                        ->orderByDesc('id')
+                        ->get()
+                        ->mapWithKeys(fn (PlenaryMeeting $meeting): array => [
+                            $meeting->id => "{$meeting->displayName()} — {$meeting->date->format('d.m.Y')} ({$meeting->organization->name})",
+                        ])
                         ->all())
                     ->required()
-                    ->live()
-                    ->afterStateUpdated(fn (Set $set): mixed => $set('session_id', null))
-                    ->native(false),
-                Select::make('session_id')
-                    ->label('Сесія')
-                    ->options(fn (Get $get): array => filled($get('convocation_id'))
-                        ? ParliamentarySession::query()
-                            ->where('convocation_id', $get('convocation_id'))
-                            ->orderBy('id')
-                            ->pluck('name', 'id')
-                            ->all()
-                        : [])
-                    ->required()
-                    ->disabled(fn (Get $get): bool => blank($get('convocation_id')))
-                    ->native(false),
+                    ->searchable()
+                    ->native(false)
+                    ->createOptionForm(PlenaryMeetingForm::components())
+                    ->createOptionUsing(fn (array $data): int => (int) PlenaryMeeting::query()->create($data)->getKey())
+                    ->createOptionModalHeading('Нове пленарне засідання'),
             ]);
     }
 

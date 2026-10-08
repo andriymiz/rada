@@ -6,8 +6,10 @@ use App\Filament\Resources\RollCallImports\Pages\ListRollCallImports;
 use App\Filament\Resources\RollCallImports\Pages\ViewRollCallImport;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use App\Jobs\ProcessRollCallImport;
+use App\Models\CouncilOrganization;
 use App\Models\ParliamentaryConvocation;
 use App\Models\ParliamentarySession;
+use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use App\Models\User;
 use App\Notifications\RollCallImportProcessed;
@@ -115,22 +117,31 @@ it('shows the newest imports first and permits reviewing imports awaiting confir
         ->assertTableActionVisible('view', $newestImport)
         ->assertTableActionHidden('edit', $newestImport)
         ->assertTableActionHasUrl('view', RollCallImportResource::getUrl('view', ['record' => $newestImport]), $newestImport)
-        ->assertSee('99 сесія (8 скликання)')
-        ->assertSee('10 сесія (8 скликання)')
         ->assertSee('Очікує підтвердження')
         ->assertSee('-');
+
+    $breadcrumbs = $list->instance()->getBreadcrumbs();
+
+    expect(parse_url(RollCallImportResource::getUrl(), PHP_URL_PATH))->toBe('/panel/meetings/imports')
+        ->and(array_values($breadcrumbs))->toBe(['Засідання']);
 
     expect($list->instance()->getTable()->getPollingInterval())->toBe('3s');
 
     livewire(ViewRollCallImport::class, ['record' => $olderImport->id])
         ->assertForbidden();
 
-    livewire(EditRollCallImport::class, ['record' => $reviewableImport->id])
+    $edit = livewire(EditRollCallImport::class, ['record' => $reviewableImport->id])
         ->assertSee('Підтвердити');
 
-    livewire(ViewRollCallImport::class, ['record' => $newestImport->id])
+    expect(array_values($edit->instance()->getBreadcrumbs()))
+        ->toBe(['Засідання', 'Імпорти']);
+
+    $view = livewire(ViewRollCallImport::class, ['record' => $newestImport->id])
         ->assertOk()
         ->assertSee('example.pdf');
+
+    expect(array_values($view->instance()->getBreadcrumbs()))
+        ->toBe(['Засідання', 'Імпорти']);
 });
 
 it('shows the error modal action only for imports with a processing error', function () {
@@ -231,6 +242,7 @@ it('shows parsed agenda items and votes while an import awaits confirmation', fu
 it('completes an import only after every motion is confirmed', function () {
     $convocation = ParliamentaryConvocation::factory()->create();
     $session = ParliamentarySession::factory()->for($convocation, 'convocation')->create();
+    $organization = CouncilOrganization::factory()->create();
     $import = RollCallImport::factory()->create([
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
@@ -250,16 +262,24 @@ it('completes an import only after every motion is confirmed', function () {
     ]);
 
     $page = livewire(EditRollCallImport::class, ['record' => $import->id])
-        ->assertSee('Скликання')
-        ->assertSee('Сесія')
+        ->assertSee('Засідання')
         ->fillForm([
-            'convocation_id' => $convocation->id,
-            'session_id' => $session->id,
+            'plenary_meeting_id' => null,
         ])
         ->call('save')
-        ->assertHasFormErrors(['session_id']);
+        ->assertHasFormErrors(['plenary_meeting_id']);
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::AwaitingReview);
+
+    $page->callFormComponentAction('plenary_meeting_id', 'createOption', [
+        'organization_id' => $organization->id,
+        'parliamentary_session_id' => $session->id,
+        'date' => '2025-06-12',
+    ])
+        ->assertHasNoFormErrors()
+        ->assertFormSet(['plenary_meeting_id' => PlenaryMeeting::query()->value('id')]);
+
+    $meeting = PlenaryMeeting::query()->firstOrFail();
 
     $page->call('reviewMotion', 0)
         ->assertNotified()
@@ -268,25 +288,19 @@ it('completes an import only after every motion is confirmed', function () {
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::AwaitingReview);
 
-    $page->fillForm([
-        'convocation_id' => $convocation->id,
-        'session_id' => $session->id,
-    ])
-        ->call('save')
+    $page->call('save')
         ->assertHasNoFormErrors()
         ->assertNotified('Імпорт збережено та завершено')
         ->assertRedirect();
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::Completed)
         ->and($import->fresh()->session_id)->toBe($session->id)
+        ->and($import->fresh()->plenary_meeting_id)->toBe($meeting->id)
         ->and($import->fresh()->parsed_result['motions'][0]['review_status'])->toBe('approved')
         ->and($import->fresh()->parsed_result['motions'][1]['review_status'])->toBe('approved');
 });
 
-it('rejects a session that does not belong to the selected convocation', function () {
-    $selectedConvocation = ParliamentaryConvocation::factory()->create();
-    $otherConvocation = ParliamentaryConvocation::factory()->create();
-    $otherSession = ParliamentarySession::factory()->for($otherConvocation, 'convocation')->create();
+it('rejects a meeting that does not exist when confirming an import', function () {
     $import = RollCallImport::factory()->create([
         'status' => RollCallImportStatus::AwaitingReview,
         'session_id' => null,
@@ -302,14 +316,13 @@ it('rejects a session that does not belong to the selected convocation', functio
 
     livewire(EditRollCallImport::class, ['record' => $import->id])
         ->fillForm([
-            'convocation_id' => $selectedConvocation->id,
-            'session_id' => $otherSession->id,
+            'plenary_meeting_id' => 999999,
         ])
         ->call('save')
-        ->assertHasFormErrors(['session_id']);
+        ->assertHasFormErrors(['plenary_meeting_id']);
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::AwaitingReview)
-        ->and($import->fresh()->session_id)->toBeNull();
+        ->and($import->fresh()->plenary_meeting_id)->toBeNull();
 });
 
 it('does not allow completed imports to be edited', function () {

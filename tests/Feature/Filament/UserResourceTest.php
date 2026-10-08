@@ -50,7 +50,10 @@ it('validates required fields and unique email', function () {
 it('views a user', function () {
     $user = User::factory()->create();
 
-    livewire(ViewUser::class, ['record' => $user->id])->assertOk();
+    $page = livewire(ViewUser::class, ['record' => $user->id])->assertOk();
+
+    expect(array_values($page->instance()->getBreadcrumbs()))
+        ->toBe(['Користувачі']);
 });
 
 it('edits a user and keeps the password when left blank', function () {

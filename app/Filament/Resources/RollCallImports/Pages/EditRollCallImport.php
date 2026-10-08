@@ -4,8 +4,9 @@ namespace App\Filament\Resources\RollCallImports\Pages;
 
 use App\Enums\MotionReviewStatus;
 use App\Enums\RollCallImportStatus;
+use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
-use App\Models\ParliamentarySession;
+use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -15,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 class EditRollCallImport extends EditRecord
 {
+    use HasRadaBreadcrumbs;
+
     protected static string $resource = RollCallImportResource::class;
 
     protected string $view = 'filament.resources.roll-call-imports.pages.edit-roll-call-import';
@@ -26,7 +29,7 @@ class EditRollCallImport extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['convocation_id'] = $this->getRecord()->session?->convocation_id;
+        $data['plenary_meeting_id'] = $this->getRecord()->plenary_meeting_id;
 
         return $data;
     }
@@ -45,22 +48,19 @@ class EditRollCallImport extends EditRecord
 
         if (! self::hasAllMotionsApproved($record->parsed_result ?? [])) {
             throw ValidationException::withMessages([
-                'data.session_id' => 'Підтвердіть усі питання перед збереженням імпорту.',
+                'data.plenary_meeting_id' => 'Підтвердіть усі питання перед збереженням імпорту.',
             ]);
         }
 
-        $sessionBelongsToConvocation = ParliamentarySession::query()
-            ->whereKey($data['session_id'] ?? null)
-            ->where('convocation_id', $data['convocation_id'] ?? null)
-            ->exists();
+        $meeting = PlenaryMeeting::query()->find($data['plenary_meeting_id'] ?? null);
 
-        if (! $sessionBelongsToConvocation) {
+        if ($meeting === null) {
             throw ValidationException::withMessages([
-                'data.session_id' => 'Оберіть сесію, що належить вибраному скликанню.',
+                'data.plenary_meeting_id' => 'Оберіть засідання зі списку або створіть нове.',
             ]);
         }
 
-        unset($data['convocation_id']);
+        $data['session_id'] = $meeting->parliamentary_session_id;
         $data['status'] = RollCallImportStatus::Completed;
 
         return $data;
@@ -115,8 +115,7 @@ class EditRollCallImport extends EditRecord
     public function canFinalizeImport(): bool
     {
         return $this->areAllMotionsApproved()
-            && filled($this->data['convocation_id'] ?? null)
-            && filled($this->data['session_id'] ?? null);
+            && filled($this->data['plenary_meeting_id'] ?? null);
     }
 
     /**

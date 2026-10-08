@@ -13,10 +13,13 @@ class RollCallImportInfolist
             ->components([
                 TextEntry::make('original_filename')
                     ->label('Файл'),
-                TextEntry::make('session.convocation.name')
-                    ->label('Скликання'),
+                TextEntry::make('plenaryMeeting.date')
+                    ->label('Засідання')
+                    ->date('d.m.Y'),
                 TextEntry::make('session.name')
                     ->label('Сесія'),
+                TextEntry::make('session.convocation.name')
+                    ->label('Скликання'),
                 TextEntry::make('status')
                     ->label('Статус')
                     ->badge(),
