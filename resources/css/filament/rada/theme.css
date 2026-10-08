@@ -8,6 +8,8 @@
     --font-heading: 'e-Ukraine Head', 'e-Ukraine', ui-sans-serif, system-ui, sans-serif;
     --color-rada-blue: #0A5DAA;
     --color-rada-green: #00893E;
+    --color-rada-blue-strong: #064F87;
+    --color-rada-green-strong: #006B35;
     --radius-lg: 1rem;
     --radius-xl: 1.25rem;
 }
@@ -59,4 +61,45 @@
 
 .fi-btn {
     @apply rounded-full px-4 py-3;
+}
+
+.fi-input-wrp {
+    @apply shadow-none border-2;
+}
+
+.fi-input-wrp.fi-invalid {
+    border-color: #b91c1c;
+}
+
+.fi-checkbox-input,
+.fi-radio-input {
+    @apply shadow-none border-2;
+}
+
+.fi-checkbox-input.fi-invalid,
+.fi-radio-input.fi-invalid {
+    border-color: #b91c1c;
+}
+
+.fi-btn.fi-color-gray,
+.fi-btn.fi-outlined {
+    border: 2px solid #000;
+}
+
+.fi-btn:not(.fi-disabled):not([disabled]):not(label):hover {
+    background-image: linear-gradient(
+        135deg,
+        var(--color-rada-blue-strong) 0%,
+        var(--color-rada-green-strong) 100%
+    );
+    color: #fff;
+}
+
+.fi-btn:not(.fi-outlined).fi-color:not(label):not(.fi-disabled):not([disabled]):hover,
+.fi-btn.fi-outlined.fi-color:not(.fi-disabled):not([disabled]):not(label):hover {
+    color: #fff;
+}
+
+.fi-btn:not(.fi-disabled):not([disabled]):not(label):hover > .fi-icon {
+    color: #fff;
 }
