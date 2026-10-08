@@ -65,6 +65,12 @@
 
 .fi-input-wrp {
     @apply shadow-none border-2;
+
+    & .fi-input-wrp-prefix, & .fi-input-wrp-suffix {
+        &:not(.fi-inline) {
+            @apply border-black border-none;
+        }
+    }
 }
 
 .fi-input-wrp.fi-invalid {

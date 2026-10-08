@@ -8,6 +8,8 @@ use App\Jobs\ProcessRollCallImport;
 use App\Models\RollCallImport;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
@@ -22,11 +24,7 @@ class RollCallImportsTable
             ->columns([
                 TextColumn::make('original_filename')
                     ->label('Файл')
-                    ->searchable()
-                    ->limit(60),
-                TextColumn::make('session_label')
-                    ->label('Сесія')
-                    ->state(fn (RollCallImport $record): string => $record->sessionLabel()),
+                    ->limit(30),
                 TextColumn::make('status')
                     ->label('Статус')
                     ->badge()
@@ -37,24 +35,10 @@ class RollCallImportsTable
                     ->sortable(),
             ])
             ->recordActions([
-                Action::make('review')
-                    ->label(fn (RollCallImport $record): string => $record->status === RollCallImportStatus::AwaitingReview
-                        ? 'Редагувати'
-                        : 'Переглянути')
-                    ->icon(fn (RollCallImport $record): Heroicon => $record->status === RollCallImportStatus::AwaitingReview
-                        ? Heroicon::OutlinedPencilSquare
-                        : Heroicon::OutlinedEye)
-                    ->tooltip(fn (RollCallImport $record): string => $record->status === RollCallImportStatus::AwaitingReview
-                        ? 'Редагувати'
-                        : 'Переглянути')
-                    ->iconButton()
-                    ->url(fn (RollCallImport $record): string => RollCallImportResource::getUrl(
-                        $record->status === RollCallImportStatus::AwaitingReview ? 'edit' : 'view',
-                        ['record' => $record],
-                    ))
-                    ->visible(fn (RollCallImport $record): bool => $record->status === RollCallImportStatus::AwaitingReview
-                        ? RollCallImportResource::canEdit($record)
-                        : RollCallImportResource::canView($record)),
+                EditAction::make()
+                    ->visible(fn (RollCallImport $record): bool => RollCallImportResource::canEdit($record)),
+                ViewAction::make()
+                    ->visible(fn (RollCallImport $record): bool => RollCallImportResource::canView($record)),
                 Action::make('viewError')
                     ->label('Помилка обробки імпорту')
                     ->icon(Heroicon::OutlinedExclamationTriangle)
@@ -85,16 +69,7 @@ class RollCallImportsTable
                             ->send();
                     })
                     ->visible(fn (RollCallImport $record): bool => $record->status === RollCallImportStatus::Failed),
-                Action::make('viewPdf')
-                    ->label('Переглянути PDF')
-                    ->icon(Heroicon::OutlinedDocumentText)
-                    ->iconButton()
-                    ->url(fn (RollCallImport $record): string => route('roll-call-imports.pdf', $record))
-                    ->openUrlInNewTab(),
-                DeleteAction::make()
-                    ->label('Видалити імпорт')
-                    ->icon(Heroicon::OutlinedTrash)
-                    ->iconButton(),
+                DeleteAction::make(),
             ])
             ->defaultSort('id', 'desc')
             ->poll(fn (): ?string => RollCallImport::query()->pendingOrProcessing()->exists()

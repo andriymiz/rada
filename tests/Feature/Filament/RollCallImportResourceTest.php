@@ -4,6 +4,7 @@ use App\Enums\RollCallImportStatus;
 use App\Filament\Resources\RollCallImports\Pages\EditRollCallImport;
 use App\Filament\Resources\RollCallImports\Pages\ListRollCallImports;
 use App\Filament\Resources\RollCallImports\Pages\ViewRollCallImport;
+use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use App\Jobs\ProcessRollCallImport;
 use App\Models\ParliamentaryConvocation;
 use App\Models\ParliamentarySession;
@@ -108,8 +109,12 @@ it('shows the newest imports first and permits reviewing imports awaiting confir
 
     $list = livewire(ListRollCallImports::class)
         ->assertCanSeeTableRecords([$newestImport, $persistedSessionImport, $reviewableImport, $olderImport], inOrder: true)
-        ->assertTableActionVisible('review', $reviewableImport)
-        ->assertTableActionVisible('review', $newestImport)
+        ->assertTableActionVisible('edit', $reviewableImport)
+        ->assertTableActionHidden('view', $reviewableImport)
+        ->assertTableActionHasUrl('edit', RollCallImportResource::getUrl('edit', ['record' => $reviewableImport]), $reviewableImport)
+        ->assertTableActionVisible('view', $newestImport)
+        ->assertTableActionHidden('edit', $newestImport)
+        ->assertTableActionHasUrl('view', RollCallImportResource::getUrl('view', ['record' => $newestImport]), $newestImport)
         ->assertSee('99 сесія (8 скликання)')
         ->assertSee('10 сесія (8 скликання)')
         ->assertSee('Очікує підтвердження')

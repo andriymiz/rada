@@ -19,11 +19,9 @@ class UsersTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Ім’я')
-                    ->searchable(),
+                    ->label('Ім’я'),
                 TextColumn::make('email')
-                    ->label('Електронна пошта')
-                    ->searchable(),
+                    ->label('Електронна пошта'),
                 TextColumn::make('role')
                     ->label('Роль')
                     ->badge()
@@ -52,11 +50,6 @@ class UsersTable
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
             ]);
     }
 }
