@@ -18,7 +18,7 @@ class PlenaryMeeting extends Model
     protected function casts(): array
     {
         return [
-            'date' => 'date',
+            'date' => 'date:d.m.Y',
         ];
     }
 
@@ -48,6 +48,6 @@ class PlenaryMeeting extends Model
 
     public function displayName(): string
     {
-        return "Пленарне засідання ради — {$this->parliamentarySession->name} ({$this->parliamentarySession->convocation->name})";
+        return "{$this->parliamentarySession->name} сесія {$this->parliamentarySession->convocation->name} скликання ({$this->date->format('d.m.Y')})";
     }
 }

@@ -23,7 +23,7 @@ class RollCallImportForm
                         ->orderByDesc('id')
                         ->get()
                         ->mapWithKeys(fn (PlenaryMeeting $meeting): array => [
-                            $meeting->id => "{$meeting->displayName()} — {$meeting->date->format('d.m.Y')} ({$meeting->organization->name})",
+                            $meeting->id => $meeting->displayName(),
                         ])
                         ->all())
                     ->required()

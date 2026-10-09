@@ -30,6 +30,9 @@ class PlenaryMeetingForm
                     ->orderBy('name')
                     ->pluck('name', 'id')
                     ->all())
+                ->default(fn () => CouncilOrganization::query()
+                    ->orderBy('id')
+                    ->value('id'))
                 ->required()
                 ->searchable()
                 ->native(false),

@@ -2,8 +2,10 @@
 
 namespace App\Filament\Concerns;
 
+use Filament\Pages\Page;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\Page as ResourcePage;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 
@@ -24,6 +26,10 @@ trait HasRadaBreadcrumbs
             array_pop($breadcrumbs);
 
             return $breadcrumbs;
+        }
+
+        if ($this instanceof Page && ! $this instanceof ResourcePage && static::getNavigationParentItem() === null) {
+            return [];
         }
 
         if ($this instanceof EditRecord || $this instanceof ViewRecord) {
