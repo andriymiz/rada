@@ -47,8 +47,7 @@
 }
 
 .fi-topbar {
-    border-bottom: 1px solid #e5e7eb;
-    background-color: #fff;
+    @apply gap-3;
 }
 
 .fi-simple-layout {
@@ -88,7 +87,8 @@
 }
 
 .fi-btn.fi-color-gray,
-.fi-btn.fi-outlined {
+.fi-btn.fi-outlined, 
+.fi-btn.fi-ac-btn-action {
     border: 2px solid #000;
 }
 
