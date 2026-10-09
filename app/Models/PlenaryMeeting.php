@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable(['organization_id', 'parliamentary_session_id', 'date'])]
 class PlenaryMeeting extends Model
@@ -40,6 +41,12 @@ class PlenaryMeeting extends Model
         return $this->hasMany(Motion::class);
     }
 
+    /** @return HasManyThrough<VoteEvent, Motion, $this> */
+    public function voteEvents(): HasManyThrough
+    {
+        return $this->hasManyThrough(VoteEvent::class, Motion::class);
+    }
+
     /** @return HasMany<RollCallImport, $this> */
     public function rollCallImports(): HasMany
     {
@@ -48,6 +55,6 @@ class PlenaryMeeting extends Model
 
     public function displayName(): string
     {
-        return "{$this->parliamentarySession->name} сесія {$this->parliamentarySession->convocation->name} скликання ({$this->date->format('d.m.Y')})";
+        return "{$this->parliamentarySession->name} сесія {$this->parliamentarySession->convocation->name} скликання";
     }
 }

@@ -14,8 +14,10 @@ class PlenaryMeetingsTable
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'organization',
                 'parliamentarySession.convocation',
+            ])->withCount([
+                'motions',
+                'voteEvents',
             ]))
             ->columns([
                 TextColumn::make('meeting_name')
@@ -25,8 +27,12 @@ class PlenaryMeetingsTable
                     ->label('Дата')
                     ->date('d.m.Y')
                     ->sortable(),
-                TextColumn::make('organization.name')
-                    ->label('Орган місцевого самоврядування'),
+                TextColumn::make('motions_count')
+                    ->label('Питань')
+                    ->numeric(),
+                TextColumn::make('vote_events_count')
+                    ->label('Поіменних голосувань')
+                    ->numeric(),
             ])
             ->recordActions([
                 EditAction::make(),
