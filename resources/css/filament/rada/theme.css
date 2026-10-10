@@ -59,11 +59,21 @@
 }
 
 .fi-btn {
-    @apply rounded-full px-4 py-3;
+    @apply rounded-full px-3 py-2;
 }
 
 .fi-input-wrp {
-    @apply shadow-none border-2;
+    @apply rounded-none border-0 border-b-2 border-solid border-gray-400 bg-transparent shadow-none ring-0;
+
+    &:not(.fi-disabled):not(.fi-invalid):focus-within {
+        @apply border-black shadow-none;
+
+        --tw-ring-shadow: 0 0 #0000;
+    }
+
+    &.fi-disabled {
+        @apply bg-transparent;
+    }
 
     & .fi-input-wrp-prefix, & .fi-input-wrp-suffix {
         &:not(.fi-inline) {
@@ -72,13 +82,44 @@
     }
 }
 
+.fi-fo-field {
+    @apply gap-y-1.5;
+}
+
+.fi-fo-field-label-content {
+    @apply font-normal text-gray-400;
+}
+
+.fi-input-wrp input,
+.fi-input-wrp textarea,
+.fi-input-wrp select,
+.fi-select-input .fi-select-input-btn {
+    @apply text-gray-950;
+}
+
+.fi-input-wrp:not(.fi-fo-select) input.fi-input,
+.fi-input-wrp textarea.fi-input,
+.fi-input-wrp input.fi-fo-date-time-picker-display-text-input {
+    @apply px-0;
+}
+
+.fi-input-wrp .fi-select-input-btn {
+    @apply ps-0;
+}
+
+.fi-input-wrp input::placeholder,
+.fi-input-wrp textarea::placeholder,
+.fi-select-input .fi-select-input-placeholder {
+    @apply text-gray-400;
+}
+
 .fi-input-wrp.fi-invalid {
-    border-color: #b91c1c;
+    @apply border-danger-600;
 }
 
 .fi-checkbox-input,
 .fi-radio-input {
-    @apply shadow-none border-2;
+    @apply shadow-none border;
 }
 
 .fi-checkbox-input.fi-invalid,
@@ -86,26 +127,28 @@
     border-color: #b91c1c;
 }
 
-.fi-btn.fi-color-gray,
-.fi-btn.fi-outlined, 
-.fi-btn.fi-ac-btn-action {
-    border: 2px solid #000;
+.fi-btn:not(.fi-color-primary) {
+    @apply border-2 border-black bg-transparent text-black shadow-none ring-0;
 }
 
-.fi-btn:not(.fi-disabled):not([disabled]):not(label):hover {
+.fi-btn.fi-color-primary {
+    @apply border-2 border-black bg-black text-white shadow-none ring-0;
+}
+
+.fi-btn:not(.fi-color-primary) > .fi-icon {
+    @apply text-black;
+}
+
+.fi-btn:not(.fi-disabled):not([disabled]):is(:hover, :focus-visible) {
+    @apply border-transparent text-white shadow-none ring-0;
+
     background-image: linear-gradient(
         135deg,
         var(--color-rada-blue-strong) 0%,
         var(--color-rada-green-strong) 100%
     );
-    color: #fff;
-}
 
-.fi-btn:not(.fi-outlined).fi-color:not(label):not(.fi-disabled):not([disabled]):hover,
-.fi-btn.fi-outlined.fi-color:not(.fi-disabled):not([disabled]):not(label):hover {
-    color: #fff;
-}
-
-.fi-btn:not(.fi-disabled):not([disabled]):not(label):hover > .fi-icon {
-    color: #fff;
+    & > .fi-icon {
+        @apply text-white;
+    }
 }
