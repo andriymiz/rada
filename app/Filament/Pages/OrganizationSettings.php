@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Form as FormComponent;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use UnitEnum;
 
 class OrganizationSettings extends Page
 {
@@ -33,6 +34,8 @@ class OrganizationSettings extends Page
     protected static ?string $navigationLabel = 'Організація';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Налаштування';
 
     public static function canAccess(): bool
     {
