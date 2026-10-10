@@ -31,7 +31,7 @@ class RollCallImportsTable
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Дата')
-                    ->date('d.m.Y')
+                    ->date()
                     ->sortable(),
             ])
             ->recordActions([

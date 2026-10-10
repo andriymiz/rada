@@ -25,7 +25,7 @@ class PlenaryMeetingsTable
                     ->state(fn (PlenaryMeeting $record): string => $record->displayName()),
                 TextColumn::make('date')
                     ->label('Дата')
-                    ->date('d.m.Y')
+                    ->date()
                     ->sortable(),
                 TextColumn::make('motions_count')
                     ->label('Питань')

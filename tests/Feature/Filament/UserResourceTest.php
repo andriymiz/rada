@@ -8,6 +8,9 @@ use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\TimePicker;
 use Illuminate\Support\Facades\Hash;
 
 use function Pest\Livewire\livewire;
@@ -53,7 +56,39 @@ it('views a user', function () {
     $page = livewire(ViewUser::class, ['record' => $user->id])->assertOk();
 
     expect(array_values($page->instance()->getBreadcrumbs()))
-        ->toBe(['Користувачі']);
+        ->toBe(['Налаштування', 'Користувачі']);
+});
+
+it('displays timestamps in Kyiv time while keeping them stored in UTC', function () {
+    $user = User::factory()->create([
+        'created_at' => '2026-10-24 21:30:00',
+        'updated_at' => '2026-10-25 02:30:00',
+    ]);
+
+    livewire(ViewUser::class, ['record' => $user->id])
+        ->assertSee('25.10.2026 00:30')
+        ->assertSee('25.10.2026 04:30');
+
+    $table = livewire(ListUsers::class)->instance()->getTable();
+    $createdAtColumn = $table->getColumn('created_at')->record($user);
+
+    expect($createdAtColumn->formatState($createdAtColumn->getState()))
+        ->toBe('25.10.2026 00:30');
+
+    expect(DatePicker::make('date')->getDisplayFormat())
+        ->toBe('d.m.Y');
+
+    expect(DateTimePicker::make('date_time')->getDisplayFormat())
+        ->toBe('d.m.Y H:i:s');
+
+    expect(TimePicker::make('time')->getDisplayFormat())
+        ->toBe('H:i:s');
+
+    $this->assertDatabaseHas('users', [
+        'id' => $user->id,
+        'created_at' => '2026-10-24 21:30:00',
+        'updated_at' => '2026-10-25 02:30:00',
+    ]);
 });
 
 it('edits a user and keeps the password when left blank', function () {

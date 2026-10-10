@@ -78,6 +78,7 @@ php artisan boost:update
 - `tests/` — automated tests.
 - `docs/architecture/roll-call-voting.md` — roll-call voting data model, Popolo alignment, and open-data field mapping.
 - `docs/filament-ui-styles.md` — shared Filament button and form-field styling conventions.
+- `docs/date-time-handling.md` — UTC storage and Kyiv-time display conventions.
 
 ## Planned Development
 

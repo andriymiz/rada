@@ -19,14 +19,10 @@ class UsersTable
                 TextColumn::make('name')
                     ->label('Ім’я'),
                 TextColumn::make('email')
-                    ->label('Електронна пошта'),
+                    ->label('Е-пошта'),
                 TextColumn::make('role')
                     ->label('Роль')
                     ->badge()
-                    ->sortable(),
-                TextColumn::make('email_verified_at')
-                    ->label('Пошту підтверджено')
-                    ->dateTime()
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Створено')

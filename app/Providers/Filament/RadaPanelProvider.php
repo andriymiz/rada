@@ -9,6 +9,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -16,6 +17,8 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Schemas\Schema;
+use Filament\Support\Facades\FilamentTimezone;
 use Filament\Tables\Enums\PaginationMode;
 use Filament\Tables\Table;
 use Filament\Widgets\AccountWidget;
@@ -31,8 +34,24 @@ class RadaPanelProvider extends PanelProvider
 {
     public function boot(): void
     {
+        FilamentTimezone::set('Europe/Kyiv');
+
         Table::configureUsing(function (Table $table): void {
-            $table->paginationMode(PaginationMode::Default);
+            $table
+                ->paginationMode(PaginationMode::Default)
+                ->defaultDateDisplayFormat('d.m.Y')
+                ->defaultDateTimeDisplayFormat('d.m.Y H:i');
+        });
+        Schema::configureUsing(function (Schema $schema): void {
+            $schema
+                ->defaultDateDisplayFormat('d.m.Y')
+                ->defaultDateTimeDisplayFormat('d.m.Y H:i');
+        });
+        DateTimePicker::configureUsing(function (DateTimePicker $picker): void {
+            $picker
+                ->defaultDateDisplayFormat('d.m.Y')
+                ->defaultDateTimeDisplayFormat('d.m.Y H:i')
+                ->defaultDateTimeWithSecondsDisplayFormat('d.m.Y H:i:s');
         });
         Select::configureUsing(function (Select $select): void {
             $select->native(false);
