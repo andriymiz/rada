@@ -143,7 +143,7 @@ it('creates a meeting and queues its uploaded roll-call files', function () {
     $import = RollCallImport::query()->firstOrFail();
 
     expect($import->plenary_meeting_id)->toBe($meeting->id)
-        ->and($import->council_session_id)->toBe($session->id)
+        ->and($import->plenaryMeeting?->councilSession->is($session))->toBeTrue()
         ->and($import->user_id)->toBe(auth()->id())
         ->and($import->status)->toBe(RollCallImportStatus::Queued);
 
@@ -167,7 +167,7 @@ it('queues additional roll-call files from the meeting workspace', function () {
     $import = RollCallImport::query()->firstOrFail();
 
     expect($import->plenary_meeting_id)->toBe($meeting->id)
-        ->and($import->council_session_id)->toBe($meeting->council_session_id);
+        ->and($import->plenaryMeeting?->councilSession->is($meeting->councilSession))->toBeTrue();
 
     Storage::disk('local')->assertExists($import->file_path);
     Queue::assertPushed(ProcessRollCallImport::class, fn (ProcessRollCallImport $job): bool => $job->rollCallImport->is($import));

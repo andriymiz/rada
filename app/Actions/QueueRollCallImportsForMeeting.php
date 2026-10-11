@@ -22,7 +22,6 @@ class QueueRollCallImportsForMeeting
         DB::transaction(function () use ($meeting, $filePaths, $originalFilenames, $user): void {
             foreach ($filePaths as $filePath) {
                 $import = $meeting->rollCallImports()->create([
-                    'council_session_id' => $meeting->council_session_id,
                     'user_id' => $user->getKey(),
                     'file_path' => $filePath,
                     'original_filename' => $originalFilenames[$filePath] ?? basename($filePath),

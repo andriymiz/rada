@@ -134,7 +134,6 @@ erDiagram
     }
     ROLL_CALL_IMPORTS {
         int id PK
-        int council_session_id FK
         int plenary_meeting_id FK
         int user_id FK
         string file_path
@@ -183,7 +182,6 @@ erDiagram
     PERMANENT_COMMISSIONS o|--o{ MEMBERSHIPS : assigns
     PLENARY_MEETINGS ||--o{ MOTIONS : contains
     USERS ||--o{ ROLL_CALL_IMPORTS : uploads
-    COUNCIL_SESSIONS o|--o{ ROLL_CALL_IMPORTS : labels
     PLENARY_MEETINGS o|--o{ ROLL_CALL_IMPORTS : concerns
     MOTIONS ||--o{ VOTE_EVENTS : may_have
     VOTE_EVENTS ||--o{ VOTES : records
@@ -203,9 +201,9 @@ erDiagram
 - A deputy's full name is derived from the three name columns and is not stored as a separate `name` column. A deputy can have at most one `deputy_receptions` row.
 - A plenary meeting belongs to exactly one council session and inherits its organization through the session's convocation. A motion belongs to exactly one meeting; `(plenary_meeting_id, number)` and `uid` are unique.
 - A motion may have no recorded vote or multiple `vote_events`. Each vote event belongs to one motion. A vote event can contain votes with or without a matched deputy: `votes.deputy_id` and `voter_identifier` are nullable, while `voter_name` and `option` preserve the imported voter details. `(vote_event_id, deputy_id)` is unique.
-- A roll-call import always belongs to a user and may optionally reference a session and/or plenary meeting. It is independent of the motions created while reviewing its parsed results; imports use soft deletion.
+- A roll-call import always belongs to a user and may optionally reference a plenary meeting; its council session is reached through that meeting. It is independent of the motions created while reviewing its parsed results; imports use soft deletion.
 - Core historical relationships use restrictive deletion rules to prevent deleting referenced deputies, organizations, sessions, meetings, motions, and vote events.
 
 ## Roll-call import boundary
 
-Imports retain their uploaded file metadata, processing state, parsed JSON, and optional session/meeting links. The current PDF parser stores its output in `roll_call_imports.parsed_result`; it does not yet create normalized `motions`, `vote_events`, or `votes` records from that output. See [the import workflow](./roll-call-voting.md#pdf-import-parsing) for the review and processing details.
+Imports retain their uploaded file metadata, processing state, parsed JSON, and an optional meeting link; the session is derived through the meeting. The current PDF parser stores its output in `roll_call_imports.parsed_result`; it does not yet create normalized `motions`, `vote_events`, or `votes` records from that output. See [the import workflow](./roll-call-voting.md#pdf-import-parsing) for the review and processing details.

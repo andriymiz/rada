@@ -16,9 +16,9 @@ class RollCallImportInfolist
                 TextEntry::make('plenaryMeeting.date')
                     ->label('Засідання')
                     ->date(),
-                TextEntry::make('councilSession.name')
+                TextEntry::make('plenaryMeeting.councilSession.name')
                     ->label('Сесія'),
-                TextEntry::make('councilSession.convocation.name')
+                TextEntry::make('plenaryMeeting.councilSession.convocation.name')
                     ->label('Скликання'),
                 TextEntry::make('status')
                     ->label('Статус')

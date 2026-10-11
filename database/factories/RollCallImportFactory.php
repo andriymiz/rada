@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\RollCallImportStatus;
-use App\Models\CouncilSession;
+use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -21,7 +21,7 @@ class RollCallImportFactory extends Factory
     public function definition(): array
     {
         return [
-            'council_session_id' => CouncilSession::factory(),
+            'plenary_meeting_id' => PlenaryMeeting::factory(),
             'user_id' => User::factory(),
             'file_path' => 'roll-call-imports/example.pdf',
             'original_filename' => 'example.pdf',

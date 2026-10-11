@@ -21,12 +21,6 @@ class CouncilSession extends Model
         return $this->belongsTo(Convocation::class);
     }
 
-    /** @return HasMany<RollCallImport, $this> */
-    public function rollCallImports(): HasMany
-    {
-        return $this->hasMany(RollCallImport::class, 'council_session_id');
-    }
-
     /** @return HasMany<PlenaryMeeting, $this> */
     public function plenaryMeetings(): HasMany
     {

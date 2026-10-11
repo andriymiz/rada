@@ -44,7 +44,6 @@ it('shows imports only within their meeting and has no global import list', func
     $otherMeeting = PlenaryMeeting::factory()->create();
     $reviewableImport = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
-        'council_session_id' => $meeting->council_session_id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'session' => null,
@@ -160,6 +159,31 @@ it('requeues a failed import from the error modal', function () {
     Queue::assertPushed(ProcessRollCallImport::class, fn (ProcessRollCallImport $job): bool => $job->rollCallImport->is($failedImport));
 });
 
+it('derives the session label from the linked meeting', function () {
+    $convocation = Convocation::factory()->create(['name' => '8 скликання']);
+    $session = CouncilSession::factory()
+        ->for($convocation, 'convocation')
+        ->create(['name' => 'Сесія № 2']);
+    $meeting = PlenaryMeeting::factory()
+        ->for($session, 'councilSession')
+        ->create();
+    $import = RollCallImport::factory()
+        ->for($meeting, 'plenaryMeeting')
+        ->create();
+
+    expect(Schema::hasColumn('roll_call_imports', 'council_session_id'))->toBeFalse();
+    expect($import->sessionLabel())->toBe('Сесія № 2 (8 скликання)');
+});
+
+it('uses the parsed session label when no meeting is linked', function () {
+    $import = RollCallImport::factory()->create([
+        'plenary_meeting_id' => null,
+        'parsed_result' => ['session' => '42 сесія 8 скликання'],
+    ]);
+
+    expect($import->sessionLabel())->toBe('42 сесія (8 скликання)');
+});
+
 it('limits the pending processing scope to queued and processing imports', function () {
     $queued = RollCallImport::factory()->create(['status' => RollCallImportStatus::Queued]);
     $processing = RollCallImport::factory()->create(['status' => RollCallImportStatus::Processing]);
@@ -175,7 +199,6 @@ it('shows parsed agenda items and votes while an import awaits confirmation', fu
     $meeting = PlenaryMeeting::factory()->create();
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
-        'council_session_id' => $meeting->council_session_id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'session' => '99 сесія 8 скликання',
@@ -256,7 +279,6 @@ it('creates each motion as it is confirmed and completes only after all motions 
         ->create(['voting_identifier' => 'COUNCIL-001']);
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
-        'council_session_id' => $session->id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'motions' => [
@@ -329,8 +351,8 @@ it('creates each motion as it is confirmed and completes only after all motions 
         ->assertRedirect(PlenaryMeetingResource::getUrl('edit', ['record' => $meeting]));
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::Completed)
-        ->and($import->fresh()->council_session_id)->toBe($session->id)
         ->and($import->fresh()->plenary_meeting_id)->toBe($meeting->id)
+        ->and($import->fresh()->plenaryMeeting?->councilSession->is($session))->toBeTrue()
         ->and($import->fresh()->parsed_result['motions'][0]['review_status'])->toBe('approved')
         ->and($import->fresh()->parsed_result['motions'][1]['review_status'])->toBe('approved')
         ->and(Motion::query()->where('plenary_meeting_id', $meeting->id)->count())->toBe(2);
@@ -340,7 +362,6 @@ it('rejects confirmation of an import that is not linked to a meeting', function
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => null,
         'status' => RollCallImportStatus::AwaitingReview,
-        'council_session_id' => null,
         'parsed_result' => [
             'motions' => [[
                 'question_number' => 1,
