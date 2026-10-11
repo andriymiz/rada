@@ -16,7 +16,7 @@ class PlenaryMeetingsTable
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'parliamentarySession.convocation',
+                'councilSession.convocation',
             ])->withCount([
                 'motions',
                 'rollCallImports as imports_awaiting_review_count' => fn (Builder $query): Builder => $query

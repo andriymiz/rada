@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
-#[Fillable(['organization_id', 'parliamentary_session_id', 'date'])]
+#[Fillable(['organization_id', 'council_session_id', 'date'])]
 class PlenaryMeeting extends Model
 {
     /** @use HasFactory<PlenaryMeetingFactory> */
@@ -29,10 +29,10 @@ class PlenaryMeeting extends Model
         return $this->belongsTo(CouncilOrganization::class, 'organization_id');
     }
 
-    /** @return BelongsTo<ParliamentarySession, $this> */
-    public function parliamentarySession(): BelongsTo
+    /** @return BelongsTo<CouncilSession, $this> */
+    public function councilSession(): BelongsTo
     {
-        return $this->belongsTo(ParliamentarySession::class, 'parliamentary_session_id');
+        return $this->belongsTo(CouncilSession::class);
     }
 
     /** @return HasMany<Motion, $this> */
@@ -55,6 +55,6 @@ class PlenaryMeeting extends Model
 
     public function displayName(): string
     {
-        return "{$this->parliamentarySession->name} сесія {$this->parliamentarySession->convocation->name} скликання";
+        return "{$this->councilSession->name} сесія {$this->councilSession->convocation->name} скликання";
     }
 }

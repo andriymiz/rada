@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\CouncilOrganization;
-use App\Models\ParliamentarySession;
+use App\Models\CouncilSession;
 use App\Models\PlenaryMeeting;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,7 +21,7 @@ class PlenaryMeetingFactory extends Factory
     {
         return [
             'organization_id' => CouncilOrganization::factory(),
-            'parliamentary_session_id' => ParliamentarySession::factory(),
+            'council_session_id' => CouncilSession::factory(),
             'date' => fake()->dateTimeBetween('-4 years', 'now')->format('Y-m-d'),
         ];
     }

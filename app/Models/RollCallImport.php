@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int|null $session_id
+ * @property int|null $council_session_id
  * @property int|null $plenary_meeting_id
  * @property int $user_id
  * @property string $file_path
@@ -26,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $parsed_result
  * @property Carbon|null $processed_at
  */
-#[Fillable(['session_id', 'plenary_meeting_id', 'user_id', 'file_path', 'original_filename', 'status', 'error_message', 'parsed_result', 'processed_at'])]
+#[Fillable(['council_session_id', 'plenary_meeting_id', 'user_id', 'file_path', 'original_filename', 'status', 'error_message', 'parsed_result', 'processed_at'])]
 class RollCallImport extends Model
 {
     /** @use HasFactory<RollCallImportFactory> */
@@ -45,7 +45,7 @@ class RollCallImport extends Model
 
     public function sessionLabel(): string
     {
-        $session = $this->session;
+        $session = $this->councilSession;
 
         if ($session !== null) {
             $convocation = $session->convocation;
@@ -81,10 +81,10 @@ class RollCallImport extends Model
         ]);
     }
 
-    /** @return BelongsTo<ParliamentarySession, $this> */
-    public function session(): BelongsTo
+    /** @return BelongsTo<CouncilSession, $this> */
+    public function councilSession(): BelongsTo
     {
-        return $this->belongsTo(ParliamentarySession::class, 'session_id');
+        return $this->belongsTo(CouncilSession::class);
     }
 
     /** @return BelongsTo<PlenaryMeeting, $this> */

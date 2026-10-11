@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Database\Factories\ParliamentarySessionFactory;
+use Database\Factories\CouncilSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,9 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['convocation_id', 'name'])]
-class ParliamentarySession extends Model
+class CouncilSession extends Model
 {
-    /** @use HasFactory<ParliamentarySessionFactory> */
+    /** @use HasFactory<CouncilSessionFactory> */
     use HasFactory;
 
     /** @return BelongsTo<ParliamentaryConvocation, $this> */
@@ -24,12 +24,12 @@ class ParliamentarySession extends Model
     /** @return HasMany<RollCallImport, $this> */
     public function rollCallImports(): HasMany
     {
-        return $this->hasMany(RollCallImport::class, 'session_id');
+        return $this->hasMany(RollCallImport::class, 'council_session_id');
     }
 
     /** @return HasMany<PlenaryMeeting, $this> */
     public function plenaryMeetings(): HasMany
     {
-        return $this->hasMany(PlenaryMeeting::class, 'parliamentary_session_id');
+        return $this->hasMany(PlenaryMeeting::class, 'council_session_id');
     }
 }

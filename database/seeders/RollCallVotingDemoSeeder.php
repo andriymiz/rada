@@ -5,10 +5,10 @@ namespace Database\Seeders;
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
 use App\Models\CouncilOrganization;
+use App\Models\CouncilSession;
 use App\Models\Membership;
 use App\Models\Motion;
 use App\Models\ParliamentaryConvocation;
-use App\Models\ParliamentarySession;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
@@ -31,7 +31,7 @@ class RollCallVotingDemoSeeder extends Seeder
             'name' => 'Демо скликання',
         ]);
 
-        $session = ParliamentarySession::query()->firstOrCreate(
+        $session = CouncilSession::query()->firstOrCreate(
             [
                 'convocation_id' => $convocation->id,
                 'name' => 'Демо сесія',
@@ -40,14 +40,14 @@ class RollCallVotingDemoSeeder extends Seeder
 
         $meeting = PlenaryMeeting::query()
             ->where('organization_id', $organization->id)
-            ->where('parliamentary_session_id', $session->id)
+            ->where('council_session_id', $session->id)
             ->whereDate('date', '2025-01-15')
             ->first();
 
         if (! $meeting) {
             $meeting = PlenaryMeeting::query()->create([
                 'organization_id' => $organization->id,
-                'parliamentary_session_id' => $session->id,
+                'council_session_id' => $session->id,
                 'date' => '2025-01-15',
             ]);
         }

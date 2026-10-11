@@ -14,9 +14,9 @@ class ParliamentaryConvocation extends Model
     /** @use HasFactory<ParliamentaryConvocationFactory> */
     use HasFactory;
 
-    /** @return HasMany<ParliamentarySession, $this> */
+    /** @return HasMany<CouncilSession, $this> */
     public function sessions(): HasMany
     {
-        return $this->hasMany(ParliamentarySession::class, 'convocation_id');
+        return $this->hasMany(CouncilSession::class, 'convocation_id');
     }
 }

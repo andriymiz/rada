@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PlenaryMeetings\Schemas;
 
+use App\Models\CouncilSession;
 use App\Models\ParliamentaryConvocation;
-use App\Models\ParliamentarySession;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -25,13 +25,13 @@ class PlenaryMeetingForm
     public static function components(): array
     {
         return [
-            Select::make('parliamentary_session_id')
+            Select::make('council_session_id')
                 ->label('Сесія')
-                ->options(fn (): array => ParliamentarySession::query()
+                ->options(fn (): array => CouncilSession::query()
                     ->with('convocation')
                     ->orderBy('id')
                     ->get()
-                    ->mapWithKeys(fn (ParliamentarySession $session): array => [
+                    ->mapWithKeys(fn (CouncilSession $session): array => [
                         $session->id => "{$session->name} ({$session->convocation->name} скликання)",
                     ])
                     ->all())
@@ -59,7 +59,7 @@ class PlenaryMeetingForm
                             ->create($data)
                             ->getKey()),
                 ])
-                ->createOptionUsing(fn (array $data): int => (int) ParliamentarySession::query()
+                ->createOptionUsing(fn (array $data): int => (int) CouncilSession::query()
                     ->create($data)
                     ->getKey())
                 ->createOptionModalHeading('Нова сесія')

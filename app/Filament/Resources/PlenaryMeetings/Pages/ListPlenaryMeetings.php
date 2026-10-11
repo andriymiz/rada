@@ -41,7 +41,7 @@ class ListPlenaryMeetings extends ListRecords
 
                         if ($organization === null) {
                             throw ValidationException::withMessages([
-                                'data.parliamentary_session_id' => 'Спочатку налаштуйте організацію.',
+                                'data.council_session_id' => 'Спочатку налаштуйте організацію.',
                             ]);
                         }
 

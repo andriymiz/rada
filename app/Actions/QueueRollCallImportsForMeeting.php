@@ -27,7 +27,7 @@ class QueueRollCallImportsForMeeting
                 }
 
                 $import = $meeting->rollCallImports()->create([
-                    'session_id' => $meeting->parliamentary_session_id,
+                    'council_session_id' => $meeting->council_session_id,
                     'user_id' => $user->getKey(),
                     'file_path' => $filePath,
                     'original_filename' => $originalFilenames[$filePath] ?? basename($filePath),

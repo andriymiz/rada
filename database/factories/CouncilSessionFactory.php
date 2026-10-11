@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\CouncilSession;
 use App\Models\ParliamentaryConvocation;
-use App\Models\ParliamentarySession;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<ParliamentarySession>
+ * @extends Factory<CouncilSession>
  */
-class ParliamentarySessionFactory extends Factory
+class CouncilSessionFactory extends Factory
 {
     /**
      * Define the model's default state.

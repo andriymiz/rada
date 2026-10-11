@@ -9,7 +9,7 @@ This schema stores plenary agenda items whether or not a recorded vote took plac
 ```text
 CouncilOrganization ──< Membership >── Person
         │                                  │
-        └──< PlenaryMeeting >── ParliamentarySession
+        └──< PlenaryMeeting >── CouncilSession
                     │
                     └──< Motion 1 ── 0..* VoteEvent ──< Vote >── Person
                          │
@@ -19,8 +19,8 @@ CouncilOrganization ──< Membership >── Person
 - **CouncilOrganization** is the Popolo `Organization` profile for the authority. `name`, `edrpou`, and `katoottg` supply the portal's `authorityName`, `authorityId`, and `authorityCattutc`.
 - **Person** is the Popolo `Person` profile for a deputy. `name` is the preferred full name; `voting_identifier` supplies the deputy dataset's `votingIdentifier` and the portal's `voterId`.
 - **Membership** is a Popolo `Membership`: it links a person to the council with a role and optional start/end dates. Separate records preserve successive terms.
-- **ParliamentaryConvocation** and **ParliamentarySession** are existing local reference models. A `ParliamentarySession` is the legislative session in Popolo terminology; it is distinct from a dated plenary meeting.
-- **PlenaryMeeting** is the dated meeting of an organization during a legislative session.
+- **ParliamentaryConvocation** and **CouncilSession** are local reference models. A `CouncilSession` is a council's legislative session in Popolo terminology; it is distinct from a dated plenary meeting.
+- **PlenaryMeeting** is the dated meeting of an organization during a council session.
 - **Motion** represents one agenda item and maps to one portal `motions` row. It records the stable `uid`, agenda number, title, optional project number, required portal result, optional published document URL, required document filename, and optional import provenance. Its unique `(plenary_meeting_id, number)` constraint prevents duplicate agenda numbers at the same meeting.
 - **VoteEvent** represents an actual recorded-vote event for a motion. It is optional and one-to-many, as Popolo permits a motion to be voted on more than once. A motion with no recorded vote therefore has no `VoteEvent`.
 - **Vote** records one person's option in a vote event. It stores a reference to the Popolo voter plus snapshots of the voter identifier and name as they appeared for that vote. `(vote_event_id, person_id)` is unique, so one person cannot have two choices in the same event.
@@ -35,7 +35,7 @@ Historical records use restrictive foreign keys to prevent deleting people, orga
 | `CouncilOrganization.edrpou` | `Organization.identifier` | `motions.authorityId` |
 | `CouncilOrganization.katoottg` | `opengov:area` (organization's geographic area) | `motions.authorityCattutc` |
 | `ParliamentaryConvocation.name` | Local legislature term | `motions.convocation` |
-| `ParliamentarySession.name` | `legislative_session` | `motions.legislativeSession` |
+| `CouncilSession.name` | `legislative_session` | `motions.legislativeSession` |
 | `PlenaryMeeting.date` | `Event.startDate` (date precision) | `motions.date` |
 | `Motion.uid` | Motion identifier | `motions.uid`, `votings.motionUid` |
 | `Motion.number`, `title`, `project_number` | Motion properties | `motions.number`, `title`, `projectNumber` |

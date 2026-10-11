@@ -10,9 +10,9 @@ use App\Filament\Resources\RollCallImports\Pages\ViewRollCallImport;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use App\Jobs\ProcessRollCallImport;
 use App\Models\CouncilOrganization;
+use App\Models\CouncilSession;
 use App\Models\Motion;
 use App\Models\ParliamentaryConvocation;
-use App\Models\ParliamentarySession;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
@@ -42,7 +42,7 @@ it('shows imports only within their meeting and has no global import list', func
     $otherMeeting = PlenaryMeeting::factory()->create();
     $reviewableImport = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
-        'session_id' => $meeting->parliamentary_session_id,
+        'council_session_id' => $meeting->council_session_id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'session' => null,
@@ -173,7 +173,7 @@ it('shows parsed agenda items and votes while an import awaits confirmation', fu
     $meeting = PlenaryMeeting::factory()->create();
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
-        'session_id' => $meeting->parliamentary_session_id,
+        'council_session_id' => $meeting->council_session_id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'session' => '99 сесія 8 скликання',
@@ -235,11 +235,11 @@ it('does not complete an import before every question is confirmed', function ()
 
 it('creates each motion as it is confirmed and completes only after all motions are confirmed', function () {
     $convocation = ParliamentaryConvocation::factory()->create();
-    $session = ParliamentarySession::factory()->for($convocation, 'convocation')->create();
+    $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
     $organization = CouncilOrganization::factory()->create();
     $meeting = PlenaryMeeting::factory()
         ->for($organization, 'organization')
-        ->for($session, 'parliamentarySession')
+        ->for($session, 'councilSession')
         ->create(['date' => '2025-06-12']);
     $person = Person::factory()->create([
         'name' => 'Іваненко Іван Іванович',
@@ -247,7 +247,7 @@ it('creates each motion as it is confirmed and completes only after all motions 
     ]);
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
-        'session_id' => $session->id,
+        'council_session_id' => $session->id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'motions' => [
@@ -319,7 +319,7 @@ it('creates each motion as it is confirmed and completes only after all motions 
         ->assertRedirect(PlenaryMeetingResource::getUrl('edit', ['record' => $meeting]));
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::Completed)
-        ->and($import->fresh()->session_id)->toBe($session->id)
+        ->and($import->fresh()->council_session_id)->toBe($session->id)
         ->and($import->fresh()->plenary_meeting_id)->toBe($meeting->id)
         ->and($import->fresh()->parsed_result['motions'][0]['review_status'])->toBe('approved')
         ->and($import->fresh()->parsed_result['motions'][1]['review_status'])->toBe('approved')
@@ -330,7 +330,7 @@ it('rejects confirmation of an import that is not linked to a meeting', function
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => null,
         'status' => RollCallImportStatus::AwaitingReview,
-        'session_id' => null,
+        'council_session_id' => null,
         'parsed_result' => [
             'motions' => [[
                 'question_number' => 1,

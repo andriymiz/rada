@@ -21,7 +21,7 @@ class EditPlenaryMeeting extends EditRecord
 
     public function getTitle(): string
     {
-        $meeting = $this->getRecord()->loadMissing('parliamentarySession.convocation');
+        $meeting = $this->getRecord()->loadMissing('councilSession.convocation');
 
         return "{$meeting->displayName()} — {$meeting->date->format('d.m.Y')}";
     }
@@ -32,7 +32,7 @@ class EditPlenaryMeeting extends EditRecord
 
         if ($organization === null) {
             throw ValidationException::withMessages([
-                'data.parliamentary_session_id' => 'Спочатку налаштуйте організацію.',
+                'data.council_session_id' => 'Спочатку налаштуйте організацію.',
             ]);
         }
 

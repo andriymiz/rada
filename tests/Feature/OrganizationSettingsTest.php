@@ -3,8 +3,8 @@
 use App\Filament\Pages\OrganizationSettings;
 use App\Filament\Resources\PlenaryMeetings\Pages\ListPlenaryMeetings;
 use App\Models\CouncilOrganization;
+use App\Models\CouncilSession;
 use App\Models\ParliamentaryConvocation;
-use App\Models\ParliamentarySession;
 use App\Models\PlenaryMeeting;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
@@ -53,13 +53,13 @@ it('defaults new meetings to the configured council organization', function () {
         'name' => 'Зборівська міська рада',
     ]);
     $convocation = ParliamentaryConvocation::factory()->create();
-    $session = ParliamentarySession::factory()
+    $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create();
 
     $page = livewire(ListPlenaryMeetings::class)
         ->callAction(TestAction::make('create'), [
-            'parliamentary_session_id' => $session->id,
+            'council_session_id' => $session->id,
             'date' => '2025-06-12',
         ])
         ->assertHasNoFormErrors();

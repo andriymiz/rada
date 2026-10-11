@@ -9,9 +9,9 @@ use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\PlenaryMeetings\RelationManagers\MotionsRelationManager;
 use App\Jobs\ProcessRollCallImport;
 use App\Models\CouncilOrganization;
+use App\Models\CouncilSession;
 use App\Models\Motion;
 use App\Models\ParliamentaryConvocation;
-use App\Models\ParliamentarySession;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
@@ -34,19 +34,19 @@ beforeEach(function () {
 it('lists plenary meetings with question counts and actionable statuses', function () {
     $organization = CouncilOrganization::factory()->create(['name' => 'Зборівська міська рада']);
     $convocation = ParliamentaryConvocation::factory()->create(['name' => '8 скликання']);
-    $olderSession = ParliamentarySession::factory()
+    $olderSession = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '98 сесія']);
-    $newerSession = ParliamentarySession::factory()
+    $newerSession = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '99 сесія']);
     $olderMeeting = PlenaryMeeting::factory()
         ->for($organization, 'organization')
-        ->for($olderSession, 'parliamentarySession')
+        ->for($olderSession, 'councilSession')
         ->create(['date' => '2025-05-20']);
     $newerMeeting = PlenaryMeeting::factory()
         ->for($organization, 'organization')
-        ->for($newerSession, 'parliamentarySession')
+        ->for($newerSession, 'councilSession')
         ->create(['date' => '2025-06-12']);
     $olderMotion = Motion::factory()->for($olderMeeting, 'plenaryMeeting')->create();
     VoteEvent::factory()->for($olderMotion)->count(2)->create();
@@ -79,13 +79,13 @@ it('creates a meeting without exposing the organization field', function () {
     $organization = CouncilOrganization::factory()->create();
     CouncilOrganization::factory()->create();
     $convocation = ParliamentaryConvocation::factory()->create(['name' => '8 скликання']);
-    $session = ParliamentarySession::factory()
+    $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '99 сесія']);
 
     livewire(ListPlenaryMeetings::class)
         ->callAction(TestAction::make('create'), [
-            'parliamentary_session_id' => $session->id,
+            'council_session_id' => $session->id,
             'date' => '2025-06-12',
         ])
         ->assertHasNoFormErrors();
@@ -95,23 +95,23 @@ it('creates a meeting without exposing the organization field', function () {
     $this->assertModelExists($meeting);
 
     expect($meeting->organization_id)->toBe($organization->id)
-        ->and($meeting->parliamentary_session_id)->toBe($session->id)
+        ->and($meeting->council_session_id)->toBe($session->id)
         ->and($meeting->date->toDateString())->toBe('2025-06-12');
 });
 
-it('creates a new parliamentary session from the session dropdown', function () {
+it('creates a new council session from the session dropdown', function () {
     CouncilOrganization::factory()->create();
     $convocation = ParliamentaryConvocation::factory()->create(['name' => '9 скликання']);
 
     livewire(ListPlenaryMeetings::class)
         ->mountAction('create')
-        ->callFormComponentAction('parliamentary_session_id', 'createOption', [
+        ->callFormComponentAction('council_session_id', 'createOption', [
             'name' => '101 сесія',
             'convocation_id' => $convocation->id,
         ])
         ->assertHasNoFormErrors();
 
-    $session = ParliamentarySession::query()->where('name', '101 сесія')->firstOrFail();
+    $session = CouncilSession::query()->where('name', '101 сесія')->firstOrFail();
 
     expect($session->convocation_id)->toBe($convocation->id);
 });
@@ -122,11 +122,11 @@ it('creates a meeting and queues its uploaded roll-call files', function () {
 
     CouncilOrganization::factory()->create();
     $convocation = ParliamentaryConvocation::factory()->create();
-    $session = ParliamentarySession::factory()->for($convocation, 'convocation')->create();
+    $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
 
     livewire(ListPlenaryMeetings::class)
         ->callAction(TestAction::make('create'), [
-            'parliamentary_session_id' => $session->id,
+            'council_session_id' => $session->id,
             'date' => '2025-06-12',
             'files' => [
                 UploadedFile::fake()->create('roll-calls.pdf', 100, 'application/pdf'),
@@ -139,7 +139,7 @@ it('creates a meeting and queues its uploaded roll-call files', function () {
     $import = RollCallImport::query()->firstOrFail();
 
     expect($import->plenary_meeting_id)->toBe($meeting->id)
-        ->and($import->session_id)->toBe($session->id)
+        ->and($import->council_session_id)->toBe($session->id)
         ->and($import->user_id)->toBe(auth()->id())
         ->and($import->status)->toBe(RollCallImportStatus::Queued);
 
@@ -163,7 +163,7 @@ it('queues additional roll-call files from the meeting workspace', function () {
     $import = RollCallImport::query()->firstOrFail();
 
     expect($import->plenary_meeting_id)->toBe($meeting->id)
-        ->and($import->session_id)->toBe($meeting->parliamentary_session_id);
+        ->and($import->council_session_id)->toBe($meeting->council_session_id);
 
     Storage::disk('local')->assertExists($import->file_path);
     Queue::assertPushed(ProcessRollCallImport::class, fn (ProcessRollCallImport $job): bool => $job->rollCallImport->is($import));
