@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\CouncilSession;
-use App\Models\ParliamentaryConvocation;
+use App\Models\Convocation;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,7 +19,7 @@ class CouncilSessionFactory extends Factory
     public function definition(): array
     {
         return [
-            'convocation_id' => ParliamentaryConvocation::factory(),
+            'convocation_id' => Convocation::factory(),
             'name' => fake()->unique()->numerify('Сесія № ##'),
         ];
     }

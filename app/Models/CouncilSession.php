@@ -15,10 +15,10 @@ class CouncilSession extends Model
     /** @use HasFactory<CouncilSessionFactory> */
     use HasFactory;
 
-    /** @return BelongsTo<ParliamentaryConvocation, $this> */
+    /** @return BelongsTo<Convocation, $this> */
     public function convocation(): BelongsTo
     {
-        return $this->belongsTo(ParliamentaryConvocation::class, 'convocation_id');
+        return $this->belongsTo(Convocation::class);
     }
 
     /** @return HasMany<RollCallImport, $this> */

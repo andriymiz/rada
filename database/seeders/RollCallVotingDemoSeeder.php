@@ -4,11 +4,11 @@ namespace Database\Seeders;
 
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
+use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Membership;
 use App\Models\Motion;
-use App\Models\ParliamentaryConvocation;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
@@ -27,7 +27,7 @@ class RollCallVotingDemoSeeder extends Seeder
             ],
         );
 
-        $convocation = ParliamentaryConvocation::query()->firstOrCreate([
+        $convocation = Convocation::query()->firstOrCreate([
             'name' => 'Демо скликання',
         ]);
 

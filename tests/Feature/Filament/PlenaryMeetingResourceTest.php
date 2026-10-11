@@ -8,10 +8,10 @@ use App\Filament\Resources\PlenaryMeetings\Pages\ListPlenaryMeetings;
 use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\PlenaryMeetings\RelationManagers\MotionsRelationManager;
 use App\Jobs\ProcessRollCallImport;
+use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Motion;
-use App\Models\ParliamentaryConvocation;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
@@ -33,7 +33,7 @@ beforeEach(function () {
 
 it('lists plenary meetings with question counts and actionable statuses', function () {
     $organization = CouncilOrganization::factory()->create(['name' => 'Зборівська міська рада']);
-    $convocation = ParliamentaryConvocation::factory()->create(['name' => '8 скликання']);
+    $convocation = Convocation::factory()->create(['name' => '8 скликання']);
     $olderSession = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '98 сесія']);
@@ -78,7 +78,7 @@ it('lists plenary meetings with question counts and actionable statuses', functi
 it('creates a meeting without exposing the organization field', function () {
     $organization = CouncilOrganization::factory()->create();
     CouncilOrganization::factory()->create();
-    $convocation = ParliamentaryConvocation::factory()->create(['name' => '8 скликання']);
+    $convocation = Convocation::factory()->create(['name' => '8 скликання']);
     $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '99 сесія']);
@@ -101,7 +101,7 @@ it('creates a meeting without exposing the organization field', function () {
 
 it('creates a new council session from the session dropdown', function () {
     CouncilOrganization::factory()->create();
-    $convocation = ParliamentaryConvocation::factory()->create(['name' => '9 скликання']);
+    $convocation = Convocation::factory()->create(['name' => '9 скликання']);
 
     livewire(ListPlenaryMeetings::class)
         ->mountAction('create')
@@ -121,7 +121,7 @@ it('creates a meeting and queues its uploaded roll-call files', function () {
     Queue::fake([ProcessRollCallImport::class]);
 
     CouncilOrganization::factory()->create();
-    $convocation = ParliamentaryConvocation::factory()->create();
+    $convocation = Convocation::factory()->create();
     $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
 
     livewire(ListPlenaryMeetings::class)

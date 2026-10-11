@@ -19,7 +19,7 @@ CouncilOrganization ──< Membership >── Person
 - **CouncilOrganization** is the Popolo `Organization` profile for the authority. `name`, `edrpou`, and `katoottg` supply the portal's `authorityName`, `authorityId`, and `authorityCattutc`.
 - **Person** is the Popolo `Person` profile for a deputy. `name` is the preferred full name; `voting_identifier` supplies the deputy dataset's `votingIdentifier` and the portal's `voterId`.
 - **Membership** is a Popolo `Membership`: it links a person to the council with a role and optional start/end dates. Separate records preserve successive terms.
-- **ParliamentaryConvocation** and **CouncilSession** are local reference models. A `CouncilSession` is a council's legislative session in Popolo terminology; it is distinct from a dated plenary meeting.
+- **Convocation** and **CouncilSession** are local reference models. A `CouncilSession` is a council's legislative session in Popolo terminology; it is distinct from a dated plenary meeting.
 - **PlenaryMeeting** is the dated meeting of an organization during a council session.
 - **Motion** represents one agenda item and maps to one portal `motions` row. It records the stable `uid`, agenda number, title, optional project number, required portal result, optional published document URL, required document filename, and optional import provenance. Its unique `(plenary_meeting_id, number)` constraint prevents duplicate agenda numbers at the same meeting.
 - **VoteEvent** represents an actual recorded-vote event for a motion. It is optional and one-to-many, as Popolo permits a motion to be voted on more than once. A motion with no recorded vote therefore has no `VoteEvent`.
@@ -34,7 +34,7 @@ Historical records use restrictive foreign keys to prevent deleting people, orga
 | `CouncilOrganization.name` | `Organization.name` | `motions.authorityName` |
 | `CouncilOrganization.edrpou` | `Organization.identifier` | `motions.authorityId` |
 | `CouncilOrganization.katoottg` | `opengov:area` (organization's geographic area) | `motions.authorityCattutc` |
-| `ParliamentaryConvocation.name` | Local legislature term | `motions.convocation` |
+| `Convocation.name` | Local legislature term | `motions.convocation` |
 | `CouncilSession.name` | `legislative_session` | `motions.legislativeSession` |
 | `PlenaryMeeting.date` | `Event.startDate` (date precision) | `motions.date` |
 | `Motion.uid` | Motion identifier | `motions.uid`, `votings.motionUid` |

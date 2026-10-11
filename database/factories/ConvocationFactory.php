@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\ParliamentaryConvocation;
+use App\Models\Convocation;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<ParliamentaryConvocation>
+ * @extends Factory<Convocation>
  */
-class ParliamentaryConvocationFactory extends Factory
+class ConvocationFactory extends Factory
 {
     /**
      * Define the model's default state.

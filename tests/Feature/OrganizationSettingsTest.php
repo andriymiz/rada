@@ -2,9 +2,9 @@
 
 use App\Filament\Pages\OrganizationSettings;
 use App\Filament\Resources\PlenaryMeetings\Pages\ListPlenaryMeetings;
+use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
-use App\Models\ParliamentaryConvocation;
 use App\Models\PlenaryMeeting;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
@@ -52,7 +52,7 @@ it('defaults new meetings to the configured council organization', function () {
     $organization = CouncilOrganization::factory()->create([
         'name' => 'Зборівська міська рада',
     ]);
-    $convocation = ParliamentaryConvocation::factory()->create();
+    $convocation = Convocation::factory()->create();
     $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create();

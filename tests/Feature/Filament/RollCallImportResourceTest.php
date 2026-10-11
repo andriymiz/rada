@@ -9,10 +9,10 @@ use App\Filament\Resources\RollCallImports\Pages\EditRollCallImport;
 use App\Filament\Resources\RollCallImports\Pages\ViewRollCallImport;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use App\Jobs\ProcessRollCallImport;
+use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Motion;
-use App\Models\ParliamentaryConvocation;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
@@ -234,7 +234,7 @@ it('does not complete an import before every question is confirmed', function ()
 });
 
 it('creates each motion as it is confirmed and completes only after all motions are confirmed', function () {
-    $convocation = ParliamentaryConvocation::factory()->create();
+    $convocation = Convocation::factory()->create();
     $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
     $organization = CouncilOrganization::factory()->create();
     $meeting = PlenaryMeeting::factory()

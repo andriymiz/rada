@@ -2,11 +2,11 @@
 
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
+use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Membership;
 use App\Models\Motion;
-use App\Models\ParliamentaryConvocation;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
@@ -16,7 +16,7 @@ use Illuminate\Database\QueryException;
 
 it('stores an agenda item without inventing a vote event', function () {
     $organization = CouncilOrganization::factory()->create();
-    $convocation = ParliamentaryConvocation::factory()->create();
+    $convocation = Convocation::factory()->create();
     $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
     $meeting = PlenaryMeeting::factory()
         ->for($organization, 'organization')
@@ -91,7 +91,7 @@ it('keeps the demo voting seed repeatable', function () {
     $this->seed(RollCallVotingDemoSeeder::class);
 
     expect(CouncilOrganization::query()->count())->toBe(1)
-        ->and(ParliamentaryConvocation::query()->count())->toBe(1)
+        ->and(Convocation::query()->count())->toBe(1)
         ->and(CouncilSession::query()->count())->toBe(1)
         ->and(PlenaryMeeting::query()->count())->toBe(1)
         ->and(Motion::query()->count())->toBe(1)

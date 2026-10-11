@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\PlenaryMeetings\Schemas;
 
+use App\Models\Convocation;
 use App\Models\CouncilSession;
-use App\Models\ParliamentaryConvocation;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -42,7 +42,7 @@ class PlenaryMeetingForm
                         ->maxLength(255),
                     Select::make('convocation_id')
                         ->label('Скликання')
-                        ->options(fn (): array => ParliamentaryConvocation::query()
+                        ->options(fn (): array => Convocation::query()
                             ->orderBy('name')
                             ->pluck('name', 'id')
                             ->all())
@@ -55,7 +55,7 @@ class PlenaryMeetingForm
                                 ->required()
                                 ->maxLength(255),
                         ])
-                        ->createOptionUsing(fn (array $data): int => (int) ParliamentaryConvocation::query()
+                        ->createOptionUsing(fn (array $data): int => (int) Convocation::query()
                             ->create($data)
                             ->getKey()),
                 ])
