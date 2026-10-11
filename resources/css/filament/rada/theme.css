@@ -98,7 +98,7 @@
 }
 
 .fi-input-wrp:not(.fi-fo-select) input.fi-input,
-.fi-input-wrp textarea.fi-input,
+.fi-input-wrp textarea,
 .fi-input-wrp input.fi-fo-date-time-picker-display-text-input {
     @apply px-0;
 }

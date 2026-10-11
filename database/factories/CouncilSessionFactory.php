@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\CouncilSession;
 use App\Models\Convocation;
+use App\Models\CouncilSession;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

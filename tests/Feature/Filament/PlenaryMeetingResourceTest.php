@@ -11,8 +11,9 @@ use App\Jobs\ProcessRollCallImport;
 use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
+use App\Models\Deputy;
+use App\Models\Membership;
 use App\Models\Motion;
-use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use App\Models\User;
@@ -171,14 +172,26 @@ it('queues additional roll-call files from the meeting workspace', function () {
 
 it('creates a question with individual votes and displays calculated vote counts', function () {
     $meeting = PlenaryMeeting::factory()->create();
-    $yesVoter = Person::factory()->create([
-        'name' => 'Іваненко Іван Іванович',
-        'voting_identifier' => 'COUNCIL-001',
+    $yesVoter = Deputy::factory()->create([
+        'family_name' => 'Іваненко',
+        'first_name' => 'Іван',
+        'additional_name' => 'Іванович',
     ]);
-    $noVoter = Person::factory()->create([
-        'name' => 'Петренко Петро Петрович',
-        'voting_identifier' => 'COUNCIL-002',
+    $noVoter = Deputy::factory()->create([
+        'family_name' => 'Петренко',
+        'first_name' => 'Петро',
+        'additional_name' => 'Петрович',
     ]);
+    Membership::factory()
+        ->for($yesVoter, 'deputy')
+        ->for($meeting->organization, 'organization')
+        ->for($meeting->councilSession->convocation, 'convocation')
+        ->create(['voting_identifier' => 'COUNCIL-001']);
+    Membership::factory()
+        ->for($noVoter, 'deputy')
+        ->for($meeting->organization, 'organization')
+        ->for($meeting->councilSession->convocation, 'convocation')
+        ->create(['voting_identifier' => 'COUNCIL-002']);
 
     livewire(MotionsRelationManager::class, [
         'ownerRecord' => $meeting,
@@ -192,8 +205,8 @@ it('creates a question with individual votes and displays calculated vote counts
             'text' => 'decision-14-26.pdf',
             'voteEvents' => [[
                 'votes' => [
-                    ['person_id' => $yesVoter->id, 'option' => VoteOption::Yes->value],
-                    ['person_id' => $noVoter->id, 'option' => VoteOption::No->value],
+                    ['deputy_id' => $yesVoter->id, 'option' => VoteOption::Yes->value],
+                    ['deputy_id' => $noVoter->id, 'option' => VoteOption::No->value],
                 ],
             ]],
         ])
@@ -208,7 +221,7 @@ it('creates a question with individual votes and displays calculated vote counts
         ->and($motion->number)->toBe(7)
         ->and($votes)->toHaveCount(2)
         ->and($votes[0]->voter_identifier)->toBe('COUNCIL-001')
-        ->and($votes[0]->voter_name)->toBe($yesVoter->name)
+        ->and($votes[0]->voter_name)->toBe($yesVoter->full_name)
         ->and($votes[1]->option)->toBe(VoteOption::No);
 
     livewire(MotionsRelationManager::class, [

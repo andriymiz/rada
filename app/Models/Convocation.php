@@ -19,4 +19,16 @@ class Convocation extends Model
     {
         return $this->hasMany(CouncilSession::class, 'convocation_id');
     }
+
+    /** @return HasMany<PermanentCommission, $this> */
+    public function permanentCommissions(): HasMany
+    {
+        return $this->hasMany(PermanentCommission::class);
+    }
+
+    /** @return HasMany<Membership, $this> */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(Membership::class);
+    }
 }

@@ -2,13 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\Person;
+use App\Models\Convocation;
+use App\Models\PermanentCommission;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Person>
+ * @extends Factory<PermanentCommission>
  */
-class PersonFactory extends Factory
+class PermanentCommissionFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -18,8 +19,8 @@ class PersonFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake('uk_UA')->name(),
-            'voting_identifier' => fake()->unique()->bothify('VOTER-######'),
+            'convocation_id' => Convocation::factory(),
+            'name' => fake()->unique()->words(3, true),
         ];
     }
 }

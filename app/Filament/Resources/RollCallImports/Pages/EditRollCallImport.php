@@ -8,7 +8,7 @@ use App\Enums\RollCallImportStatus;
 use App\Enums\VoteOption;
 use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
-use App\Models\Person;
+use App\Models\Deputy;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use Filament\Actions\Action;
@@ -141,10 +141,13 @@ class EditRollCallImport extends EditRecord
                 ];
             });
 
-            $peopleByName = Person::query()
-                ->whereIn('name', $normalizedVotes->pluck('name')->unique()->all())
-                ->get(['id', 'name', 'voting_identifier'])
-                ->groupBy('name');
+            $convocationId = $meeting->councilSession->convocation_id;
+            $deputiesByName = Deputy::query()
+                ->whereHas('memberships', fn ($query) => $query->where('convocation_id', $convocationId))
+                ->get(['id', 'family_name', 'first_name', 'additional_name'])
+                ->toBase()
+                ->groupBy('full_name')
+                ->only($normalizedVotes->pluck('name')->unique()->all());
 
             $motion = $meeting->motions()->create([
                 'uid' => "{$meeting->date->toDateString()}-{$meeting->getKey()}-{$questionNumber}",
@@ -162,12 +165,11 @@ class EditRollCallImport extends EditRecord
             ]);
 
             foreach ($normalizedVotes as $vote) {
-                $matchingPeople = $peopleByName->get($vote['name'], collect());
-                $person = $matchingPeople->count() === 1 ? $matchingPeople->first() : null;
+                $matchingDeputies = $deputiesByName->get($vote['name'], collect());
+                $deputy = $matchingDeputies->count() === 1 ? $matchingDeputies->first() : null;
 
                 $voteEvent->votes()->create([
-                    'person_id' => $person?->getKey(),
-                    'voter_identifier' => $person?->voting_identifier,
+                    'deputy_id' => $deputy?->getKey(),
                     'voter_name' => $vote['name'],
                     'option' => $vote['option'],
                 ]);

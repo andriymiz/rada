@@ -2,14 +2,16 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ContactPointType;
+use App\Enums\Gender;
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
 use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
+use App\Models\Deputy;
 use App\Models\Membership;
 use App\Models\Motion;
-use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
 use App\Models\VoteEvent;
@@ -76,35 +78,51 @@ class RollCallVotingDemoSeeder extends Seeder
             ['DEMO-VOTER-002', 'Демонстраційний Депутат Два', VoteOption::No],
             ['DEMO-VOTER-003', 'Демонстраційний Депутат Три', VoteOption::Abstain],
         ] as [$votingIdentifier, $name, $option]) {
-            $person = Person::query()->firstOrCreate(
-                ['voting_identifier' => $votingIdentifier],
-                ['name' => $name],
+            [$familyName, $firstName, $additionalName] = explode(' ', $name, 3);
+
+            $deputy = Deputy::query()->firstOrCreate(
+                [
+                    'family_name' => $familyName,
+                    'first_name' => $firstName,
+                    'additional_name' => $additionalName,
+                ],
+                [
+                    'gender' => Gender::Unknown,
+                    'birth_date' => '1980-01-01',
+                    'biography' => 'Демонстраційний депутат.',
+                ],
             );
 
-            $membership = Membership::query()
-                ->where('person_id', $person->id)
-                ->where('organization_id', $organization->id)
-                ->where('role', 'Депутат міської ради')
-                ->whereDate('start_date', '2020-11-01')
-                ->first();
+            $deputy->contactPoints()->firstOrCreate(
+                ['type' => ContactPointType::Email],
+                ['value' => 'demo@example.test', 'is_public' => true],
+            );
+            $deputy->contactPoints()->firstOrCreate(
+                ['type' => ContactPointType::Phone],
+                ['value' => '+380000000000', 'is_public' => true],
+            );
 
-            if (! $membership) {
-                Membership::query()->create([
-                    'person_id' => $person->id,
+            $membership = Membership::query()->firstOrCreate(
+                [
+                    'deputy_id' => $deputy->id,
                     'organization_id' => $organization->id,
+                    'convocation_id' => $convocation->id,
+                ],
+                [
+                    'voting_identifier' => $votingIdentifier,
                     'role' => 'Депутат міської ради',
                     'start_date' => '2020-11-01',
-                ]);
-            }
+                ],
+            );
 
             Vote::query()->firstOrCreate(
                 [
                     'vote_event_id' => $voteEvent->id,
-                    'person_id' => $person->id,
+                    'deputy_id' => $deputy->id,
                 ],
                 [
-                    'voter_identifier' => $person->voting_identifier,
-                    'voter_name' => $person->name,
+                    'voter_identifier' => $membership->voting_identifier,
+                    'voter_name' => $deputy->full_name,
                     'option' => $option,
                 ],
             );

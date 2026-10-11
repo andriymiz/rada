@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\VoteOption;
-use App\Models\Person;
+use App\Models\Deputy;
 use App\Models\Vote;
 use App\Models\VoteEvent;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -13,16 +13,6 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class VoteFactory extends Factory
 {
-    public function configure(): static
-    {
-        return $this->afterMaking(function (Vote $vote): void {
-            $person = $vote->person;
-
-            $vote->voter_identifier ??= $person->voting_identifier;
-            $vote->voter_name ??= $person->name;
-        });
-    }
-
     /**
      * Define the model's default state.
      *
@@ -32,19 +22,18 @@ class VoteFactory extends Factory
     {
         return [
             'vote_event_id' => VoteEvent::factory(),
-            'person_id' => Person::factory(),
+            'deputy_id' => Deputy::factory(),
             'voter_identifier' => null,
             'voter_name' => null,
             'option' => fake()->randomElement(VoteOption::cases()),
         ];
     }
 
-    public function forPerson(Person $person): static
+    public function forDeputy(Deputy $deputy): static
     {
         return $this->state([
-            'person_id' => $person->getKey(),
-            'voter_identifier' => $person->voting_identifier,
-            'voter_name' => $person->name,
+            'deputy_id' => $deputy->getKey(),
+            'voter_name' => $deputy->full_name,
         ]);
     }
 }

@@ -12,8 +12,9 @@ use App\Jobs\ProcessRollCallImport;
 use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
+use App\Models\Deputy;
+use App\Models\Membership;
 use App\Models\Motion;
-use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use App\Models\User;
@@ -241,10 +242,16 @@ it('creates each motion as it is confirmed and completes only after all motions 
         ->for($organization, 'organization')
         ->for($session, 'councilSession')
         ->create(['date' => '2025-06-12']);
-    $person = Person::factory()->create([
-        'name' => 'Іваненко Іван Іванович',
-        'voting_identifier' => 'COUNCIL-001',
+    $deputy = Deputy::factory()->create([
+        'family_name' => 'Іваненко',
+        'first_name' => 'Іван',
+        'additional_name' => 'Іванович',
     ]);
+    Membership::factory()
+        ->for($deputy, 'deputy')
+        ->for($organization, 'organization')
+        ->for($convocation, 'convocation')
+        ->create(['voting_identifier' => 'COUNCIL-001']);
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
         'council_session_id' => $session->id,
@@ -264,7 +271,7 @@ it('creates each motion as it is confirmed and completes only after all motions 
                         'absent' => 0,
                     ],
                     'votes' => [
-                        ['name' => $person->name, 'result' => 'За'],
+                        ['name' => $deputy->full_name, 'result' => 'За'],
                         ['name' => 'Невідомий Депутат', 'result' => 'Проти'],
                     ],
                 ],
@@ -303,10 +310,10 @@ it('creates each motion as it is confirmed and completes only after all motions 
         ->and($motion->project_number)->toBe('10/25')
         ->and($motion->roll_call_import_id)->toBe($import->id)
         ->and($votes)->toHaveCount(2)
-        ->and($votes[0]->person_id)->toBe($person->id)
+        ->and($votes[0]->deputy_id)->toBe($deputy->id)
         ->and($votes[0]->voter_identifier)->toBe('COUNCIL-001')
         ->and($votes[0]->option)->toBe(VoteOption::Yes)
-        ->and($votes[1]->person_id)->toBeNull()
+        ->and($votes[1]->deputy_id)->toBeNull()
         ->and($votes[1]->voter_identifier)->toBeNull()
         ->and($votes[1]->voter_name)->toBe('Невідомий Депутат');
 

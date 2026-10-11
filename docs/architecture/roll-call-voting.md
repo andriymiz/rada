@@ -7,25 +7,30 @@ This schema stores plenary agenda items whether or not a recorded vote took plac
 ## Data model
 
 ```text
-CouncilOrganization ──< Membership >── Person
+CouncilOrganization ──< Membership >── Deputy ── 0..1 DeputyReception
+                                           ├── homepage
+                                           └──< ContactPoint (polymorphic)
         │                                  │
         └──< PlenaryMeeting >── CouncilSession
                     │
-                    └──< Motion 1 ── 0..* VoteEvent ──< Vote >── Person
+                    └──< Motion 1 ── 0..* VoteEvent ──< Vote >── Deputy
                          │
                          └── optional RollCallImport
 ```
 
 - **CouncilOrganization** is the Popolo `Organization` profile for the authority. `name`, `edrpou`, and `katoottg` supply the portal's `authorityName`, `authorityId`, and `authorityCattutc`.
-- **Person** is the Popolo `Person` profile for a deputy. `name` is the preferred full name; `voting_identifier` supplies the deputy dataset's `votingIdentifier` and the portal's `voterId`.
-- **Membership** is a Popolo `Membership`: it links a person to the council with a role and optional start/end dates. Separate records preserve successive terms.
+- **Deputy** is the Popolo `Person` profile for a deputy. Its database-generated primary key is the internal identity; `full_name` is derived from `family_name`, `first_name`, and `additional_name`.
+- **DeputyReception** stores the deputy's reception address and hours in a separate one-to-one record.
+- **ContactPoint** stores one typed contact or public profile per row, along with its visibility and an optional note. Its `contactable` polymorphic relation allows other models to reuse the same contact data.
+- **Deputy.homepage** stores the deputy's page on the council website separately from reusable `ContactPoint` records.
+- **Membership** is a Popolo `Membership`: it links a deputy to the council and convocation with a role, party, voting-system identifier, and optional start/end dates. Separate records preserve successive terms and allow party and voting identifiers to differ across convocations.
 - **Convocation** and **CouncilSession** are local reference models. A `CouncilSession` is a council's legislative session in Popolo terminology; it is distinct from a dated plenary meeting.
 - **PlenaryMeeting** is the dated meeting of an organization during a council session.
 - **Motion** represents one agenda item and maps to one portal `motions` row. It records the stable `uid`, agenda number, title, optional project number, required portal result, optional published document URL, required document filename, and optional import provenance. Its unique `(plenary_meeting_id, number)` constraint prevents duplicate agenda numbers at the same meeting.
 - **VoteEvent** represents an actual recorded-vote event for a motion. It is optional and one-to-many, as Popolo permits a motion to be voted on more than once. A motion with no recorded vote therefore has no `VoteEvent`.
-- **Vote** records one person's option in a vote event. It stores a reference to the Popolo voter plus snapshots of the voter identifier and name as they appeared for that vote. `(vote_event_id, person_id)` is unique, so one person cannot have two choices in the same event.
+- **Vote** records one deputy's option in a vote event. It stores a reference to the deputy plus snapshots of the voter's convocation-specific identifier and name as they appeared for that vote. `(vote_event_id, deputy_id)` is unique, so one deputy cannot have two choices in the same event.
 
-Historical records use restrictive foreign keys to prevent deleting people, organizations, meetings, motions, or events that are still referenced. Deleting an import clears the optional source reference without deleting the published agenda data.
+Historical records use restrictive foreign keys to prevent deleting deputies, organizations, meetings, motions, or events that are still referenced. Deleting an import clears the optional source reference without deleting the published agenda data.
 
 ## Popolo and portal mapping
 
@@ -34,6 +39,7 @@ Historical records use restrictive foreign keys to prevent deleting people, orga
 | `CouncilOrganization.name` | `Organization.name` | `motions.authorityName` |
 | `CouncilOrganization.edrpou` | `Organization.identifier` | `motions.authorityId` |
 | `CouncilOrganization.katoottg` | `opengov:area` (organization's geographic area) | `motions.authorityCattutc` |
+| `ContactPoint` | Reusable typed contact or social profile, attached through a polymorphic owner | Public contact points |
 | `Convocation.name` | Local legislature term | `motions.convocation` |
 | `CouncilSession.name` | `legislative_session` | `motions.legislativeSession` |
 | `PlenaryMeeting.date` | `Event.startDate` (date precision) | `motions.date` |
@@ -43,7 +49,9 @@ Historical records use restrictive foreign keys to prevent deleting people, orga
 | `Motion.text_url`, `text` | Motion link / document name | `motions.textUrl`, `text` |
 | `VoteEvent` | `VoteEvent` | Its existence indicates that a roll-call vote was recorded |
 | Counts grouped from `Vote.option` | `Count` | `motions.votingFor`, `votingAgainst`, `votingAbstain`, `notVoting`, `absent` |
-| `Vote` and its voter | `Vote` and `Person` | One `votings` row per deputy |
+| `Deputy.id` | Popolo `Person` identifier | `deputies.id` |
+| `Membership.voting_identifier` | Convocation-specific voting system identifier | `deputies.votingIdentifier` for the selected convocation |
+| `Vote` and its voter | `Vote` and `Deputy` | One `votings` row per deputy |
 | `Vote.voter_identifier`, `voter_name`, `option` | Voter identifier, name snapshot, option | `voterId`, `voterName`, `result` |
 
 Portal result values map from `MotionResult` as follows: `passed` → `Прийнято`, `not_passed` → `Не прийнято`, `not_voted` → `Не голосували`, and `not_considered` → `Не розглядали`. Individual `VoteOption` values cover the portal's `За`, `Проти`, `Утримався`, `Не голосував`, and `Відсутній`. Popolo also defines `paired`; this schema preserves it as `paired`, but the portal schema does not define an equivalent `votings.result` value. An exporter must explicitly handle that case rather than silently treating it as another option.

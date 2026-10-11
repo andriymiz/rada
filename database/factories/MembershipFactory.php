@@ -2,9 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Convocation;
 use App\Models\CouncilOrganization;
+use App\Models\Deputy;
 use App\Models\Membership;
-use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,8 +21,9 @@ class MembershipFactory extends Factory
     public function definition(): array
     {
         return [
-            'person_id' => Person::factory(),
+            'deputy_id' => Deputy::factory(),
             'organization_id' => CouncilOrganization::factory(),
+            'convocation_id' => Convocation::factory(),
             'role' => 'Депутат міської ради',
             'start_date' => fake()->dateTimeBetween('-4 years', 'now')->format('Y-m-d'),
             'end_date' => null,

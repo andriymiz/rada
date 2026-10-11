@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['vote_event_id', 'person_id', 'voter_identifier', 'voter_name', 'option'])]
+#[Fillable(['vote_event_id', 'deputy_id', 'voter_identifier', 'voter_name', 'option'])]
 class Vote extends Model
 {
     /** @use HasFactory<VoteFactory> */
@@ -18,13 +18,20 @@ class Vote extends Model
     protected static function booted(): void
     {
         static::saving(function (Vote $vote): void {
-            if (! $vote->isDirty('person_id') || $vote->person_id === null) {
+            if ((! $vote->isDirty('deputy_id') && ! $vote->isDirty('vote_event_id')) || $vote->deputy_id === null) {
                 return;
             }
 
-            $person = $vote->person()->firstOrFail();
-            $vote->voter_identifier = $person->voting_identifier;
-            $vote->voter_name = $person->name;
+            $deputy = $vote->deputy()->firstOrFail();
+            $voteEvent = $vote->voteEvent()->with('motion.plenaryMeeting.councilSession')->first();
+            $convocationId = $voteEvent?->motion?->plenaryMeeting?->councilSession?->convocation_id;
+
+            $vote->voter_identifier = $convocationId === null
+                ? null
+                : $deputy->memberships()
+                    ->where('convocation_id', $convocationId)
+                    ->value('voting_identifier');
+            $vote->voter_name = $deputy->full_name;
         });
     }
 
@@ -41,9 +48,9 @@ class Vote extends Model
         return $this->belongsTo(VoteEvent::class);
     }
 
-    /** @return BelongsTo<Person, $this> */
-    public function person(): BelongsTo
+    /** @return BelongsTo<Deputy, $this> */
+    public function deputy(): BelongsTo
     {
-        return $this->belongsTo(Person::class);
+        return $this->belongsTo(Deputy::class);
     }
 }

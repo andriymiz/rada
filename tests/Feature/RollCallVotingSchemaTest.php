@@ -5,9 +5,9 @@ use App\Enums\VoteOption;
 use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
+use App\Models\Deputy;
 use App\Models\Membership;
 use App\Models\Motion;
-use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
 use App\Models\VoteEvent;
@@ -45,44 +45,46 @@ it('allows a motion to have multiple distinct vote events', function () {
     $secondEvent = VoteEvent::factory()
         ->for($motion, 'motion')
         ->create(['identifier' => 'vote-2']);
-    $person = Person::factory()->create();
+    $deputy = Deputy::factory()->create();
 
-    Vote::factory()->for($firstEvent, 'voteEvent')->forPerson($person)->create();
-    Vote::factory()->for($secondEvent, 'voteEvent')->forPerson($person)->create();
+    Vote::factory()->for($firstEvent, 'voteEvent')->forDeputy($deputy)->create();
+    Vote::factory()->for($secondEvent, 'voteEvent')->forDeputy($deputy)->create();
 
     expect($motion->voteEvents()->pluck('identifier')->all())
         ->toBe(['vote-1', 'vote-2'])
         ->and($firstEvent->motion->is($motion))->toBeTrue()
         ->and($secondEvent->motion->is($motion))->toBeTrue()
-        ->and($person->votes()->count())->toBe(2);
+        ->and($deputy->votes()->count())->toBe(2);
 });
 
 it('stores one immutable voter snapshot per person for a recorded event', function () {
     $motion = Motion::factory()->create(['uid' => '2025-06-12-2']);
     $event = VoteEvent::factory()->for($motion, 'motion')->create();
-    $person = Person::factory()->create([
-        'name' => 'Іваненко Олександр Петрович',
-        'voting_identifier' => 'COUNCIL-001',
+    $deputy = Deputy::factory()->create([
+        'family_name' => 'Іваненко',
+        'first_name' => 'Олександр',
+        'additional_name' => 'Петрович',
     ]);
     Membership::factory()
-        ->for($person, 'person')
+        ->for($deputy, 'deputy')
         ->for($motion->plenaryMeeting->organization, 'organization')
-        ->create();
+        ->for($motion->plenaryMeeting->councilSession->convocation, 'convocation')
+        ->create(['voting_identifier' => 'COUNCIL-001']);
 
     $vote = Vote::factory()
         ->for($event, 'voteEvent')
-        ->for($person, 'person')
+        ->forDeputy($deputy)
         ->create(['option' => VoteOption::Yes]);
 
     expect($event->votes)->toHaveCount(1)
-        ->and($vote->person->is($person))->toBeTrue()
+        ->and($vote->deputy->is($deputy))->toBeTrue()
         ->and($vote->voter_identifier)->toBe('COUNCIL-001')
         ->and($vote->voter_name)->toBe('Іваненко Олександр Петрович')
         ->and($vote->option)->toBe(VoteOption::Yes);
 
     expect(fn () => Vote::factory()
         ->for($event, 'voteEvent')
-        ->forPerson($person)
+        ->forDeputy($deputy)
         ->create())->toThrow(QueryException::class);
 });
 
@@ -96,7 +98,7 @@ it('keeps the demo voting seed repeatable', function () {
         ->and(PlenaryMeeting::query()->count())->toBe(1)
         ->and(Motion::query()->count())->toBe(1)
         ->and(VoteEvent::query()->count())->toBe(1)
-        ->and(Person::query()->count())->toBe(3)
+        ->and(Deputy::query()->count())->toBe(3)
         ->and(Membership::query()->count())->toBe(3)
         ->and(Vote::query()->count())->toBe(3);
 });

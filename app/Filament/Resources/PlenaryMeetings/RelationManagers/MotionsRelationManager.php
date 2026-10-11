@@ -4,8 +4,8 @@ namespace App\Filament\Resources\PlenaryMeetings\RelationManagers;
 
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
+use App\Models\Deputy;
 use App\Models\Motion;
-use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
 use Filament\Actions\CreateAction;
@@ -72,11 +72,21 @@ class MotionsRelationManager extends RelationManager
                             ->label('Голоси депутатів')
                             ->relationship()
                             ->schema([
-                                Select::make('person_id')
+                                Select::make('deputy_id')
                                     ->label('Депутат')
-                                    ->options(fn (): array => Person::query()
-                                        ->orderBy('name')
-                                        ->pluck('name', 'id')
+                                    ->options(fn (): array => Deputy::query()
+                                        ->whereHas('memberships', fn (Builder $query): Builder => $query
+                                            ->where(
+                                                'convocation_id',
+                                                $this->getOwnerRecord()->councilSession->convocation_id,
+                                            ))
+                                        ->orderBy('family_name')
+                                        ->orderBy('first_name')
+                                        ->orderBy('additional_name')
+                                        ->get()
+                                        ->mapWithKeys(fn (Deputy $deputy): array => [
+                                            $deputy->id => $deputy->full_name,
+                                        ])
                                         ->all())
                                     ->required()
                                     ->searchable()
