@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'uid',
     'plenary_meeting_id',
-    'roll_call_import_id',
     'number',
     'title',
     'project_number',
@@ -38,12 +37,6 @@ class Motion extends Model
     public function plenaryMeeting(): BelongsTo
     {
         return $this->belongsTo(PlenaryMeeting::class);
-    }
-
-    /** @return BelongsTo<RollCallImport, $this> */
-    public function rollCallImport(): BelongsTo
-    {
-        return $this->belongsTo(RollCallImport::class);
     }
 
     /** @return HasMany<VoteEvent, $this> */

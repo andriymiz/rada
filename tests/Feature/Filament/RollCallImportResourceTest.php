@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Sleep;
 
@@ -308,7 +309,6 @@ it('creates each motion as it is confirmed and completes only after all motions 
     expect($motion->number)->toBe(1)
         ->and($motion->title)->toBe('Перше питання')
         ->and($motion->project_number)->toBe('10/25')
-        ->and($motion->roll_call_import_id)->toBe($import->id)
         ->and($votes)->toHaveCount(2)
         ->and($votes[0]->deputy_id)->toBe($deputy->id)
         ->and($votes[0]->voter_identifier)->toBe('COUNCIL-001')
@@ -316,6 +316,8 @@ it('creates each motion as it is confirmed and completes only after all motions 
         ->and($votes[1]->deputy_id)->toBeNull()
         ->and($votes[1]->voter_identifier)->toBeNull()
         ->and($votes[1]->voter_name)->toBe('Невідомий Депутат');
+
+    expect(Schema::hasColumn('motions', 'roll_call_import_id'))->toBeFalse();
 
     $page->call('reviewMotion', 1)
         ->assertNotified();

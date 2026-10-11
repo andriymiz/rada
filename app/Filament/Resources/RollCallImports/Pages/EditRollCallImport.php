@@ -152,7 +152,6 @@ class EditRollCallImport extends EditRecord
 
             $motion = $meeting->motions()->create([
                 'uid' => "{$meeting->date->toDateString()}-{$meeting->getKey()}-{$questionNumber}",
-                'roll_call_import_id' => $record->getKey(),
                 'number' => $questionNumber,
                 'title' => $title,
                 'project_number' => $parsedMotion['project_number'] ?? null,

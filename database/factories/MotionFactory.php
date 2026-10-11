@@ -23,7 +23,6 @@ class MotionFactory extends Factory
         return [
             'uid' => (string) Str::uuid(),
             'plenary_meeting_id' => PlenaryMeeting::factory(),
-            'roll_call_import_id' => null,
             'number' => fake()->unique()->numberBetween(1, 500),
             'title' => 'Про '.fake()->sentence(4),
             'project_number' => fake()->optional()->numerify('###/##'),
