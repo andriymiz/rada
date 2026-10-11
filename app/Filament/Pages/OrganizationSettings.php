@@ -62,15 +62,15 @@ class OrganizationSettings extends Page
     {
         return $schema
             ->components([
-                TextInput::make('name')
-                    ->label('Назва організації')
-                    ->required()
-                    ->maxLength(255),
                 TextInput::make('edrpou')
                     ->label('ЄДРПОУ')
                     ->length(8)
                     ->unique(ignoreRecord: true)
                     ->required(),
+                TextInput::make('name')
+                    ->label('Назва')
+                    ->required()
+                    ->maxLength(255),
                 TextInput::make('katoottg')
                     ->label('КАТОТТГ')
                     ->length(19)

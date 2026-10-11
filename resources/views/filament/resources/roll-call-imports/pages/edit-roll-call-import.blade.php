@@ -76,7 +76,7 @@
 
         @unless ($this->areAllMotionsApproved())
             <p class="text-sm text-warning-600 dark:text-warning-400">
-                Підтвердіть кожне питання, щоб зберегти імпорт.
+                Підтверджуйте питання по черзі. Кожне підтвердження одразу додає його до засідання.
             </p>
         @endunless
 
@@ -88,7 +88,7 @@
                 wire:loading.attr="disabled"
                 wire:target="save"
             >
-                Зберегти
+                Завершити імпорт
             </x-filament::button>
         </div>
     </form>

@@ -2,15 +2,13 @@
 
 namespace App\Filament\Resources\RollCallImports\Pages;
 
-use App\Filament\Concerns\HasRadaBreadcrumbs;
+use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewRollCallImport extends ViewRecord
 {
-    use HasRadaBreadcrumbs;
-
     protected static string $resource = RollCallImportResource::class;
 
     protected string $view = 'filament.resources.roll-call-imports.pages.view-roll-call-import';
@@ -18,6 +16,17 @@ class ViewRollCallImport extends ViewRecord
     public function getTitle(): string
     {
         return "Результати імпорту: {$this->getRecord()->original_filename}";
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return [
+            PlenaryMeetingResource::getUrl() => 'Засідання',
+            '' => 'Імпорти',
+        ];
     }
 
     protected function getHeaderActions(): array

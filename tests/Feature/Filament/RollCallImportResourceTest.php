@@ -1,14 +1,19 @@
 <?php
 
 use App\Enums\RollCallImportStatus;
+use App\Enums\VoteOption;
+use App\Filament\Resources\PlenaryMeetings\Pages\EditPlenaryMeeting;
+use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
+use App\Filament\Resources\PlenaryMeetings\RelationManagers\RollCallImportsRelationManager;
 use App\Filament\Resources\RollCallImports\Pages\EditRollCallImport;
-use App\Filament\Resources\RollCallImports\Pages\ListRollCallImports;
 use App\Filament\Resources\RollCallImports\Pages\ViewRollCallImport;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use App\Jobs\ProcessRollCallImport;
 use App\Models\CouncilOrganization;
+use App\Models\Motion;
 use App\Models\ParliamentaryConvocation;
 use App\Models\ParliamentarySession;
+use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use App\Models\User;
@@ -17,7 +22,6 @@ use App\Services\RollCallPdfParser;
 use Carbon\CarbonInterval;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -33,102 +37,55 @@ beforeEach(function () {
     $this->actingAs($this->user);
 });
 
-it('uploads multiple PDFs from the import history and queues each file', function () {
-    Storage::fake('local');
-    Queue::fake([ProcessRollCallImport::class]);
-
-    livewire(ListRollCallImports::class)
-        ->callAction(TestAction::make('upload'), [
-            'files' => [
-                UploadedFile::fake()->create('roll-calls-1.pdf', 100, 'application/pdf'),
-                UploadedFile::fake()->create('roll-calls-2.pdf', 100, 'application/pdf'),
-            ],
-        ])
-        ->assertHasNoFormErrors()
-        ->assertNotified()
-        ->assertSee('roll-calls-1.pdf')
-        ->assertSee('roll-calls-2.pdf');
-
-    $imports = RollCallImport::query()->orderBy('original_filename')->get();
-
-    expect($imports)->toHaveCount(2);
-
-    foreach ($imports as $import) {
-        expect($import->session_id)->toBeNull()
-            ->and($import->user_id)->toBe($this->user->id)
-            ->and($import->status)->toBe(RollCallImportStatus::Queued);
-
-        Storage::disk('local')->assertExists($import->file_path);
-        Queue::assertPushed(ProcessRollCallImport::class, fn (ProcessRollCallImport $job): bool => $job->rollCallImport->is($import));
-    }
-});
-
-it('rejects non-PDF files in the upload modal', function () {
-    Storage::fake('local');
-    Queue::fake([ProcessRollCallImport::class]);
-
-    livewire(ListRollCallImports::class)
-        ->callAction(TestAction::make('upload'), [
-            'files' => [UploadedFile::fake()->create('roll-calls.txt', 10, 'text/plain')],
-        ])
-        ->assertHasFormErrors(['files']);
-
-    expect(RollCallImport::query()->count())->toBe(0);
-    Queue::assertNothingPushed();
-});
-
-it('shows the newest imports first and permits reviewing imports awaiting confirmation', function () {
-    $convocation = ParliamentaryConvocation::factory()->create(['name' => '8 скликання']);
-    $session = ParliamentarySession::factory()
-        ->for($convocation, 'convocation')
-        ->create(['name' => '10 сесія']);
-    $olderImport = RollCallImport::factory()->create([
-        'session_id' => null,
-        'parsed_result' => ['session' => '99 сесія 8 скликання'],
-    ]);
+it('shows imports only within their meeting and has no global import list', function () {
+    $meeting = PlenaryMeeting::factory()->create();
+    $otherMeeting = PlenaryMeeting::factory()->create();
     $reviewableImport = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
+        'session_id' => $meeting->parliamentary_session_id,
         'status' => RollCallImportStatus::AwaitingReview,
-        'session_id' => null,
         'parsed_result' => [
             'session' => null,
             'motions' => [[
                 'question_number' => 1,
                 'title' => 'Питання на підтвердження',
+                'result' => 'Прийнято',
+                'project_number' => null,
+                'counts' => [],
                 'votes' => [],
             ]],
         ],
     ]);
-    $persistedSessionImport = RollCallImport::factory()->create([
+    $completedImport = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
         'status' => RollCallImportStatus::Completed,
-        'session_id' => $session->id,
-        'parsed_result' => ['session' => '99 сесія 7 скликання'],
     ]);
-    $newestImport = RollCallImport::factory()->create([
-        'status' => RollCallImportStatus::Completed,
-        'session_id' => null,
-        'parsed_result' => ['session' => null],
+    $failedImport = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
+        'status' => RollCallImportStatus::Failed,
+        'error_message' => 'Не вдалося розібрати PDF.',
+    ]);
+    $otherImport = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $otherMeeting->id,
     ]);
 
-    $list = livewire(ListRollCallImports::class)
-        ->assertCanSeeTableRecords([$newestImport, $persistedSessionImport, $reviewableImport, $olderImport], inOrder: true)
-        ->assertTableActionVisible('edit', $reviewableImport)
-        ->assertTableActionHidden('view', $reviewableImport)
-        ->assertTableActionHasUrl('edit', RollCallImportResource::getUrl('edit', ['record' => $reviewableImport]), $reviewableImport)
-        ->assertTableActionVisible('view', $newestImport)
-        ->assertTableActionHidden('edit', $newestImport)
-        ->assertTableActionHasUrl('view', RollCallImportResource::getUrl('view', ['record' => $newestImport]), $newestImport)
-        ->assertSee('Очікує підтвердження')
-        ->assertSee('-');
+    $table = livewire(RollCallImportsRelationManager::class, [
+        'ownerRecord' => $meeting,
+        'pageClass' => EditPlenaryMeeting::class,
+    ])
+        ->assertCanSeeTableRecords([$reviewableImport, $completedImport, $failedImport])
+        ->assertCanNotSeeTableRecords([$otherImport])
+        ->assertTableActionVisible('review', $reviewableImport)
+        ->assertTableActionHasUrl('review', RollCallImportResource::getUrl('edit', ['record' => $reviewableImport]), $reviewableImport)
+        ->assertTableActionVisible('view', $completedImport)
+        ->assertTableActionHidden('review', $completedImport)
+        ->assertTableActionVisible('viewError', $failedImport);
 
-    $breadcrumbs = $list->instance()->getBreadcrumbs();
+    expect(array_keys(RollCallImportResource::getPages()))->toBe(['view', 'edit'])
+        ->and(RollCallImportResource::shouldRegisterNavigation())->toBeFalse()
+        ->and($table->instance()->getTable()->getPollingInterval())->toBeNull();
 
-    expect(parse_url(RollCallImportResource::getUrl(), PHP_URL_PATH))->toBe('/panel/meetings/imports')
-        ->and(array_values($breadcrumbs))->toBe(['Засідання']);
-
-    expect($list->instance()->getTable()->getPollingInterval())->toBe('3s');
-
-    livewire(ViewRollCallImport::class, ['record' => $olderImport->id])
-        ->assertForbidden();
+    $this->get('/panel/meetings/imports')->assertNotFound();
 
     $edit = livewire(EditRollCallImport::class, ['record' => $reviewableImport->id])
         ->assertSee('Підтвердити');
@@ -136,7 +93,7 @@ it('shows the newest imports first and permits reviewing imports awaiting confir
     expect(array_values($edit->instance()->getBreadcrumbs()))
         ->toBe(['Засідання', 'Імпорти']);
 
-    $view = livewire(ViewRollCallImport::class, ['record' => $newestImport->id])
+    $view = livewire(ViewRollCallImport::class, ['record' => $completedImport->id])
         ->assertOk()
         ->assertSee('example.pdf');
 
@@ -145,24 +102,32 @@ it('shows the newest imports first and permits reviewing imports awaiting confir
 });
 
 it('shows the error modal action only for imports with a processing error', function () {
+    $meeting = PlenaryMeeting::factory()->create();
     $failedImport = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
         'status' => RollCallImportStatus::Failed,
         'error_message' => 'Не вдалося розібрати PDF.',
     ]);
     $queuedImport = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
         'status' => RollCallImportStatus::Queued,
     ]);
 
-    livewire(ListRollCallImports::class)
+    livewire(RollCallImportsRelationManager::class, [
+        'ownerRecord' => $meeting,
+        'pageClass' => EditPlenaryMeeting::class,
+    ])
         ->assertTableActionVisible('viewError', $failedImport)
         ->assertTableActionHidden('viewError', $queuedImport)
         ->mountTableAction('viewError', $failedImport)
         ->assertActionMounted(TestAction::make('viewError')->table($failedImport))
-        ->assertMountedActionModalSee(['Помилка обробки імпорту', 'Не вдалося розібрати PDF.']);
+        ->assertMountedActionModalSee(['Помилка імпорту', 'Не вдалося розібрати PDF.']);
 });
 
 it('requeues a failed import from the error modal', function () {
+    $meeting = PlenaryMeeting::factory()->create();
     $failedImport = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
         'status' => RollCallImportStatus::Failed,
         'error_message' => 'Не вдалося розібрати PDF.',
         'parsed_result' => ['stale' => true],
@@ -171,10 +136,13 @@ it('requeues a failed import from the error modal', function () {
 
     Queue::fake([ProcessRollCallImport::class]);
 
-    $page = livewire(ListRollCallImports::class)
+    $page = livewire(RollCallImportsRelationManager::class, [
+        'ownerRecord' => $meeting,
+        'pageClass' => EditPlenaryMeeting::class,
+    ])
         ->mountTableAction('viewError', $failedImport)
         ->assertMountedActionModalSee([
-            'Помилка обробки імпорту',
+            'Помилка імпорту',
             'Не вдалося розібрати PDF.',
             'Спробувати ще раз',
         ]);
@@ -202,7 +170,10 @@ it('limits the pending processing scope to queued and processing imports', funct
 });
 
 it('shows parsed agenda items and votes while an import awaits confirmation', function () {
+    $meeting = PlenaryMeeting::factory()->create();
     $import = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
+        'session_id' => $meeting->parliamentary_session_id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'session' => '99 сесія 8 скликання',
@@ -239,22 +210,76 @@ it('shows parsed agenda items and votes while an import awaits confirmation', fu
         ->assertSee('Переглянути PDF');
 });
 
-it('completes an import only after every motion is confirmed', function () {
+it('does not complete an import before every question is confirmed', function () {
+    $meeting = PlenaryMeeting::factory()->create();
+    $import = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
+        'status' => RollCallImportStatus::AwaitingReview,
+        'parsed_result' => [
+            'motions' => [[
+                'question_number' => 1,
+                'title' => 'Питання до підтвердження',
+                'result' => 'Прийнято',
+                'votes' => [],
+            ]],
+        ],
+    ]);
+
+    livewire(EditRollCallImport::class, ['record' => $import->id])
+        ->call('save')
+        ->assertHasErrors(['data']);
+
+    expect($import->fresh()->status)->toBe(RollCallImportStatus::AwaitingReview)
+        ->and(Motion::query()->where('plenary_meeting_id', $meeting->id)->count())->toBe(0);
+});
+
+it('creates each motion as it is confirmed and completes only after all motions are confirmed', function () {
     $convocation = ParliamentaryConvocation::factory()->create();
     $session = ParliamentarySession::factory()->for($convocation, 'convocation')->create();
     $organization = CouncilOrganization::factory()->create();
+    $meeting = PlenaryMeeting::factory()
+        ->for($organization, 'organization')
+        ->for($session, 'parliamentarySession')
+        ->create(['date' => '2025-06-12']);
+    $person = Person::factory()->create([
+        'name' => 'Іваненко Іван Іванович',
+        'voting_identifier' => 'COUNCIL-001',
+    ]);
     $import = RollCallImport::factory()->create([
+        'plenary_meeting_id' => $meeting->id,
+        'session_id' => $session->id,
         'status' => RollCallImportStatus::AwaitingReview,
         'parsed_result' => [
             'motions' => [
                 [
                     'question_number' => 1,
                     'title' => 'Перше питання',
-                    'votes' => [],
+                    'project_number' => '10/25',
+                    'result' => 'Прийнято',
+                    'counts' => [
+                        'for' => 1,
+                        'against' => 1,
+                        'abstain' => 0,
+                        'not_voting' => 0,
+                        'absent' => 0,
+                    ],
+                    'votes' => [
+                        ['name' => $person->name, 'result' => 'За'],
+                        ['name' => 'Невідомий Депутат', 'result' => 'Проти'],
+                    ],
                 ],
                 [
                     'question_number' => 2,
                     'title' => 'Друге питання',
+                    'project_number' => null,
+                    'result' => 'Не прийнято',
+                    'counts' => [
+                        'for' => 0,
+                        'against' => 0,
+                        'abstain' => 0,
+                        'not_voting' => 0,
+                        'absent' => 0,
+                    ],
                     'votes' => [],
                 ],
             ],
@@ -262,67 +287,67 @@ it('completes an import only after every motion is confirmed', function () {
     ]);
 
     $page = livewire(EditRollCallImport::class, ['record' => $import->id])
-        ->assertSee('Засідання')
-        ->fillForm([
-            'plenary_meeting_id' => null,
-        ])
-        ->call('save')
-        ->assertHasFormErrors(['plenary_meeting_id']);
-
-    expect($import->fresh()->status)->toBe(RollCallImportStatus::AwaitingReview);
-
-    $page->callFormComponentAction('plenary_meeting_id', 'createOption', [
-        'organization_id' => $organization->id,
-        'parliamentary_session_id' => $session->id,
-        'date' => '2025-06-12',
-    ])
-        ->assertHasNoFormErrors()
-        ->assertFormSet(['plenary_meeting_id' => PlenaryMeeting::query()->value('id')]);
-
-    $meeting = PlenaryMeeting::query()->firstOrFail();
+        ->assertSee('Засідання');
 
     $page->call('reviewMotion', 0)
         ->assertNotified()
-        ->call('reviewMotion', 1)
-        ->assertNotified();
+        ->assertHasNoFormErrors();
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::AwaitingReview);
 
+    $motion = Motion::query()->where('plenary_meeting_id', $meeting->id)->firstOrFail();
+    $votes = $motion->voteEvents()->firstOrFail()->votes()->orderBy('id')->get();
+
+    expect($motion->number)->toBe(1)
+        ->and($motion->title)->toBe('Перше питання')
+        ->and($motion->project_number)->toBe('10/25')
+        ->and($motion->roll_call_import_id)->toBe($import->id)
+        ->and($votes)->toHaveCount(2)
+        ->and($votes[0]->person_id)->toBe($person->id)
+        ->and($votes[0]->voter_identifier)->toBe('COUNCIL-001')
+        ->and($votes[0]->option)->toBe(VoteOption::Yes)
+        ->and($votes[1]->person_id)->toBeNull()
+        ->and($votes[1]->voter_identifier)->toBeNull()
+        ->and($votes[1]->voter_name)->toBe('Невідомий Депутат');
+
+    $page->call('reviewMotion', 1)
+        ->assertNotified();
+
     $page->call('save')
         ->assertHasNoFormErrors()
-        ->assertNotified('Імпорт збережено та завершено')
-        ->assertRedirect();
+        ->assertNotified('Імпорт завершено')
+        ->assertRedirect(PlenaryMeetingResource::getUrl('edit', ['record' => $meeting]));
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::Completed)
         ->and($import->fresh()->session_id)->toBe($session->id)
         ->and($import->fresh()->plenary_meeting_id)->toBe($meeting->id)
         ->and($import->fresh()->parsed_result['motions'][0]['review_status'])->toBe('approved')
-        ->and($import->fresh()->parsed_result['motions'][1]['review_status'])->toBe('approved');
+        ->and($import->fresh()->parsed_result['motions'][1]['review_status'])->toBe('approved')
+        ->and(Motion::query()->where('plenary_meeting_id', $meeting->id)->count())->toBe(2);
 });
 
-it('rejects a meeting that does not exist when confirming an import', function () {
+it('rejects confirmation of an import that is not linked to a meeting', function () {
     $import = RollCallImport::factory()->create([
+        'plenary_meeting_id' => null,
         'status' => RollCallImportStatus::AwaitingReview,
         'session_id' => null,
         'parsed_result' => [
             'motions' => [[
                 'question_number' => 1,
                 'title' => 'Питання',
-                'review_status' => 'approved',
+                'result' => 'Прийнято',
                 'votes' => [],
             ]],
         ],
     ]);
 
     livewire(EditRollCallImport::class, ['record' => $import->id])
-        ->fillForm([
-            'plenary_meeting_id' => 999999,
-        ])
-        ->call('save')
-        ->assertHasFormErrors(['plenary_meeting_id']);
+        ->call('reviewMotion', 0)
+        ->assertHasErrors(['data']);
 
     expect($import->fresh()->status)->toBe(RollCallImportStatus::AwaitingReview)
-        ->and($import->fresh()->plenary_meeting_id)->toBeNull();
+        ->and($import->fresh()->plenary_meeting_id)->toBeNull()
+        ->and(Motion::query()->count())->toBe(0);
 });
 
 it('does not allow completed imports to be edited', function () {
@@ -335,11 +360,15 @@ it('does not allow completed imports to be edited', function () {
 });
 
 it('soft deletes imports without deleting their uploaded PDFs', function () {
-    $import = RollCallImport::factory()->create();
+    $meeting = PlenaryMeeting::factory()->create();
+    $import = RollCallImport::factory()->create(['plenary_meeting_id' => $meeting->id]);
     Storage::fake('local');
     Storage::disk('local')->put($import->file_path, '%PDF-1.4');
 
-    livewire(ListRollCallImports::class)
+    livewire(RollCallImportsRelationManager::class, [
+        'ownerRecord' => $meeting,
+        'pageClass' => EditPlenaryMeeting::class,
+    ])
         ->callAction(TestAction::make('delete')->table($import));
 
     $this->assertSoftDeleted($import);

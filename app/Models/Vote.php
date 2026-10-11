@@ -15,6 +15,19 @@ class Vote extends Model
     /** @use HasFactory<VoteFactory> */
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::saving(function (Vote $vote): void {
+            if (! $vote->isDirty('person_id') || $vote->person_id === null) {
+                return;
+            }
+
+            $person = $vote->person()->firstOrFail();
+            $vote->voter_identifier = $person->voting_identifier;
+            $vote->voter_name = $person->name;
+        });
+    }
+
     protected function casts(): array
     {
         return [

@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\RollCallImports\Pages;
 
+use App\Enums\MotionResult;
 use App\Enums\MotionReviewStatus;
 use App\Enums\RollCallImportStatus;
-use App\Filament\Concerns\HasRadaBreadcrumbs;
+use App\Enums\VoteOption;
+use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
+use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use Filament\Actions\Action;
@@ -16,8 +19,6 @@ use Illuminate\Validation\ValidationException;
 
 class EditRollCallImport extends EditRecord
 {
-    use HasRadaBreadcrumbs;
-
     protected static string $resource = RollCallImportResource::class;
 
     protected string $view = 'filament.resources.roll-call-imports.pages.edit-roll-call-import';
@@ -27,11 +28,15 @@ class EditRollCallImport extends EditRecord
         return "Підтвердження імпорту: {$this->getRecord()->original_filename}";
     }
 
-    protected function mutateFormDataBeforeFill(array $data): array
+    /**
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
     {
-        $data['plenary_meeting_id'] = $this->getRecord()->plenary_meeting_id;
-
-        return $data;
+        return [
+            PlenaryMeetingResource::getUrl() => 'Засідання',
+            '' => 'Імпорти',
+        ];
     }
 
     /**
@@ -48,19 +53,16 @@ class EditRollCallImport extends EditRecord
 
         if (! self::hasAllMotionsApproved($record->parsed_result ?? [])) {
             throw ValidationException::withMessages([
-                'data.plenary_meeting_id' => 'Підтвердіть усі питання перед збереженням імпорту.',
+                'data' => 'Підтвердіть усі питання перед завершенням імпорту.',
             ]);
         }
 
-        $meeting = PlenaryMeeting::query()->find($data['plenary_meeting_id'] ?? null);
-
-        if ($meeting === null) {
+        if ($record->plenary_meeting_id === null) {
             throw ValidationException::withMessages([
-                'data.plenary_meeting_id' => 'Оберіть засідання зі списку або створіть нове.',
+                'data' => 'Цей імпорт не прив’язаний до засідання. Створіть імпорт зі сторінки засідання.',
             ]);
         }
 
-        $data['session_id'] = $meeting->parliamentary_session_id;
         $data['status'] = RollCallImportStatus::Completed;
 
         return $data;
@@ -92,6 +94,85 @@ class EditRollCallImport extends EditRecord
                 return;
             }
 
+            $meeting = PlenaryMeeting::query()->find($record->plenary_meeting_id);
+
+            if ($meeting === null) {
+                throw ValidationException::withMessages([
+                    'data' => 'Цей імпорт не прив’язаний до засідання.',
+                ]);
+            }
+
+            $parsedMotion = $motions[$motionIndex];
+            $questionNumber = filter_var($parsedMotion['question_number'] ?? null, FILTER_VALIDATE_INT);
+            $title = $parsedMotion['title'] ?? null;
+            $result = self::motionResult($parsedMotion['result'] ?? null);
+            $votes = $parsedMotion['votes'] ?? null;
+
+            if ($questionNumber === false || ! is_string($title) || blank($title) || $result === null || ! is_array($votes)) {
+                throw ValidationException::withMessages([
+                    'data' => 'Не вдалося перевірити дані питання з імпорту.',
+                ]);
+            }
+
+            if ($meeting->motions()->where('number', $questionNumber)->exists()) {
+                throw ValidationException::withMessages([
+                    'data' => "Питання № {$questionNumber} вже існує в цьому засіданні.",
+                ]);
+            }
+
+            $normalizedVotes = collect($votes)->map(function (mixed $vote): array {
+                if (! is_array($vote) || ! is_string($vote['name'] ?? null) || ! is_string($vote['result'] ?? null)) {
+                    throw ValidationException::withMessages([
+                        'data' => 'Не вдалося перевірити поіменні голоси в імпорті.',
+                    ]);
+                }
+
+                $option = self::voteOption($vote['result']);
+
+                if ($option === null) {
+                    throw ValidationException::withMessages([
+                        'data' => "Невідомий варіант голосу: {$vote['result']}.",
+                    ]);
+                }
+
+                return [
+                    'name' => $vote['name'],
+                    'option' => $option,
+                ];
+            });
+
+            $peopleByName = Person::query()
+                ->whereIn('name', $normalizedVotes->pluck('name')->unique()->all())
+                ->get(['id', 'name', 'voting_identifier'])
+                ->groupBy('name');
+
+            $motion = $meeting->motions()->create([
+                'uid' => "{$meeting->date->toDateString()}-{$meeting->getKey()}-{$questionNumber}",
+                'roll_call_import_id' => $record->getKey(),
+                'number' => $questionNumber,
+                'title' => $title,
+                'project_number' => $parsedMotion['project_number'] ?? null,
+                'result' => $result,
+                'text_url' => null,
+                'text' => $record->original_filename,
+            ]);
+
+            $voteEvent = $motion->voteEvents()->create([
+                'result' => $result->getLabel(),
+            ]);
+
+            foreach ($normalizedVotes as $vote) {
+                $matchingPeople = $peopleByName->get($vote['name'], collect());
+                $person = $matchingPeople->count() === 1 ? $matchingPeople->first() : null;
+
+                $voteEvent->votes()->create([
+                    'person_id' => $person?->getKey(),
+                    'voter_identifier' => $person?->voting_identifier,
+                    'voter_name' => $vote['name'],
+                    'option' => $vote['option'],
+                ]);
+            }
+
             $parsedResult['motions'][$motionIndex]['review_status'] = MotionReviewStatus::Approved->value;
 
             $record->update(['parsed_result' => $parsedResult]);
@@ -114,8 +195,7 @@ class EditRollCallImport extends EditRecord
 
     public function canFinalizeImport(): bool
     {
-        return $this->areAllMotionsApproved()
-            && filled($this->data['plenary_meeting_id'] ?? null);
+        return $this->areAllMotionsApproved();
     }
 
     /**
@@ -135,7 +215,7 @@ class EditRollCallImport extends EditRecord
 
     protected function getSavedNotificationTitle(): ?string
     {
-        return 'Імпорт збережено та завершено';
+        return 'Імпорт завершено';
     }
 
     protected function getHeaderActions(): array
@@ -146,5 +226,40 @@ class EditRollCallImport extends EditRecord
                 ->url(fn (): string => route('roll-call-imports.pdf', $this->getRecord()))
                 ->openUrlInNewTab(),
         ];
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        $meeting = $this->getRecord()->plenaryMeeting;
+
+        return $meeting === null
+            ? PlenaryMeetingResource::getUrl()
+            : PlenaryMeetingResource::getUrl('edit', ['record' => $meeting]);
+    }
+
+    private static function motionResult(mixed $label): ?MotionResult
+    {
+        if (! is_string($label)) {
+            return null;
+        }
+
+        foreach (MotionResult::cases() as $result) {
+            if ($result->getLabel() === $label) {
+                return $result;
+            }
+        }
+
+        return null;
+    }
+
+    private static function voteOption(string $label): ?VoteOption
+    {
+        foreach (VoteOption::cases() as $option) {
+            if ($option->getLabel() === $label) {
+                return $option;
+            }
+        }
+
+        return null;
     }
 }

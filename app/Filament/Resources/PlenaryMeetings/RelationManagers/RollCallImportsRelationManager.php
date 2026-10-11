@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\RollCallImports\Tables;
+namespace App\Filament\Resources\PlenaryMeetings\RelationManagers;
 
 use App\Enums\RollCallImportStatus;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
@@ -8,46 +8,51 @@ use App\Jobs\ProcessRollCallImport;
 use App\Models\RollCallImport;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
-use Filament\Support\Icons\Heroicon;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class RollCallImportsTable
+class RollCallImportsRelationManager extends RelationManager
 {
-    public static function configure(Table $table): Table
+    protected static string $relationship = 'rollCallImports';
+
+    protected static ?string $title = 'Імпорти';
+
+    public function table(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('original_filename')
                     ->label('Файл')
-                    ->limit(30),
+                    ->limit(40),
                 TextColumn::make('status')
                     ->label('Статус')
                     ->badge()
                     ->sortable(),
                 TextColumn::make('created_at')
-                    ->label('Дата')
+                    ->label('Додано')
                     ->date()
                     ->sortable(),
             ])
             ->recordActions([
-                EditAction::make()
-                    ->visible(fn (RollCallImport $record): bool => RollCallImportResource::canEdit($record)),
-                ViewAction::make()
-                    ->visible(fn (RollCallImport $record): bool => RollCallImportResource::canView($record)),
+                Action::make('review')
+                    ->label('Перевірити')
+                    ->url(fn (RollCallImport $record): string => RollCallImportResource::getUrl('edit', [
+                        'record' => $record,
+                    ]))
+                    ->visible(fn (RollCallImport $record): bool => $record->status === RollCallImportStatus::AwaitingReview),
+                Action::make('view')
+                    ->label('Переглянути')
+                    ->url(fn (RollCallImport $record): string => RollCallImportResource::getUrl('view', [
+                        'record' => $record,
+                    ]))
+                    ->visible(fn (RollCallImport $record): bool => $record->status === RollCallImportStatus::Completed),
                 Action::make('viewError')
-                    ->label('Помилка обробки імпорту')
-                    ->icon(Heroicon::OutlinedExclamationTriangle)
-                    ->iconButton()
-                    ->color('warning')
+                    ->label('Помилка імпорту')
                     ->modal()
-                    ->modalSubmitAction(fn (Action $action): Action => $action->color('primary'))
                     ->modalSubmitActionLabel('Спробувати ще раз')
-                    ->modalCancelActionLabel('Зрозуміло')
                     ->schema([
                         TextEntry::make('error_message')
                             ->label('Повідомлення')
@@ -72,8 +77,12 @@ class RollCallImportsTable
                 DeleteAction::make(),
             ])
             ->defaultSort('id', 'desc')
-            ->poll(fn (): ?string => RollCallImport::query()->pendingOrProcessing()->exists()
-                    ? '3s'
-                    : null);
+            ->poll(fn (): ?string => $this->getOwnerRecord()
+                ->rollCallImports()
+                ->whereIn('status', [
+                    RollCallImportStatus::Queued->value,
+                    RollCallImportStatus::Processing->value,
+                ])
+                ->exists() ? '3s' : null);
     }
 }

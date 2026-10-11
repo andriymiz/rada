@@ -3,18 +3,16 @@
 namespace App\Filament\Resources\RollCallImports;
 
 use App\Enums\RollCallImportStatus;
+use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\RollCallImports\Pages\EditRollCallImport;
-use App\Filament\Resources\RollCallImports\Pages\ListRollCallImports;
 use App\Filament\Resources\RollCallImports\Pages\ViewRollCallImport;
 use App\Filament\Resources\RollCallImports\Schemas\RollCallImportForm;
 use App\Filament\Resources\RollCallImports\Schemas\RollCallImportInfolist;
-use App\Filament\Resources\RollCallImports\Tables\RollCallImportsTable;
 use App\Models\RollCallImport;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class RollCallImportResource extends Resource
@@ -33,6 +31,28 @@ class RollCallImportResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'original_filename';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
+    public static function getIndexUrl(
+        array $parameters = [],
+        bool $isAbsolute = true,
+        ?string $panel = null,
+        ?Model $tenant = null,
+        bool $shouldGuessMissingParameters = false,
+    ): string {
+        return PlenaryMeetingResource::getUrl(
+            'index',
+            $parameters,
+            $isAbsolute,
+            $panel,
+            $tenant,
+            $shouldGuessMissingParameters,
+        );
+    }
+
     public static function form(Schema $schema): Schema
     {
         return RollCallImportForm::configure($schema);
@@ -41,11 +61,6 @@ class RollCallImportResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return RollCallImportInfolist::configure($schema);
-    }
-
-    public static function table(Table $table): Table
-    {
-        return RollCallImportsTable::configure($table);
     }
 
     public static function canEdit(Model $record): bool
@@ -80,7 +95,6 @@ class RollCallImportResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListRollCallImports::route('/'),
             'view' => ViewRollCallImport::route('/{record}'),
             'edit' => EditRollCallImport::route('/{record}/edit'),
         ];

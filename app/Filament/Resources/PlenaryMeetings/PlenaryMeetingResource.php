@@ -4,6 +4,8 @@ namespace App\Filament\Resources\PlenaryMeetings;
 
 use App\Filament\Resources\PlenaryMeetings\Pages\EditPlenaryMeeting;
 use App\Filament\Resources\PlenaryMeetings\Pages\ListPlenaryMeetings;
+use App\Filament\Resources\PlenaryMeetings\RelationManagers\MotionsRelationManager;
+use App\Filament\Resources\PlenaryMeetings\RelationManagers\RollCallImportsRelationManager;
 use App\Filament\Resources\PlenaryMeetings\Schemas\PlenaryMeetingForm;
 use App\Filament\Resources\PlenaryMeetings\Tables\PlenaryMeetingsTable;
 use App\Models\PlenaryMeeting;
@@ -42,6 +44,14 @@ class PlenaryMeetingResource extends Resource
         return [
             'index' => ListPlenaryMeetings::route('/'),
             'edit' => EditPlenaryMeeting::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            MotionsRelationManager::class,
+            RollCallImportsRelationManager::class,
         ];
     }
 }
