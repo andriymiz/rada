@@ -32,18 +32,28 @@ class Membership extends Model
     protected static function booted(): void
     {
         static::saving(function (Membership $membership): void {
-            if ($membership->permanent_commission_id === null || $membership->convocation_id === null) {
-                return;
+            if ($membership->permanent_commission_id !== null && $membership->convocation_id !== null) {
+                $commissionMatchesConvocation = $membership->permanentCommission()
+                    ->where('convocation_id', $membership->convocation_id)
+                    ->exists();
+
+                if (! $commissionMatchesConvocation) {
+                    throw ValidationException::withMessages([
+                        'permanent_commission_id' => 'Постійна комісія має належати до вибраного скликання.',
+                    ]);
+                }
             }
 
-            $commissionMatchesConvocation = $membership->permanentCommission()
-                ->where('convocation_id', $membership->convocation_id)
-                ->exists();
+            if ($membership->convocation_id !== null) {
+                $organizationMatchesConvocation = $membership->convocation()
+                    ->where('organization_id', $membership->organization_id)
+                    ->exists();
 
-            if (! $commissionMatchesConvocation) {
-                throw ValidationException::withMessages([
-                    'permanent_commission_id' => 'Постійна комісія має належати до вибраного скликання.',
-                ]);
+                if (! $organizationMatchesConvocation) {
+                    throw ValidationException::withMessages([
+                        'convocation_id' => 'Скликання має належати до вибраної організації.',
+                    ]);
+                }
             }
         });
     }

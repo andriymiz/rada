@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Deputies\RelationManagers;
 
-use App\Models\CouncilOrganization;
+use App\Models\Convocation;
 use App\Models\PermanentCommission;
 use App\Models\PoliticalParty;
 use Filament\Actions\CreateAction;
@@ -36,7 +36,11 @@ class MembershipsRelationManager extends RelationManager
                     ->schema([
                         Select::make('convocation_id')
                             ->label('Скликання')
-                            ->relationship('convocation', 'name')
+                            ->options(fn (): array => Convocation::query()
+                                ->whereNotNull('organization_id')
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
                             ->required()
                             ->searchable()
                             ->live()
@@ -161,31 +165,34 @@ class MembershipsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Додати скликання')
-                    ->mutateDataUsing(fn (array $data): array => [
-                        ...$data,
-                        'organization_id' => $this->councilOrganizationId(),
-                    ]),
+                    ->mutateDataUsing(fn (array $data): array => $this->withConvocationOrganization($data)),
             ])
             ->recordActions([
                 EditAction::make()
-                    ->mutateDataUsing(fn (array $data): array => [
-                        ...$data,
-                        'organization_id' => $this->councilOrganizationId(),
-                    ]),
+                    ->mutateDataUsing(fn (array $data): array => $this->withConvocationOrganization($data)),
                 DeleteAction::make(),
             ]);
     }
 
-    private function councilOrganizationId(): int
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withConvocationOrganization(array $data): array
     {
-        $organizationId = CouncilOrganization::query()->orderBy('id')->value('id');
+        $convocation = Convocation::query()
+            ->whereKey($data['convocation_id'] ?? null)
+            ->first();
 
-        if ($organizationId === null) {
+        if ($convocation === null || $convocation->organization_id === null) {
             throw ValidationException::withMessages([
-                'organization_id' => 'Спочатку налаштуйте організацію ради.',
+                'convocation_id' => 'Виберіть скликання, прив’язане до організації ради.',
             ]);
         }
 
-        return $organizationId;
+        return [
+            ...$data,
+            'organization_id' => $convocation->organization_id,
+        ];
     }
 }

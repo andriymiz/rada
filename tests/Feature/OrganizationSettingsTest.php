@@ -48,11 +48,13 @@ it('creates and updates the council organization', function () {
         ->and($organization->fresh()->name)->toBe('Зборівська міська рада (оновлена)');
 });
 
-it('defaults new meetings to the configured council organization', function () {
+it('creates meetings under the organization attached to their convocation', function () {
     $organization = CouncilOrganization::factory()->create([
         'name' => 'Зборівська міська рада',
     ]);
-    $convocation = Convocation::factory()->create();
+    $convocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create();
     $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create();
@@ -66,7 +68,7 @@ it('defaults new meetings to the configured council organization', function () {
 
     $meeting = PlenaryMeeting::query()->firstOrFail();
 
-    expect($meeting->organization_id)->toBe($organization->id);
+    expect($meeting->councilSession->convocation->organization->is($organization))->toBeTrue();
 });
 
 it('does not allow non-admin users to access organization settings', function () {

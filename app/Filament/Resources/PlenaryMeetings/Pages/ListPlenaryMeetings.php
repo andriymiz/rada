@@ -7,14 +7,12 @@ use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\PlenaryMeetings\Schemas\PlenaryMeetingForm;
 use App\Filament\Resources\RollCallImports\Schemas\RollCallImportForm;
-use App\Models\CouncilOrganization;
 use App\Models\PlenaryMeeting;
 use App\Models\User;
 use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class ListPlenaryMeetings extends ListRecords
 {
@@ -37,18 +35,7 @@ class ListPlenaryMeetings extends ListRecords
                         $originalFilenames = $data['original_filenames'] ?? [];
                         unset($data['files'], $data['original_filenames']);
 
-                        $organization = CouncilOrganization::query()->orderBy('id')->first();
-
-                        if ($organization === null) {
-                            throw ValidationException::withMessages([
-                                'data.council_session_id' => 'Спочатку налаштуйте організацію.',
-                            ]);
-                        }
-
-                        $meeting = PlenaryMeeting::query()->create([
-                            ...$data,
-                            'organization_id' => $organization->id,
-                        ]);
+                        $meeting = PlenaryMeeting::query()->create($data);
 
                         if ($files !== []) {
                             $user = auth()->user();

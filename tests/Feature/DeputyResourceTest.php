@@ -243,8 +243,12 @@ it('updates a deputy and keeps the full name synchronized', function () {
 it('stores the voting identifier and party independently for each convocation', function () {
     $organization = CouncilOrganization::factory()->create();
     $deputy = Deputy::factory()->create();
-    $firstConvocation = Convocation::factory()->create();
-    $secondConvocation = Convocation::factory()->create();
+    $firstConvocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create();
+    $secondConvocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create();
     $firstParty = PoliticalParty::factory()->create(['name' => 'Партія перша']);
     $secondParty = PoliticalParty::factory()->create(['name' => 'Партія друга']);
 

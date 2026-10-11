@@ -6,13 +6,11 @@ use App\Actions\QueueRollCallImportsForMeeting;
 use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\RollCallImports\Schemas\RollCallImportForm;
-use App\Models\CouncilOrganization;
 use App\Models\PlenaryMeeting;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Validation\ValidationException;
 
 /** @extends EditRecord<PlenaryMeeting> */
 class EditPlenaryMeeting extends EditRecord
@@ -26,21 +24,6 @@ class EditPlenaryMeeting extends EditRecord
         $meeting = $this->getRecord()->loadMissing('councilSession.convocation');
 
         return "{$meeting->displayName()} — {$meeting->date->format('d.m.Y')}";
-    }
-
-    protected function mutateFormDataBeforeSave(array $data): array
-    {
-        $organization = CouncilOrganization::query()->orderBy('id')->first();
-
-        if ($organization === null) {
-            throw ValidationException::withMessages([
-                'data.council_session_id' => 'Спочатку налаштуйте організацію.',
-            ]);
-        }
-
-        $data['organization_id'] = $organization->id;
-
-        return $data;
     }
 
     protected function getHeaderActions(): array

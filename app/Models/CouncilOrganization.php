@@ -20,9 +20,9 @@ class CouncilOrganization extends Model
         return $this->hasMany(Membership::class, 'organization_id');
     }
 
-    /** @return HasMany<PlenaryMeeting, $this> */
-    public function plenaryMeetings(): HasMany
+    /** @return HasMany<Convocation, $this> */
+    public function convocations(): HasMany
     {
-        return $this->hasMany(PlenaryMeeting::class, 'organization_id');
+        return $this->hasMany(Convocation::class);
     }
 }

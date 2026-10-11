@@ -236,11 +236,12 @@ it('does not complete an import before every question is confirmed', function ()
 });
 
 it('creates each motion as it is confirmed and completes only after all motions are confirmed', function () {
-    $convocation = Convocation::factory()->create();
-    $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
     $organization = CouncilOrganization::factory()->create();
-    $meeting = PlenaryMeeting::factory()
+    $convocation = Convocation::factory()
         ->for($organization, 'organization')
+        ->create();
+    $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
+    $meeting = PlenaryMeeting::factory()
         ->for($session, 'councilSession')
         ->create(['date' => '2025-06-12']);
     $deputy = Deputy::factory()->create([

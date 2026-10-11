@@ -16,10 +16,11 @@ use Illuminate\Database\QueryException;
 
 it('stores an agenda item without inventing a vote event', function () {
     $organization = CouncilOrganization::factory()->create();
-    $convocation = Convocation::factory()->create();
+    $convocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create();
     $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
     $meeting = PlenaryMeeting::factory()
-        ->for($organization, 'organization')
         ->for($session, 'councilSession')
         ->create(['date' => '2025-06-12']);
     $motion = Motion::factory()
@@ -30,10 +31,25 @@ it('stores an agenda item without inventing a vote event', function () {
             'result' => MotionResult::NotConsidered,
         ]);
 
-    expect($motion->plenaryMeeting->organization->edrpou)->toBe($organization->edrpou)
+    expect($motion->plenaryMeeting->councilSession->convocation->organization->edrpou)->toBe($organization->edrpou)
         ->and($motion->plenaryMeeting->councilSession->convocation->is($convocation))->toBeTrue()
         ->and($motion->voteEvents)->toBeEmpty()
         ->and($motion->result)->toBe(MotionResult::NotConsidered);
+});
+
+it('scopes convocation names to their council organization', function () {
+    $firstOrganization = CouncilOrganization::factory()->create();
+    $secondOrganization = CouncilOrganization::factory()->create();
+
+    $firstConvocation = Convocation::factory()
+        ->for($firstOrganization, 'organization')
+        ->create(['name' => '8 скликання']);
+    $secondConvocation = Convocation::factory()
+        ->for($secondOrganization, 'organization')
+        ->create(['name' => '8 скликання']);
+
+    expect($firstConvocation->organization->is($firstOrganization))->toBeTrue()
+        ->and($secondConvocation->organization->is($secondOrganization))->toBeTrue();
 });
 
 it('allows a motion to have multiple distinct vote events', function () {
@@ -67,7 +83,7 @@ it('stores one immutable voter snapshot per person for a recorded event', functi
     ]);
     Membership::factory()
         ->for($deputy, 'deputy')
-        ->for($motion->plenaryMeeting->organization, 'organization')
+        ->for($motion->plenaryMeeting->councilSession->convocation->organization, 'organization')
         ->for($motion->plenaryMeeting->councilSession->convocation, 'convocation')
         ->create(['voting_identifier' => 'COUNCIL-001']);
 

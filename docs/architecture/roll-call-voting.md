@@ -7,13 +7,11 @@ This schema stores plenary agenda items whether or not a recorded vote took plac
 ## Data model
 
 ```text
-CouncilOrganization ──< Membership >── Deputy ── 0..1 DeputyReception
-                                           ├── homepage
-                                           └──< ContactPoint (polymorphic)
-        │                                  │
-        └──< PlenaryMeeting >── CouncilSession
-                    │
-                    └──< Motion 1 ── 0..* VoteEvent ──< Vote >── Deputy
+CouncilOrganization ──< Convocation ──< CouncilSession ──< PlenaryMeeting
+        │                  │                                  │
+        └──< Membership >── Deputy ── 0..1 DeputyReception     └──< Motion
+                             ├── homepage                          │
+                             └──< ContactPoint (polymorphic)       └──< VoteEvent ──< Vote >── Deputy
 ```
 
 - **CouncilOrganization** is the Popolo `Organization` profile for the authority. `name`, `edrpou`, and `katoottg` supply the portal's `authorityName`, `authorityId`, and `authorityCattutc`.
@@ -23,7 +21,7 @@ CouncilOrganization ──< Membership >── Deputy ── 0..1 DeputyReceptio
 - **Deputy.homepage** stores the deputy's page on the council website separately from reusable `ContactPoint` records.
 - **Membership** is a Popolo `Membership`: it links a deputy to the council and convocation with a role, party, voting-system identifier, and optional start/end dates. Separate records preserve successive terms and allow party and voting identifiers to differ across convocations.
 - **Convocation** and **CouncilSession** are local reference models. A `CouncilSession` is a council's legislative session in Popolo terminology; it is distinct from a dated plenary meeting.
-- **PlenaryMeeting** is the dated meeting of an organization during a council session.
+- **PlenaryMeeting** is the dated meeting during a council session. Its council organization is reached through the session's convocation.
 - **Motion** represents one agenda item and maps to one portal `motions` row. It records the stable `uid`, agenda number, title, optional project number, required portal result, optional published document URL, and required document filename. Its unique `(plenary_meeting_id, number)` constraint prevents duplicate agenda numbers at the same meeting.
 - **VoteEvent** represents an actual recorded-vote event for a motion. It is optional and one-to-many, as Popolo permits a motion to be voted on more than once. A motion with no recorded vote therefore has no `VoteEvent`.
 - **Vote** records one deputy's option in a vote event. It stores a reference to the deputy plus snapshots of the voter's convocation-specific identifier and name as they appeared for that vote. `(vote_event_id, deputy_id)` is unique, so one deputy cannot have two choices in the same event.

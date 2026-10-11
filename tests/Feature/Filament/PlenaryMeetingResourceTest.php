@@ -34,7 +34,9 @@ beforeEach(function () {
 
 it('lists plenary meetings with question counts and actionable statuses', function () {
     $organization = CouncilOrganization::factory()->create(['name' => 'Зборівська міська рада']);
-    $convocation = Convocation::factory()->create(['name' => '8 скликання']);
+    $convocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create(['name' => '8 скликання']);
     $olderSession = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '98 сесія']);
@@ -42,11 +44,9 @@ it('lists plenary meetings with question counts and actionable statuses', functi
         ->for($convocation, 'convocation')
         ->create(['name' => '99 сесія']);
     $olderMeeting = PlenaryMeeting::factory()
-        ->for($organization, 'organization')
         ->for($olderSession, 'councilSession')
         ->create(['date' => '2025-05-20']);
     $newerMeeting = PlenaryMeeting::factory()
-        ->for($organization, 'organization')
         ->for($newerSession, 'councilSession')
         ->create(['date' => '2025-06-12']);
     $olderMotion = Motion::factory()->for($olderMeeting, 'plenaryMeeting')->create();
@@ -79,7 +79,9 @@ it('lists plenary meetings with question counts and actionable statuses', functi
 it('creates a meeting without exposing the organization field', function () {
     $organization = CouncilOrganization::factory()->create();
     CouncilOrganization::factory()->create();
-    $convocation = Convocation::factory()->create(['name' => '8 скликання']);
+    $convocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create(['name' => '8 скликання']);
     $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '99 сесія']);
@@ -95,14 +97,16 @@ it('creates a meeting without exposing the organization field', function () {
 
     $this->assertModelExists($meeting);
 
-    expect($meeting->organization_id)->toBe($organization->id)
+    expect($meeting->councilSession->convocation->organization->is($organization))->toBeTrue()
         ->and($meeting->council_session_id)->toBe($session->id)
         ->and($meeting->date->toDateString())->toBe('2025-06-12');
 });
 
 it('creates a new council session from the session dropdown', function () {
-    CouncilOrganization::factory()->create();
-    $convocation = Convocation::factory()->create(['name' => '9 скликання']);
+    $organization = CouncilOrganization::factory()->create();
+    $convocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create(['name' => '9 скликання']);
 
     livewire(ListPlenaryMeetings::class)
         ->mountAction('create')
@@ -121,7 +125,6 @@ it('creates a meeting and queues its uploaded roll-call files', function () {
     Storage::fake('local');
     Queue::fake([ProcessRollCallImport::class]);
 
-    CouncilOrganization::factory()->create();
     $convocation = Convocation::factory()->create();
     $session = CouncilSession::factory()->for($convocation, 'convocation')->create();
 
@@ -184,12 +187,12 @@ it('creates a question with individual votes and displays calculated vote counts
     ]);
     Membership::factory()
         ->for($yesVoter, 'deputy')
-        ->for($meeting->organization, 'organization')
+        ->for($meeting->councilSession->convocation->organization, 'organization')
         ->for($meeting->councilSession->convocation, 'convocation')
         ->create(['voting_identifier' => 'COUNCIL-001']);
     Membership::factory()
         ->for($noVoter, 'deputy')
-        ->for($meeting->organization, 'organization')
+        ->for($meeting->councilSession->convocation->organization, 'organization')
         ->for($meeting->councilSession->convocation, 'convocation')
         ->create(['voting_identifier' => 'COUNCIL-002']);
 

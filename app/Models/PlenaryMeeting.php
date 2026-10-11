@@ -13,7 +13,6 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int $organization_id
  * @property int $council_session_id
  * @property Carbon $date
  * @property-read CouncilSession $councilSession
@@ -22,7 +21,7 @@ use Illuminate\Support\Carbon;
  * @property-read int $imports_failed_count
  * @property-read int $imports_processing_count
  */
-#[Fillable(['organization_id', 'council_session_id', 'date'])]
+#[Fillable(['council_session_id', 'date'])]
 class PlenaryMeeting extends Model
 {
     /** @use HasFactory<PlenaryMeetingFactory> */
@@ -33,12 +32,6 @@ class PlenaryMeeting extends Model
         return [
             'date' => 'date:d.m.Y',
         ];
-    }
-
-    /** @return BelongsTo<CouncilOrganization, $this> */
-    public function organization(): BelongsTo
-    {
-        return $this->belongsTo(CouncilOrganization::class, 'organization_id');
     }
 
     /** @return BelongsTo<CouncilSession, $this> */

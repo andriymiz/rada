@@ -22,9 +22,9 @@ flowchart LR
     VoteEvent[Recorded vote event]
     Vote[Individual vote]
 
+    Organization -->|owns| Convocation
     Convocation -->|groups| Session
     Session -->|includes| Meeting
-    Organization -->|hosts| Meeting
     Deputy -->|serves through| Membership
     Organization -->|has representatives through| Membership
     Convocation -. optional term .-> Membership
@@ -37,7 +37,7 @@ flowchart LR
     Deputy -. may be identified for .-> Vote
 ```
 
-A council session is a named session within a convocation. It is not a dated meeting: each plenary meeting has its own date and belongs to one council organization and one council session. Deputies are associated with convocations and organizations through dated membership records; there is no direct deputy-to-session foreign key.
+A convocation belongs to one council organization. A council session is a named session within a convocation, not a dated meeting; each plenary meeting has its own date and belongs to one council session. Its organization is determined through that session's convocation. Deputies are associated with convocations and organizations through dated membership records; there is no direct deputy-to-session foreign key.
 
 ## Relational schema
 
@@ -51,7 +51,8 @@ erDiagram
     }
     CONVOCATIONS {
         int id PK
-        string name UK
+        int organization_id FK
+        string name
     }
     COUNCIL_SESSIONS {
         int id PK
@@ -123,7 +124,6 @@ erDiagram
     }
     PLENARY_MEETINGS {
         int id PK
-        int organization_id FK
         int council_session_id FK
         date date
     }
@@ -173,11 +173,11 @@ erDiagram
         string option
     }
 
+    COUNCIL_ORGANIZATIONS ||--o{ CONVOCATIONS : owns
     CONVOCATIONS o|--o{ MEMBERSHIPS : scopes
     CONVOCATIONS ||--o{ COUNCIL_SESSIONS : contains
     CONVOCATIONS ||--o{ PERMANENT_COMMISSIONS : contains
     COUNCIL_SESSIONS ||--o{ PLENARY_MEETINGS : schedules
-    COUNCIL_ORGANIZATIONS ||--o{ PLENARY_MEETINGS : hosts
     COUNCIL_ORGANIZATIONS ||--o{ MEMBERSHIPS : represents
     POLITICAL_PARTIES o|--o{ MEMBERSHIPS : affiliates
     PERMANENT_COMMISSIONS o|--o{ MEMBERSHIPS : assigns
@@ -196,11 +196,12 @@ erDiagram
 
 ## Relationship and constraint notes
 
-- `council_sessions` belong to a `convocations`; `(convocation_id, name)` is unique. Convocation names are unique.
+- `convocations` belong to a council organization; `(organization_id, name)` is unique, allowing different councils to use the same convocation label. The organization reference is nullable only to avoid inventing links for untouched pre-existing records; application-created convocations require an organization.
+- `council_sessions` belong to a `convocations`; `(convocation_id, name)` is unique.
 - `permanent_commissions` belong to a convocation and have a unique `(convocation_id, name)` pair. A membership's commission is optional. The application validates that its commission belongs to the same convocation selected on the membership; that cross-reference is not a database constraint.
 - `memberships` connect a deputy to a council organization and optionally a convocation, political party, and permanent commission. They retain role, term dates, faction/commission roles, electoral area, and a convocation-specific voting identifier. The database has unique constraints on `(deputy_id, organization_id, convocation_id)` and `(convocation_id, voting_identifier)`.
 - A deputy's full name is derived from the three name columns and is not stored as a separate `name` column. A deputy can have at most one `deputy_receptions` row.
-- A plenary meeting belongs to exactly one organization and one council session. A motion belongs to exactly one meeting; `(plenary_meeting_id, number)` and `uid` are unique.
+- A plenary meeting belongs to exactly one council session and inherits its organization through the session's convocation. A motion belongs to exactly one meeting; `(plenary_meeting_id, number)` and `uid` are unique.
 - A motion may have no recorded vote or multiple `vote_events`. Each vote event belongs to one motion. A vote event can contain votes with or without a matched deputy: `votes.deputy_id` and `voter_identifier` are nullable, while `voter_name` and `option` preserve the imported voter details. `(vote_event_id, deputy_id)` is unique.
 - A roll-call import always belongs to a user and may optionally reference a session and/or plenary meeting. It is independent of the motions created while reviewing its parsed results; imports use soft deletion.
 - Core historical relationships use restrictive deletion rules to prevent deleting referenced deputies, organizations, sessions, meetings, motions, and vote events.

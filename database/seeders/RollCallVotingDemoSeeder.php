@@ -30,6 +30,7 @@ class RollCallVotingDemoSeeder extends Seeder
         );
 
         $convocation = Convocation::query()->firstOrCreate([
+            'organization_id' => $organization->id,
             'name' => 'Демо скликання',
         ]);
 
@@ -41,14 +42,12 @@ class RollCallVotingDemoSeeder extends Seeder
         );
 
         $meeting = PlenaryMeeting::query()
-            ->where('organization_id', $organization->id)
             ->where('council_session_id', $session->id)
             ->whereDate('date', '2025-01-15')
             ->first();
 
         if (! $meeting) {
             $meeting = PlenaryMeeting::query()->create([
-                'organization_id' => $organization->id,
                 'council_session_id' => $session->id,
                 'date' => '2025-01-15',
             ]);
