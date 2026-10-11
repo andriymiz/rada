@@ -21,9 +21,9 @@ class Faction extends Model
         return $this->belongsTo(Convocation::class);
     }
 
-    /** @return HasMany<Membership, $this> */
-    public function memberships(): HasMany
+    /** @return HasMany<Deputy, $this> */
+    public function deputies(): HasMany
     {
-        return $this->hasMany(Membership::class);
+        return $this->hasMany(Deputy::class);
     }
 }

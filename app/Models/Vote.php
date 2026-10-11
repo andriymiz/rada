@@ -27,11 +27,9 @@ class Vote extends Model
             $voteEvent = $vote->voteEvent()->with('motion.plenaryMeeting.councilSession')->first();
             $convocationId = $voteEvent?->motion?->plenaryMeeting?->councilSession?->convocation_id;
 
-            $vote->voter_identifier = $convocationId === null
-                ? null
-                : $deputy->memberships()
-                    ->where('convocation_id', $convocationId)
-                    ->value('voting_identifier');
+            $vote->voter_identifier = $convocationId !== null && $deputy->convocation_id === $convocationId
+                ? $deputy->voting_identifier
+                : null;
             $vote->voter_name = $deputy->full_name;
         });
     }

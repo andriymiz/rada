@@ -144,8 +144,9 @@ class EditRollCallImport extends EditRecord
 
             $convocationId = $meeting->councilSession->convocation_id;
             $deputiesByName = Deputy::query()
-                ->whereHas('memberships', fn ($query) => $query->where('convocation_id', $convocationId))
-                ->get(['id', 'last_name', 'first_name', 'middle_name'])
+                ->where('convocation_id', $convocationId)
+                ->with('person:id,last_name,first_name,middle_name')
+                ->get(['id', 'person_id'])
                 ->toBase()
                 ->groupBy('full_name')
                 ->only($normalizedVotes->pluck('name')->unique()->all());

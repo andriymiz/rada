@@ -8,18 +8,19 @@ This schema stores plenary agenda items whether or not a recorded vote took plac
 
 ```text
 CouncilOrganization ──< Convocation ──< CouncilSession ──< PlenaryMeeting
-        │                  │                                  │
-        └──< Membership >── Deputy ── 0..1 DeputyReception     └──< Motion
-                             ├── homepage                          │
-                             └──< ContactPoint (polymorphic)       └──< VoteEvent ──< Vote >── Deputy
+                           │                                  │
+                           └──< Deputy ── 0..1 DeputyReception └──< Motion
+                                    └──< ContactPoint (polymorphic)      │
+Person ──< Deputy                                                       └──< VoteEvent ──< Vote >── Deputy
 ```
 
 - **CouncilOrganization** is the Popolo `Organization` profile for the authority. `name`, `edrpou`, and `katoottg` supply the portal's `authorityName`, `authorityId`, and `authorityCattutc`.
-- **Deputy** is the Popolo `Person` profile for a deputy. Its database-generated primary key is the internal identity; `full_name` is derived from `last_name`, `first_name`, and `middle_name`.
+- **Person** stores a person's general identity and profile fields and is the Popolo `Person` profile. Its database-generated primary key is the internal identity; `full_name` is derived from `last_name`, `first_name`, and `middle_name`.
+- **Deputy** is a term-specific deputy role linked to a `Person` and a `Convocation`. A person can have one deputy record in each convocation. Deputy-specific `biography`, homepage, party, faction, commission, voting-system identifier, role, term dates, positions, and electoral area belong to this record; the council organization is derived through the convocation.
 - **DeputyReception** stores the deputy's reception address and hours in a separate one-to-one record.
 - **ContactPoint** stores one typed contact or public profile per row, along with its visibility and an optional note. Its `contactable` polymorphic relation allows other models to reuse the same contact data.
-- **Deputy.homepage** stores the deputy's page on the council website separately from reusable `ContactPoint` records.
-- **Membership** is a Popolo `Membership`: it links a deputy to the council and convocation with a role, party, voting-system identifier, and optional start/end dates. Separate records preserve successive terms and allow party and voting identifiers to differ across convocations.
+- The deputy's council website page is stored in `Deputy.homepage`, separately from reusable `ContactPoint` records.
+- Popolo membership attributes are stored directly on the term-specific `Deputy` record rather than in a separate `Membership` table. This keeps the person's stable identity in `Person` while allowing the party, role, and voting identifier to vary by convocation.
 - **Convocation** and **CouncilSession** are local reference models. A `CouncilSession` is a council's legislative session in Popolo terminology; it is distinct from a dated plenary meeting.
 - **PlenaryMeeting** is the dated meeting during a council session. Its council organization is reached through the session's convocation.
 - **Motion** represents one agenda item and maps to one portal `motions` row. It records the stable `uid`, agenda number, title, optional project number, required portal result, optional published document URL, and required document filename. Its unique `(plenary_meeting_id, number)` constraint prevents duplicate agenda numbers at the same meeting.
@@ -45,9 +46,9 @@ Historical records use restrictive foreign keys to prevent deleting deputies, or
 | `Motion.text_url`, `text` | Motion link / document name | `motions.textUrl`, `text` |
 | `VoteEvent` | `VoteEvent` | Its existence indicates that a roll-call vote was recorded |
 | Counts grouped from `Vote.option` | `Count` | `motions.votingFor`, `votingAgainst`, `votingAbstain`, `notVoting`, `absent` |
-| `Deputy.id` | Popolo `Person` identifier | `deputies.id` |
-| `Membership.voting_identifier` | Convocation-specific voting system identifier | `deputies.votingIdentifier` for the selected convocation |
-| `Vote` and its voter | `Vote` and `Deputy` | One `votings` row per deputy |
+| `Person.id` | Popolo `Person` identifier | `deputies.id` |
+| `Deputy.voting_identifier` | Convocation-specific voting system identifier | `deputies.votingIdentifier` for the selected convocation |
+| `Vote` and its voter | `Vote` and `Person` via the deputy role | One `votings` row per deputy |
 | `Vote.voter_identifier`, `voter_name`, `option` | Voter identifier, name snapshot, option | `voterId`, `voterName`, `result` |
 
 Portal result values map from `MotionResult` as follows: `passed` → `Прийнято`, `not_passed` → `Не прийнято`, `not_voted` → `Не голосували`, and `not_considered` → `Не розглядали`. Individual `VoteOption` values cover the portal's `За`, `Проти`, `Утримався`, `Не голосував`, and `Відсутній`. Popolo also defines `paired`; this schema preserves it as `paired`, but the portal schema does not define an equivalent `votings.result` value. An exporter must explicitly handle that case rather than silently treating it as another option.

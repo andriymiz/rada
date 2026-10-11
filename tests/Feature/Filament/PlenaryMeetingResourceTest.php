@@ -12,8 +12,8 @@ use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
-use App\Models\Membership;
 use App\Models\Motion;
+use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use App\Models\User;
@@ -175,26 +175,24 @@ it('queues additional roll-call files from the meeting workspace', function () {
 
 it('creates a question with individual votes and displays calculated vote counts', function () {
     $meeting = PlenaryMeeting::factory()->create();
-    $yesVoter = Deputy::factory()->create([
-        'last_name' => 'Іваненко',
-        'first_name' => 'Іван',
-        'middle_name' => 'Іванович',
-    ]);
-    $noVoter = Deputy::factory()->create([
-        'last_name' => 'Петренко',
-        'first_name' => 'Петро',
-        'middle_name' => 'Петрович',
-    ]);
-    Membership::factory()
-        ->for($yesVoter, 'deputy')
-        ->for($meeting->councilSession->convocation->organization, 'organization')
+    $yesVoter = Deputy::factory()
+        ->for(Person::factory()->state([
+            'last_name' => 'Іваненко',
+            'first_name' => 'Іван',
+            'middle_name' => 'Іванович',
+        ]), 'person')
         ->for($meeting->councilSession->convocation, 'convocation')
-        ->create(['voting_identifier' => 'COUNCIL-001']);
-    Membership::factory()
-        ->for($noVoter, 'deputy')
-        ->for($meeting->councilSession->convocation->organization, 'organization')
+        ->create();
+    $noVoter = Deputy::factory()
+        ->for(Person::factory()->state([
+            'last_name' => 'Петренко',
+            'first_name' => 'Петро',
+            'middle_name' => 'Петрович',
+        ]), 'person')
         ->for($meeting->councilSession->convocation, 'convocation')
-        ->create(['voting_identifier' => 'COUNCIL-002']);
+        ->create();
+    $yesVoter->update(['voting_identifier' => 'COUNCIL-001']);
+    $noVoter->update(['voting_identifier' => 'COUNCIL-002']);
 
     livewire(MotionsRelationManager::class, [
         'ownerRecord' => $meeting,

@@ -58,10 +58,10 @@ class Convocation extends Model
         return $this->hasMany(Faction::class);
     }
 
-    /** @return HasMany<Membership, $this> */
-    public function memberships(): HasMany
+    /** @return HasMany<Deputy, $this> */
+    public function deputies(): HasMany
     {
-        return $this->hasMany(Membership::class);
+        return $this->hasMany(Deputy::class);
     }
 
     /** @return HasManyThrough<PlenaryMeeting, CouncilSession, $this> */

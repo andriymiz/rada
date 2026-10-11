@@ -14,10 +14,10 @@ class DeputyInfolist
             ->components([
                 TextEntry::make('full_name')
                     ->label('ПІБ'),
-                TextEntry::make('date_of_birth')
+                TextEntry::make('person.date_of_birth')
                     ->label('Дата народження')
                     ->date(),
-                TextEntry::make('gender')
+                TextEntry::make('person.gender')
                     ->label('Стать')
                     ->formatStateUsing(fn (?Gender $state): string => $state?->getLabel() ?? '—'),
                 TextEntry::make('homepage')

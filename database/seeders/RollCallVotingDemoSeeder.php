@@ -10,8 +10,8 @@ use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
-use App\Models\Membership;
 use App\Models\Motion;
+use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
 use App\Models\VoteEvent;
@@ -79,7 +79,7 @@ class RollCallVotingDemoSeeder extends Seeder
         ] as [$votingIdentifier, $name, $option]) {
             [$lastName, $firstName, $middleName] = explode(' ', $name, 3);
 
-            $deputy = Deputy::query()->firstOrCreate(
+            $person = Person::query()->firstOrCreate(
                 [
                     'last_name' => $lastName,
                     'first_name' => $firstName,
@@ -88,7 +88,18 @@ class RollCallVotingDemoSeeder extends Seeder
                 [
                     'gender' => Gender::Unknown,
                     'date_of_birth' => '1980-01-01',
+                ],
+            );
+            $deputy = Deputy::query()->firstOrCreate(
+                [
+                    'person_id' => $person->id,
+                    'convocation_id' => $convocation->id,
+                ],
+                [
                     'biography' => 'Демонстраційний депутат.',
+                    'role' => 'Депутат міської ради',
+                    'voting_identifier' => $votingIdentifier,
+                    'start_date' => '2020-11-01',
                 ],
             );
 
@@ -101,26 +112,13 @@ class RollCallVotingDemoSeeder extends Seeder
                 ['value' => '+380000000000', 'is_public' => true],
             );
 
-            $membership = Membership::query()->firstOrCreate(
-                [
-                    'deputy_id' => $deputy->id,
-                    'organization_id' => $organization->id,
-                    'convocation_id' => $convocation->id,
-                ],
-                [
-                    'voting_identifier' => $votingIdentifier,
-                    'role' => 'Депутат міської ради',
-                    'start_date' => '2020-11-01',
-                ],
-            );
-
             Vote::query()->firstOrCreate(
                 [
                     'vote_event_id' => $voteEvent->id,
                     'deputy_id' => $deputy->id,
                 ],
                 [
-                    'voter_identifier' => $membership->voting_identifier,
+                    'voter_identifier' => $deputy->voting_identifier,
                     'voter_name' => $deputy->full_name,
                     'option' => $option,
                 ],

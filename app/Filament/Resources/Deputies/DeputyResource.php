@@ -6,7 +6,6 @@ use App\Filament\Resources\Deputies\Pages\CreateDeputy;
 use App\Filament\Resources\Deputies\Pages\EditDeputy;
 use App\Filament\Resources\Deputies\Pages\ListDeputies;
 use App\Filament\Resources\Deputies\RelationManagers\ContactPointsRelationManager;
-use App\Filament\Resources\Deputies\RelationManagers\MembershipsRelationManager;
 use App\Filament\Resources\Deputies\Schemas\DeputyForm;
 use App\Filament\Resources\Deputies\Schemas\DeputyInfolist;
 use App\Filament\Resources\Deputies\Tables\DeputiesTable;
@@ -48,7 +47,6 @@ class DeputyResource extends Resource
     {
         return [
             ContactPointsRelationManager::class,
-            MembershipsRelationManager::class,
         ];
     }
 

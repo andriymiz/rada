@@ -2,8 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Enums\Gender;
+use App\Models\Convocation;
 use App\Models\Deputy;
+use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,17 +19,10 @@ class DeputyFactory extends Factory
      */
     public function definition(): array
     {
-        $lastName = fake('uk_UA')->lastName();
-        $firstName = fake('uk_UA')->firstName();
-
         return [
-            'last_name' => $lastName,
-            'first_name' => $firstName,
-            'middle_name' => 'Батькович',
-            'gender' => fake()->randomElement([Gender::Male, Gender::Female]),
-            'date_of_birth' => fake()->dateTimeBetween('-80 years', '-25 years')->format('Y-m-d'),
-            'image' => null,
-            'homepage' => null,
+            'person_id' => Person::factory(),
+            'convocation_id' => Convocation::factory(),
+            'role' => 'Депутат міської ради',
             'biography' => fake()->paragraph(),
         ];
     }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable(['name', 'edrpou', 'katoottg'])]
 class CouncilOrganization extends Model
@@ -14,10 +15,17 @@ class CouncilOrganization extends Model
     /** @use HasFactory<CouncilOrganizationFactory> */
     use HasFactory;
 
-    /** @return HasMany<Membership, $this> */
-    public function memberships(): HasMany
+    /** @return HasManyThrough<Deputy, Convocation, $this> */
+    public function deputies(): HasManyThrough
     {
-        return $this->hasMany(Membership::class, 'organization_id');
+        return $this->hasManyThrough(
+            Deputy::class,
+            Convocation::class,
+            'organization_id',
+            'convocation_id',
+            'id',
+            'id',
+        );
     }
 
     /** @return HasMany<Convocation, $this> */

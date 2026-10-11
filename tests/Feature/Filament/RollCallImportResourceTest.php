@@ -13,8 +13,8 @@ use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
-use App\Models\Membership;
 use App\Models\Motion;
+use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use App\Models\User;
@@ -267,16 +267,15 @@ it('creates each motion as it is confirmed and completes only after all motions 
     $meeting = PlenaryMeeting::factory()
         ->for($session, 'councilSession')
         ->create(['date' => '2025-06-12']);
-    $deputy = Deputy::factory()->create([
-        'last_name' => 'Іваненко',
-        'first_name' => 'Іван',
-        'middle_name' => 'Іванович',
-    ]);
-    Membership::factory()
-        ->for($deputy, 'deputy')
-        ->for($organization, 'organization')
+    $deputy = Deputy::factory()
+        ->for(Person::factory()->state([
+            'last_name' => 'Іваненко',
+            'first_name' => 'Іван',
+            'middle_name' => 'Іванович',
+        ]), 'person')
         ->for($convocation, 'convocation')
-        ->create(['voting_identifier' => 'COUNCIL-001']);
+        ->create();
+    $deputy->update(['voting_identifier' => 'COUNCIL-001']);
     $import = RollCallImport::factory()->create([
         'plenary_meeting_id' => $meeting->id,
         'status' => RollCallImportStatus::AwaitingReview,

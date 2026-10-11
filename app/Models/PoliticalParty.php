@@ -14,9 +14,9 @@ class PoliticalParty extends Model
     /** @use HasFactory<PoliticalPartyFactory> */
     use HasFactory;
 
-    /** @return HasMany<Membership, $this> */
-    public function memberships(): HasMany
+    /** @return HasMany<Deputy, $this> */
+    public function deputies(): HasMany
     {
-        return $this->hasMany(Membership::class);
+        return $this->hasMany(Deputy::class);
     }
 }

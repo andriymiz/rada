@@ -11,4 +11,15 @@ class EditDeputy extends EditRecord
     use HasRadaBreadcrumbs;
 
     protected static string $resource = DeputyResource::class;
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        unset($data['person_id'], $data['convocation_id']);
+
+        return $data;
+    }
 }

@@ -87,14 +87,16 @@ class MotionsRelationManager extends RelationManager
                                 Select::make('deputy_id')
                                     ->label('Депутат')
                                     ->options(fn (): array => Deputy::query()
-                                        ->whereHas('memberships', fn (Builder $query): Builder => $query
-                                            ->where(
-                                                'convocation_id',
-                                                $this->getOwnerRecord()->councilSession->convocation_id,
-                                            ))
-                                        ->orderBy('last_name')
-                                        ->orderBy('first_name')
-                                        ->orderBy('middle_name')
+                                        ->where(
+                                            'convocation_id',
+                                            $this->getOwnerRecord()->councilSession->convocation_id,
+                                        )
+                                        ->join('people', 'people.id', '=', 'deputies.person_id')
+                                        ->orderBy('people.last_name')
+                                        ->orderBy('people.first_name')
+                                        ->orderBy('people.middle_name')
+                                        ->select('deputies.*')
+                                        ->with('person')
                                         ->get()
                                         ->mapWithKeys(fn (Deputy $deputy): array => [
                                             $deputy->id => $deputy->full_name,

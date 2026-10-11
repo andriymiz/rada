@@ -6,8 +6,8 @@ use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
-use App\Models\Membership;
 use App\Models\Motion;
+use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
 use App\Models\VoteEvent;
@@ -79,16 +79,16 @@ it('allows a motion to have multiple distinct vote events', function () {
 it('stores one immutable voter snapshot per person for a recorded event', function () {
     $motion = Motion::factory()->create(['uid' => '2025-06-12-2']);
     $event = VoteEvent::factory()->for($motion, 'motion')->create();
-    $deputy = Deputy::factory()->create([
-        'last_name' => 'Іваненко',
-        'first_name' => 'Олександр',
-        'middle_name' => 'Петрович',
-    ]);
-    Membership::factory()
-        ->for($deputy, 'deputy')
-        ->for($motion->plenaryMeeting->councilSession->convocation->organization, 'organization')
-        ->for($motion->plenaryMeeting->councilSession->convocation, 'convocation')
-        ->create(['voting_identifier' => 'COUNCIL-001']);
+    $convocation = $motion->plenaryMeeting->councilSession->convocation;
+    $deputy = Deputy::factory()
+        ->for(Person::factory()->state([
+            'last_name' => 'Іваненко',
+            'first_name' => 'Олександр',
+            'middle_name' => 'Петрович',
+        ]), 'person')
+        ->for($convocation, 'convocation')
+        ->create();
+    $deputy->update(['voting_identifier' => 'COUNCIL-001']);
 
     $vote = Vote::factory()
         ->for($event, 'voteEvent')
@@ -118,6 +118,5 @@ it('keeps the demo voting seed repeatable', function () {
         ->and(Motion::query()->count())->toBe(1)
         ->and(VoteEvent::query()->count())->toBe(1)
         ->and(Deputy::query()->count())->toBe(3)
-        ->and(Membership::query()->count())->toBe(3)
         ->and(Vote::query()->count())->toBe(3);
 });
