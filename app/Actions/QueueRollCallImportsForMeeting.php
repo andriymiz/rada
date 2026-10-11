@@ -6,7 +6,6 @@ use App\Jobs\ProcessRollCallImport;
 use App\Models\PlenaryMeeting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 class QueueRollCallImportsForMeeting
 {
@@ -22,10 +21,6 @@ class QueueRollCallImportsForMeeting
     ): void {
         DB::transaction(function () use ($meeting, $filePaths, $originalFilenames, $user): void {
             foreach ($filePaths as $filePath) {
-                if (! is_string($filePath)) {
-                    throw new InvalidArgumentException('The uploaded import file path must be a string.');
-                }
-
                 $import = $meeting->rollCallImports()->create([
                     'council_session_id' => $meeting->council_session_id,
                     'user_id' => $user->getKey(),

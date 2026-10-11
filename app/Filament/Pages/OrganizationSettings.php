@@ -16,8 +16,12 @@ use Filament\Schemas\Components\Form as FormComponent;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use LogicException;
 use UnitEnum;
 
+/**
+ * @property-read Schema $form
+ */
 class OrganizationSettings extends Page
 {
     use HasRadaBreadcrumbs;
@@ -45,8 +49,13 @@ class OrganizationSettings extends Page
     public function mount(): void
     {
         $organization = CouncilOrganization::query()->first();
+        $form = $this->getSchema('form');
 
-        $this->form
+        if ($form === null) {
+            throw new LogicException('The organization form schema is not configured.');
+        }
+
+        $form
             ->model($organization ?? CouncilOrganization::class)
             ->fill($organization?->attributesToArray() ?? []);
     }
@@ -81,13 +90,19 @@ class OrganizationSettings extends Page
 
     public function save(): void
     {
-        $data = $this->form->getState();
+        $form = $this->getSchema('form');
+
+        if ($form === null) {
+            throw new LogicException('The organization form schema is not configured.');
+        }
+
+        $data = $form->getState();
         $organization = CouncilOrganization::query()->first() ?? new CouncilOrganization;
 
         $organization->fill($data);
         $organization->save();
 
-        $this->form->model($organization);
+        $form->model($organization);
 
         Notification::make()
             ->title('Дані організації збережено')

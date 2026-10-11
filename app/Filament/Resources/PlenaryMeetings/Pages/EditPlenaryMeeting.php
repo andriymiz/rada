@@ -7,12 +7,14 @@ use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\RollCallImports\Schemas\RollCallImportForm;
 use App\Models\CouncilOrganization;
+use App\Models\PlenaryMeeting;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Validation\ValidationException;
 
+/** @extends EditRecord<PlenaryMeeting> */
 class EditPlenaryMeeting extends EditRecord
 {
     use HasRadaBreadcrumbs;

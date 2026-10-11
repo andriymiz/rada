@@ -19,7 +19,7 @@ trait HasRadaBreadcrumbs
         $breadcrumbs = parent::getBreadcrumbs();
 
         if ($this instanceof ListRecords) {
-            if (static::getResource()::getNavigationParentItem() === null) {
+            if ($this::getResource()::getNavigationParentItem() === null) {
                 return [];
             }
 

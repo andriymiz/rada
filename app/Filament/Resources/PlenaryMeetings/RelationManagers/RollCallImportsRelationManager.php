@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PlenaryMeetings\RelationManagers;
 use App\Enums\RollCallImportStatus;
 use App\Filament\Resources\RollCallImports\RollCallImportResource;
 use App\Jobs\ProcessRollCallImport;
+use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -13,12 +14,24 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use LogicException;
 
 class RollCallImportsRelationManager extends RelationManager
 {
     protected static string $relationship = 'rollCallImports';
 
     protected static ?string $title = 'Імпорти';
+
+    public function getOwnerRecord(): PlenaryMeeting
+    {
+        $ownerRecord = parent::getOwnerRecord();
+
+        if (! $ownerRecord instanceof PlenaryMeeting) {
+            throw new LogicException('Roll-call imports must belong to a plenary meeting.');
+        }
+
+        return $ownerRecord;
+    }
 
     public function table(Table $table): Table
     {

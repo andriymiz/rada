@@ -13,6 +13,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property-read string $full_name
+ * @property-read string $short_name
+ */
 #[Fillable([
     'family_name',
     'first_name',
@@ -36,22 +40,24 @@ class Deputy extends Model
         ];
     }
 
+    /** @return Attribute<string, never> */
     protected function fullName(): Attribute
     {
         return Attribute::get(fn (): string => collect([$this->family_name, $this->first_name, $this->additional_name])
             ->filter(filled(...))
-            ->map(trim(...))
+            ->map(fn (?string $name): string => trim($name ?? ''))
             ->implode(' '));
     }
 
+    /** @return Attribute<string, never> */
     protected function shortName(): Attribute
     {
         return Attribute::get(fn (): string => collect([$this->first_name, $this->additional_name])
             ->filter(filled(...))
-            ->map(fn (string $name): string => Str::of($name)->trim()->substr(0, 1)->upper()->append('.')->toString())
+            ->map(fn (?string $name): string => Str::of($name ?? '')->trim()->substr(0, 1)->upper()->append('.')->toString())
             ->prepend($this->family_name)
             ->filter(filled(...))
-            ->map(trim(...))
+            ->map(fn (?string $name): string => trim($name ?? ''))
             ->implode(' '));
     }
 

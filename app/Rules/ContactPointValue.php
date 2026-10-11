@@ -14,6 +14,9 @@ class ContactPointValue implements DataAwareRule, ValidationRule
      */
     protected array $data = [];
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public function setData(array $data): static
     {
         $this->data = $data;
@@ -23,8 +26,10 @@ class ContactPointValue implements DataAwareRule, ValidationRule
 
     public function validate(string $attribute, mixed $value, \Closure $fail): void
     {
-        $contactType = collect(data_get($this->data, 'mountedActions.*.data.type'))
-            ->last() ?? data_get($this->data, 'type');
+        $mountedActionTypes = data_get($this->data, 'mountedActions.*.data.type');
+        $contactType = is_array($mountedActionTypes) && $mountedActionTypes !== []
+            ? end($mountedActionTypes)
+            : data_get($this->data, 'type');
 
         $rules = match ($contactType) {
             ContactPointType::Email->value => ['email'],

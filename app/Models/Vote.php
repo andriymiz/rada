@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/** @property VoteOption $option */
 #[Fillable(['vote_event_id', 'deputy_id', 'voter_identifier', 'voter_name', 'option'])]
 class Vote extends Model
 {

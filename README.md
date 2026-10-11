@@ -77,6 +77,7 @@ php artisan boost:update
 - `routes/` — application routes;
 - `tests/` — automated tests.
 - `docs/architecture/roll-call-voting.md` — roll-call voting data model, Popolo alignment, and open-data field mapping.
+- `docs/architecture/meetings-and-deputies.md` — council sessions, plenary meetings, deputies, memberships, and their database relationships.
 - `docs/filament-ui-styles.md` — shared Filament button and form-field styling conventions.
 - `docs/date-time-handling.md` — UTC storage and Kyiv-time display conventions.
 

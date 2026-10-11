@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $error_message
  * @property array<string, mixed>|null $parsed_result
  * @property Carbon|null $processed_at
+ * @property-read PlenaryMeeting|null $plenaryMeeting
  */
 #[Fillable(['council_session_id', 'plenary_meeting_id', 'user_id', 'file_path', 'original_filename', 'status', 'error_message', 'parsed_result', 'processed_at'])]
 class RollCallImport extends Model

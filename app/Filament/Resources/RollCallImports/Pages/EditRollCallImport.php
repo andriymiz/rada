@@ -17,6 +17,7 @@ use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/** @extends EditRecord<RollCallImport> */
 class EditRollCallImport extends EditRecord
 {
     protected static string $resource = RollCallImportResource::class;
@@ -47,7 +48,7 @@ class EditRollCallImport extends EditRecord
     {
         $record = RollCallImport::query()
             ->lockForUpdate()
-            ->findOrFail($this->getRecord()->getKey());
+            ->findOrFail($this->getRecord()->id);
 
         abort_unless(RollCallImportResource::canEdit($record), 403);
 
@@ -75,7 +76,7 @@ class EditRollCallImport extends EditRecord
         DB::transaction(function () use ($motionIndex, &$wasAlreadyReviewed): void {
             $record = RollCallImport::query()
                 ->lockForUpdate()
-                ->findOrFail($this->getRecord()->getKey());
+                ->findOrFail($this->getRecord()->id);
 
             abort_unless(RollCallImportResource::canEdit($record), 403);
 

@@ -20,10 +20,22 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Unique;
+use LogicException;
 
 class MotionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'motions';
+
+    public function getOwnerRecord(): PlenaryMeeting
+    {
+        $ownerRecord = parent::getOwnerRecord();
+
+        if (! $ownerRecord instanceof PlenaryMeeting) {
+            throw new LogicException('Motions must belong to a plenary meeting.');
+        }
+
+        return $ownerRecord;
+    }
 
     public function form(Schema $schema): Schema
     {
