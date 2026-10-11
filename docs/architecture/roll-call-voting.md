@@ -15,7 +15,7 @@ CouncilOrganization ──< Convocation ──< CouncilSession ──< PlenaryMe
 ```
 
 - **CouncilOrganization** is the Popolo `Organization` profile for the authority. `name`, `edrpou`, and `katoottg` supply the portal's `authorityName`, `authorityId`, and `authorityCattutc`.
-- **Deputy** is the Popolo `Person` profile for a deputy. Its database-generated primary key is the internal identity; `full_name` is derived from `family_name`, `first_name`, and `additional_name`.
+- **Deputy** is the Popolo `Person` profile for a deputy. Its database-generated primary key is the internal identity; `full_name` is derived from `last_name`, `first_name`, and `middle_name`.
 - **DeputyReception** stores the deputy's reception address and hours in a separate one-to-one record.
 - **ContactPoint** stores one typed contact or public profile per row, along with its visibility and an optional note. Its `contactable` polymorphic relation allows other models to reuse the same contact data.
 - **Deputy.homepage** stores the deputy's page on the council website separately from reusable `ContactPoint` records.

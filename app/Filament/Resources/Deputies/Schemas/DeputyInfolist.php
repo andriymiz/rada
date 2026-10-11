@@ -14,7 +14,7 @@ class DeputyInfolist
             ->components([
                 TextEntry::make('full_name')
                     ->label('ПІБ'),
-                TextEntry::make('birth_date')
+                TextEntry::make('date_of_birth')
                     ->label('Дата народження')
                     ->date(),
                 TextEntry::make('gender')

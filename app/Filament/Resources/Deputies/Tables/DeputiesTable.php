@@ -15,8 +15,8 @@ class DeputiesTable
             ->columns([
                 TextColumn::make('full_name')
                     ->label('Депутат')
-                    ->searchable(['family_name', 'first_name', 'additional_name'])
-                    ->sortable(['family_name', 'first_name', 'additional_name']),
+                    ->searchable(['last_name', 'first_name', 'middle_name'])
+                    ->sortable(['last_name', 'first_name', 'middle_name']),
                 TextColumn::make('memberships_count')
                     ->label('Скликань')
                     ->counts('memberships'),

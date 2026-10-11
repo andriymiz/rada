@@ -29,23 +29,23 @@ beforeEach(function () {
 it('creates a deputy profile without requiring reception details', function () {
     livewire(CreateDeputy::class)
         ->fillForm([
-            'family_name' => 'Тестове',
+            'last_name' => 'Тестове',
             'first_name' => 'Ім’я',
-            'additional_name' => 'ПоБатькові',
+            'middle_name' => 'ПоБатькові',
             'gender' => Gender::Female->value,
-            'birth_date' => '1985-03-12',
+            'date_of_birth' => '1985-03-12',
             'homepage' => 'https://council.example.gov.ua/deputies/test',
             'biography' => 'Біографія депутата.',
         ])
         ->call('create')
         ->assertHasNoFormErrors();
 
-    $deputy = Deputy::query()->where('family_name', 'Тестове')->firstOrFail();
+    $deputy = Deputy::query()->where('last_name', 'Тестове')->firstOrFail();
 
     $this->assertModelExists($deputy);
 
     expect($deputy->gender)->toBe(Gender::Female)
-        ->and($deputy->birth_date->toDateString())->toBe('1985-03-12')
+        ->and($deputy->date_of_birth->toDateString())->toBe('1985-03-12')
         ->and($deputy->homepage)->toBe('https://council.example.gov.ua/deputies/test')
         ->and($deputy->full_name)->toBe('Тестове Ім’я ПоБатькові')
         ->and($deputy->reception)->toBeNull()
@@ -59,18 +59,18 @@ it('creates a deputy profile without requiring reception details', function () {
 it('rejects deputy homepage values that are not HTTP URLs', function () {
     livewire(CreateDeputy::class)
         ->fillForm([
-            'family_name' => 'Тестове',
+            'last_name' => 'Тестове',
             'first_name' => 'Ім’я',
-            'additional_name' => 'ПоБатькові',
+            'middle_name' => 'ПоБатькові',
             'gender' => Gender::Female->value,
-            'birth_date' => '1985-03-12',
+            'date_of_birth' => '1985-03-12',
             'homepage' => 'not-a-url',
             'biography' => 'Біографія депутата.',
         ])
         ->call('create')
         ->assertHasFormErrors(['homepage']);
 
-    expect(Deputy::query()->where('family_name', 'Тестове')->exists())->toBeFalse();
+    expect(Deputy::query()->where('last_name', 'Тестове')->exists())->toBeFalse();
 });
 
 it('shows the selected gender label in the deputy profile infolist', function () {
@@ -82,9 +82,9 @@ it('shows the selected gender label in the deputy profile infolist', function ()
 
 it('formats a deputy short name with initials', function () {
     $deputy = Deputy::factory()->create([
-        'family_name' => 'Шевченко',
+        'last_name' => 'Шевченко',
         'first_name' => 'Богдан',
-        'additional_name' => 'Вікторович',
+        'middle_name' => 'Вікторович',
     ]);
 
     expect($deputy->short_name)->toBe('Шевченко Б. В.');
@@ -93,17 +93,17 @@ it('formats a deputy short name with initials', function () {
 it('accepts gender code 9 and displays its label in the deputy profile', function () {
     livewire(CreateDeputy::class)
         ->fillForm([
-            'family_name' => 'Тестове',
+            'last_name' => 'Тестове',
             'first_name' => 'Ім’я',
-            'additional_name' => 'ПоБатькові',
+            'middle_name' => 'ПоБатькові',
             'gender' => 9,
-            'birth_date' => '1985-03-12',
+            'date_of_birth' => '1985-03-12',
             'biography' => 'Біографія депутата.',
         ])
         ->call('create')
         ->assertHasNoFormErrors();
 
-    $deputy = Deputy::query()->where('family_name', 'Тестове')->firstOrFail();
+    $deputy = Deputy::query()->where('last_name', 'Тестове')->firstOrFail();
 
     expect($deputy->gender)->toBe(Gender::NotApplicable);
 
@@ -234,12 +234,12 @@ it('updates a deputy and keeps the full name synchronized', function () {
         ->create();
 
     livewire(EditDeputy::class, ['record' => $deputy->getKey()])
-        ->fillForm(['family_name' => 'Оновлене'])
+        ->fillForm(['last_name' => 'Оновлене'])
         ->call('save')
         ->assertHasNoFormErrors();
 
     expect($deputy->refresh()->full_name)
-        ->toBe("Оновлене {$deputy->first_name} {$deputy->additional_name}");
+        ->toBe("Оновлене {$deputy->first_name} {$deputy->middle_name}");
 });
 
 it('stores the voting identifier and party independently for each convocation', function () {

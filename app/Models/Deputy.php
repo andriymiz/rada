@@ -18,11 +18,11 @@ use Illuminate\Support\Str;
  * @property-read string $short_name
  */
 #[Fillable([
-    'family_name',
+    'last_name',
     'first_name',
-    'additional_name',
+    'middle_name',
     'gender',
-    'birth_date',
+    'date_of_birth',
     'image',
     'homepage',
     'biography',
@@ -36,14 +36,14 @@ class Deputy extends Model
     {
         return [
             'gender' => Gender::class,
-            'birth_date' => 'date',
+            'date_of_birth' => 'date',
         ];
     }
 
     /** @return Attribute<string, never> */
     protected function fullName(): Attribute
     {
-        return Attribute::get(fn (): string => collect([$this->family_name, $this->first_name, $this->additional_name])
+        return Attribute::get(fn (): string => collect([$this->last_name, $this->first_name, $this->middle_name])
             ->filter(filled(...))
             ->map(fn (?string $name): string => trim($name ?? ''))
             ->implode(' '));
@@ -52,10 +52,10 @@ class Deputy extends Model
     /** @return Attribute<string, never> */
     protected function shortName(): Attribute
     {
-        return Attribute::get(fn (): string => collect([$this->first_name, $this->additional_name])
+        return Attribute::get(fn (): string => collect([$this->first_name, $this->middle_name])
             ->filter(filled(...))
             ->map(fn (?string $name): string => Str::of($name ?? '')->trim()->substr(0, 1)->upper()->append('.')->toString())
-            ->prepend($this->family_name)
+            ->prepend($this->last_name)
             ->filter(filled(...))
             ->map(fn (?string $name): string => trim($name ?? ''))
             ->implode(' '));

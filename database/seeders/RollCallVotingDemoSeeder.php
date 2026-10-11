@@ -77,17 +77,17 @@ class RollCallVotingDemoSeeder extends Seeder
             ['DEMO-VOTER-002', 'Демонстраційний Депутат Два', VoteOption::No],
             ['DEMO-VOTER-003', 'Демонстраційний Депутат Три', VoteOption::Abstain],
         ] as [$votingIdentifier, $name, $option]) {
-            [$familyName, $firstName, $additionalName] = explode(' ', $name, 3);
+            [$lastName, $firstName, $middleName] = explode(' ', $name, 3);
 
             $deputy = Deputy::query()->firstOrCreate(
                 [
-                    'family_name' => $familyName,
+                    'last_name' => $lastName,
                     'first_name' => $firstName,
-                    'additional_name' => $additionalName,
+                    'middle_name' => $middleName,
                 ],
                 [
                     'gender' => Gender::Unknown,
-                    'birth_date' => '1980-01-01',
+                    'date_of_birth' => '1980-01-01',
                     'biography' => 'Демонстраційний депутат.',
                 ],
             );

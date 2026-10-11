@@ -18,15 +18,15 @@ class DeputyFactory extends Factory
      */
     public function definition(): array
     {
-        $familyName = fake('uk_UA')->lastName();
+        $lastName = fake('uk_UA')->lastName();
         $firstName = fake('uk_UA')->firstName();
 
         return [
-            'family_name' => $familyName,
+            'last_name' => $lastName,
             'first_name' => $firstName,
-            'additional_name' => 'Батькович',
+            'middle_name' => 'Батькович',
             'gender' => fake()->randomElement([Gender::Male, Gender::Female]),
-            'birth_date' => fake()->dateTimeBetween('-80 years', '-25 years')->format('Y-m-d'),
+            'date_of_birth' => fake()->dateTimeBetween('-80 years', '-25 years')->format('Y-m-d'),
             'image' => null,
             'homepage' => null,
             'biography' => fake()->paragraph(),

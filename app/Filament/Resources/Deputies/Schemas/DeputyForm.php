@@ -19,7 +19,7 @@ class DeputyForm
     {
         return $schema
             ->components([
-                TextInput::make('family_name')
+                TextInput::make('last_name')
                     ->label('Прізвище')
                     ->required()
                     ->maxLength(255),
@@ -27,7 +27,7 @@ class DeputyForm
                     ->label('Ім’я')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('additional_name')
+                TextInput::make('middle_name')
                     ->label('По батькові')
                     ->required()
                     ->maxLength(255),
@@ -39,7 +39,7 @@ class DeputyForm
                         Gender::cases(),
                     )))
                     ->required(),
-                DatePicker::make('birth_date')
+                DatePicker::make('date_of_birth')
                     ->label('Дата народження')
                     ->required()
                     ->native(false)

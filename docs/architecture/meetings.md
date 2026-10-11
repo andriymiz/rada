@@ -79,11 +79,11 @@ erDiagram
     }
     DEPUTIES {
         int id PK
-        string family_name
+        string last_name
         string first_name
-        string additional_name
+        string middle_name
         int gender
-        date birth_date
+        date date_of_birth
         text image
         text homepage
         text biography

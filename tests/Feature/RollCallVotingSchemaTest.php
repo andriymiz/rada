@@ -80,9 +80,9 @@ it('stores one immutable voter snapshot per person for a recorded event', functi
     $motion = Motion::factory()->create(['uid' => '2025-06-12-2']);
     $event = VoteEvent::factory()->for($motion, 'motion')->create();
     $deputy = Deputy::factory()->create([
-        'family_name' => 'Іваненко',
+        'last_name' => 'Іваненко',
         'first_name' => 'Олександр',
-        'additional_name' => 'Петрович',
+        'middle_name' => 'Петрович',
     ]);
     Membership::factory()
         ->for($deputy, 'deputy')

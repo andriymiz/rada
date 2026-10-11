@@ -92,9 +92,9 @@ class MotionsRelationManager extends RelationManager
                                                 'convocation_id',
                                                 $this->getOwnerRecord()->councilSession->convocation_id,
                                             ))
-                                        ->orderBy('family_name')
+                                        ->orderBy('last_name')
                                         ->orderBy('first_name')
-                                        ->orderBy('additional_name')
+                                        ->orderBy('middle_name')
                                         ->get()
                                         ->mapWithKeys(fn (Deputy $deputy): array => [
                                             $deputy->id => $deputy->full_name,

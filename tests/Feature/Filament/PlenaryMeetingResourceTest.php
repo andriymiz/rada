@@ -176,14 +176,14 @@ it('queues additional roll-call files from the meeting workspace', function () {
 it('creates a question with individual votes and displays calculated vote counts', function () {
     $meeting = PlenaryMeeting::factory()->create();
     $yesVoter = Deputy::factory()->create([
-        'family_name' => 'Іваненко',
+        'last_name' => 'Іваненко',
         'first_name' => 'Іван',
-        'additional_name' => 'Іванович',
+        'middle_name' => 'Іванович',
     ]);
     $noVoter = Deputy::factory()->create([
-        'family_name' => 'Петренко',
+        'last_name' => 'Петренко',
         'first_name' => 'Петро',
-        'additional_name' => 'Петрович',
+        'middle_name' => 'Петрович',
     ]);
     Membership::factory()
         ->for($yesVoter, 'deputy')

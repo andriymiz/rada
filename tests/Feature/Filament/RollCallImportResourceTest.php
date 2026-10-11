@@ -268,9 +268,9 @@ it('creates each motion as it is confirmed and completes only after all motions 
         ->for($session, 'councilSession')
         ->create(['date' => '2025-06-12']);
     $deputy = Deputy::factory()->create([
-        'family_name' => 'Іваненко',
+        'last_name' => 'Іваненко',
         'first_name' => 'Іван',
-        'additional_name' => 'Іванович',
+        'middle_name' => 'Іванович',
     ]);
     Membership::factory()
         ->for($deputy, 'deputy')
