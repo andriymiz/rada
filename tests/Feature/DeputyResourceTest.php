@@ -11,11 +11,13 @@ use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\Deputy;
 use App\Models\DeputyReception;
+use App\Models\Faction;
 use App\Models\Membership;
 use App\Models\PoliticalParty;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Validation\ValidationException;
 
 use function Pest\Livewire\livewire;
 
@@ -274,6 +276,51 @@ it('stores the voting identifier and party independently for each convocation', 
         ->and($secondMembership->politicalParty->name)->toBe('Партія друга')
         ->and($firstMembership->voting_identifier)->toBe('VOTE-001')
         ->and($secondMembership->voting_identifier)->toBe('VOTE-002');
+});
+
+it('links memberships to a faction belonging to the selected convocation', function () {
+    $deputy = Deputy::factory()->create();
+    $convocation = Convocation::factory()->create();
+    $party = PoliticalParty::factory()->create();
+    $faction = Faction::factory()
+        ->for($convocation, 'convocation')
+        ->create(['name' => 'Фракція розвитку']);
+
+    livewire(MembershipsRelationManager::class, [
+        'ownerRecord' => $deputy,
+        'pageClass' => EditDeputy::class,
+    ])
+        ->callTableAction('create', null, [
+            'convocation_id' => $convocation->id,
+            'political_party_id' => $party->id,
+            'faction_id' => $faction->id,
+            'faction_position' => 'Голова фракції',
+            'role' => 'Депутат міської ради',
+        ])
+        ->assertHasNoTableActionErrors();
+
+    $membership = $deputy->memberships()->firstOrFail();
+
+    expect($membership->faction->is($faction))->toBeTrue()
+        ->and($membership->faction_position)->toBe('Голова фракції');
+});
+
+it('rejects a membership faction from another convocation', function () {
+    $organization = CouncilOrganization::factory()->create();
+    $membershipConvocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create();
+    $otherConvocation = Convocation::factory()
+        ->for($organization, 'organization')
+        ->create();
+    $faction = Faction::factory()
+        ->for($otherConvocation, 'convocation')
+        ->create();
+
+    expect(fn () => Membership::factory()
+        ->for($membershipConvocation, 'convocation')
+        ->create(['faction_id' => $faction->id]))
+        ->toThrow(ValidationException::class);
 });
 
 it('registers the convocation membership manager on deputy pages', function () {

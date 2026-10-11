@@ -52,6 +52,12 @@ class Convocation extends Model
         return $this->hasMany(PermanentCommission::class);
     }
 
+    /** @return HasMany<Faction, $this> */
+    public function factions(): HasMany
+    {
+        return $this->hasMany(Faction::class);
+    }
+
     /** @return HasMany<Membership, $this> */
     public function memberships(): HasMany
     {

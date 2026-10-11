@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Deputies\RelationManagers;
 
 use App\Models\Convocation;
+use App\Models\Faction;
 use App\Models\PermanentCommission;
 use App\Models\PoliticalParty;
 use Filament\Actions\CreateAction;
@@ -44,7 +45,11 @@ class MembershipsRelationManager extends RelationManager
                             ->required()
                             ->searchable()
                             ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('permanent_commission_id', null)),
+                            ->afterStateUpdated(function (Set $set): void {
+                                $set('permanent_commission_id', null);
+                                $set('faction_id', null);
+                                $set('faction_position', null);
+                            }),
                         TextInput::make('voting_identifier')
                             ->label('Номер у системі голосування')
                             ->maxLength(255)
@@ -75,14 +80,45 @@ class MembershipsRelationManager extends RelationManager
                             ->createOptionUsing(fn (array $data): int => (int) PoliticalParty::query()
                                 ->create($data)
                                 ->getKey()),
-                        TextInput::make('faction_name')
+                        Select::make('faction_id')
                             ->label('Фракція')
-                            ->required()
-                            ->maxLength(255)
-                            ->helperText('Якщо депутат не входить до фракції, вкажіть «Позафракційний».'),
+                            ->options(fn (Get $get): array => Faction::query()
+                                ->where('convocation_id', $get('convocation_id'))
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->disabled(fn (Get $get): bool => blank($get('convocation_id')))
+                            ->createOptionForm([
+                                TextInput::make('name')
+                                    ->label('Назва фракції')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->createOptionUsing(function (array $data, Get $get): int {
+                                $convocationId = $get('convocation_id');
+
+                                if (! filled($convocationId)) {
+                                    throw ValidationException::withMessages([
+                                        'convocation_id' => 'Спочатку виберіть скликання.',
+                                    ]);
+                                }
+
+                                return (int) Faction::query()->firstOrCreate([
+                                    'convocation_id' => $convocationId,
+                                    'name' => $data['name'],
+                                ])->getKey();
+                            })
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                if (blank($state)) {
+                                    $set('faction_position', null);
+                                }
+                            }),
                         TextInput::make('faction_position')
                             ->label('Посада у фракції')
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->visible(fn (Get $get): bool => filled($get('faction_id'))),
                         TextInput::make('area_id')
                             ->label('Номер виборчого округу')
                             ->numeric()
@@ -144,6 +180,7 @@ class MembershipsRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                 'convocation',
+                'faction',
                 'politicalParty',
                 'permanentCommission',
             ]))
@@ -155,6 +192,9 @@ class MembershipsRelationManager extends RelationManager
                     ->label('Скликання'),
                 TextColumn::make('politicalParty.name')
                     ->label('Партія'),
+                TextColumn::make('faction.name')
+                    ->label('Фракція')
+                    ->placeholder('—'),
                 TextColumn::make('voting_identifier')
                     ->label('Номер у системі голосування')
                     ->placeholder('—'),

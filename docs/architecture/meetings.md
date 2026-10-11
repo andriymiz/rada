@@ -18,6 +18,7 @@ flowchart LR
     Membership[Membership]
     Party[Political party]
     Commission[Permanent commission]
+    Faction[Faction]
     Motion[Agenda item / motion]
     VoteEvent[Recorded vote event]
     Vote[Individual vote]
@@ -30,7 +31,9 @@ flowchart LR
     Convocation -. optional term .-> Membership
     Party -. optional affiliation .-> Membership
     Commission -. optional assignment .-> Membership
+    Faction -. optional affiliation .-> Membership
     Convocation -->|contains| Commission
+    Convocation -->|contains| Faction
     Meeting -->|has| Motion
     Motion -->|may have zero or more| VoteEvent
     VoteEvent -->|records| Vote
@@ -60,6 +63,11 @@ erDiagram
         string name
     }
     PERMANENT_COMMISSIONS {
+        int id PK
+        int convocation_id FK
+        string name
+    }
+    FACTIONS {
         int id PK
         int convocation_id FK
         string name
@@ -104,11 +112,11 @@ erDiagram
         int convocation_id FK
         int political_party_id FK
         int permanent_commission_id FK
+        int faction_id FK
         string voting_identifier
         string role
         date start_date
         date end_date
-        string faction_name
         string faction_position
         string commission_position
         int area_id
@@ -176,10 +184,12 @@ erDiagram
     CONVOCATIONS o|--o{ MEMBERSHIPS : scopes
     CONVOCATIONS ||--o{ COUNCIL_SESSIONS : contains
     CONVOCATIONS ||--o{ PERMANENT_COMMISSIONS : contains
+    CONVOCATIONS ||--o{ FACTIONS : contains
     COUNCIL_SESSIONS ||--o{ PLENARY_MEETINGS : schedules
     COUNCIL_ORGANIZATIONS ||--o{ MEMBERSHIPS : represents
     POLITICAL_PARTIES o|--o{ MEMBERSHIPS : affiliates
     PERMANENT_COMMISSIONS o|--o{ MEMBERSHIPS : assigns
+    FACTIONS o|--o{ MEMBERSHIPS : affiliates
     PLENARY_MEETINGS ||--o{ MOTIONS : contains
     USERS ||--o{ ROLL_CALL_IMPORTS : uploads
     PLENARY_MEETINGS o|--o{ ROLL_CALL_IMPORTS : concerns
@@ -197,7 +207,9 @@ erDiagram
 - `convocations` belong to a council organization; `(organization_id, name)` is unique, allowing different councils to use the same convocation label. The organization reference is nullable only to avoid inventing links for untouched pre-existing records; application-created convocations require an organization.
 - `council_sessions` belong to a `convocations`; `(convocation_id, name)` is unique.
 - `permanent_commissions` belong to a convocation and have a unique `(convocation_id, name)` pair. A membership's commission is optional. The application validates that its commission belongs to the same convocation selected on the membership; that cross-reference is not a database constraint.
-- `memberships` connect a deputy to a council organization and optionally a convocation, political party, and permanent commission. They retain role, term dates, faction/commission roles, electoral area, and a convocation-specific voting identifier. The database has unique constraints on `(deputy_id, organization_id, convocation_id)` and `(convocation_id, voting_identifier)`.
+- `factions` belong to a convocation and have a unique `(convocation_id, name)` pair. A membership's faction is optional, and the application validates that it belongs to the same convocation as the membership.
+- `memberships` connect a deputy to a council organization and optionally a convocation, political party, faction, and permanent commission. They retain role, term dates, faction/commission positions, electoral area, and a convocation-specific voting identifier. The database has unique constraints on `(deputy_id, organization_id, convocation_id)` and `(convocation_id, voting_identifier)`.
+- The faction extraction removes the former free-text `faction_name` values without migrating them into faction records.
 - A deputy's full name is derived from the three name columns and is not stored as a separate `name` column. A deputy can have at most one `deputy_receptions` row.
 - A plenary meeting belongs to exactly one council session and inherits its organization through the session's convocation. A motion belongs to exactly one meeting; `(plenary_meeting_id, number)` and `uid` are unique.
 - A motion may have no recorded vote or multiple `vote_events`. Each vote event belongs to one motion. A vote event can contain votes with or without a matched deputy: `votes.deputy_id` and `voter_identifier` are nullable, while `voter_name` and `option` preserve the imported voter details. `(vote_event_id, deputy_id)` is unique.

@@ -13,10 +13,10 @@ use Illuminate\Validation\ValidationException;
     'deputy_id',
     'organization_id',
     'convocation_id',
+    'faction_id',
     'voting_identifier',
     'political_party_id',
     'permanent_commission_id',
-    'faction_name',
     'faction_position',
     'commission_position',
     'area_id',
@@ -55,6 +55,18 @@ class Membership extends Model
                     ]);
                 }
             }
+
+            if ($membership->faction_id !== null) {
+                $factionMatchesConvocation = $membership->faction()
+                    ->where('convocation_id', $membership->convocation_id)
+                    ->exists();
+
+                if (! $factionMatchesConvocation) {
+                    throw ValidationException::withMessages([
+                        'faction_id' => 'Фракція має належати до вибраного скликання.',
+                    ]);
+                }
+            }
         });
     }
 
@@ -88,6 +100,12 @@ class Membership extends Model
     public function politicalParty(): BelongsTo
     {
         return $this->belongsTo(PoliticalParty::class);
+    }
+
+    /** @return BelongsTo<Faction, $this> */
+    public function faction(): BelongsTo
+    {
+        return $this->belongsTo(Faction::class);
     }
 
     /** @return BelongsTo<PermanentCommission, $this> */
