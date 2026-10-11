@@ -168,8 +168,6 @@ erDiagram
         int motion_id FK
         string identifier
         text result
-        datetime start_date
-        datetime end_date
     }
     VOTES {
         int id PK

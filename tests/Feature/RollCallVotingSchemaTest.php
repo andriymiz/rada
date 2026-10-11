@@ -13,6 +13,7 @@ use App\Models\Vote;
 use App\Models\VoteEvent;
 use Database\Seeders\RollCallVotingDemoSeeder;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Schema;
 
 it('stores an agenda item without inventing a vote event', function () {
     $organization = CouncilOrganization::factory()->create();
@@ -70,7 +71,9 @@ it('allows a motion to have multiple distinct vote events', function () {
         ->toBe(['vote-1', 'vote-2'])
         ->and($firstEvent->motion->is($motion))->toBeTrue()
         ->and($secondEvent->motion->is($motion))->toBeTrue()
-        ->and($deputy->votes()->count())->toBe(2);
+        ->and($deputy->votes()->count())->toBe(2)
+        ->and(Schema::hasColumn('vote_events', 'start_date'))->toBeFalse()
+        ->and(Schema::hasColumn('vote_events', 'end_date'))->toBeFalse();
 });
 
 it('stores one immutable voter snapshot per person for a recorded event', function () {
