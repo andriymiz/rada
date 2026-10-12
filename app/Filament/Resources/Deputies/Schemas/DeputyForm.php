@@ -167,44 +167,40 @@ class DeputyForm
                     ->rule('url:http,https')
                     ->maxLength(2048)
                     ->columnSpanFull(),
-                Section::make('Постійна комісія')
-                    ->columns(2)
-                    ->schema([
-                        Select::make('permanent_commission_id')
-                            ->label('Комісія')
-                            ->options(fn (Get $get): array => PermanentCommission::query()
-                                ->where('convocation_id', $get('convocation_id'))
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all())
-                            ->searchable()
-                            ->disabled(fn (Get $get): bool => blank($get('convocation_id')))
-                            ->createOptionForm([
-                                TextInput::make('name')
-                                    ->label('Назва комісії')
-                                    ->required()
-                                    ->maxLength(255),
-                            ])
-                            ->createOptionUsing(function (array $data, Get $get): int {
-                                $convocationId = $get('convocation_id');
+                Select::make('permanent_commission_id')
+                    ->label('Комісія')
+                    ->options(fn (Get $get): array => PermanentCommission::query()
+                        ->where('convocation_id', $get('convocation_id'))
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->searchable()
+                    ->disabled(fn (Get $get): bool => blank($get('convocation_id')))
+                    ->createOptionForm([
+                        TextInput::make('name')
+                            ->label('Назва комісії')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function (array $data, Get $get): int {
+                        $convocationId = $get('convocation_id');
 
-                                if (! filled($convocationId)) {
-                                    throw ValidationException::withMessages([
-                                        'convocation_id' => 'Спочатку виберіть скликання.',
-                                    ]);
-                                }
+                        if (! filled($convocationId)) {
+                            throw ValidationException::withMessages([
+                                'convocation_id' => 'Спочатку виберіть скликання.',
+                            ]);
+                        }
 
-                                return (int) PermanentCommission::query()->firstOrCreate([
-                                    'convocation_id' => $convocationId,
-                                    'name' => $data['name'],
-                                ])->getKey();
-                            })
-                            ->live(),
-                        TextInput::make('commission_position')
-                            ->label('Посада у комісії')
-                            ->maxLength(255)
-                            ->visible(fn (Get $get): bool => filled($get('permanent_commission_id'))),
-                    ]),
+                        return (int) PermanentCommission::query()->firstOrCreate([
+                            'convocation_id' => $convocationId,
+                            'name' => $data['name'],
+                        ])->getKey();
+                    })
+                    ->live(),
+                TextInput::make('commission_position')
+                    ->label('Посада у комісії')
+                    ->maxLength(255)
+                    ->visible(fn (Get $get): bool => filled($get('permanent_commission_id'))),
                 Section::make('Місце та графік прийому')
                     ->relationship(
                         'reception',
