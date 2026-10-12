@@ -9,13 +9,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 /**
  * @property int $id
  * @property int|null $organization_id
+ * @property string $label
+ * @property Carbon|null $date_from
+ * @property Carbon|null $date_until
  */
-#[Fillable(['organization_id', 'name'])]
+#[Fillable(['organization_id', 'label', 'date_from', 'date_until'])]
 class Convocation extends Model
 {
     /** @use HasFactory<ConvocationFactory> */
@@ -24,6 +28,14 @@ class Convocation extends Model
     protected static function booted(): void
     {
         static::saving(function (Convocation $convocation): void {
+            if (! $convocation->exists && $convocation->organization_id === null) {
+                $organization = CouncilOrganization::query()->orderBy('id')->first();
+
+                if ($organization !== null) {
+                    $convocation->organization()->associate($organization);
+                }
+            }
+
             if ($convocation->organization_id !== null) {
                 return;
             }
@@ -32,6 +44,34 @@ class Convocation extends Model
                 'organization_id' => 'Скликання має належати до організації ради.',
             ]);
         });
+
+        static::saved(function (Convocation $convocation): void {
+            if ($convocation->date_from === null || $convocation->organization_id === null) {
+                return;
+            }
+
+            $previousConvocation = self::query()
+                ->where('organization_id', $convocation->organization_id)
+                ->where('id', '<', $convocation->getKey())
+                ->orderByDesc('id')
+                ->first();
+
+            if ($previousConvocation === null) {
+                return;
+            }
+
+            $previousConvocation->updateQuietly([
+                'date_until' => $convocation->date_from->copy()->subDay(),
+            ]);
+        });
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'date_from' => 'date:d.m.Y',
+            'date_until' => 'date:d.m.Y',
+        ];
     }
 
     /** @return BelongsTo<CouncilOrganization, $this> */

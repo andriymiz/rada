@@ -40,7 +40,7 @@ class DeputiesTable
                                 ->select('middle_name')
                                 ->whereColumn('people.id', 'deputies.person_id'), $sortDirection);
                     }),
-                TextColumn::make('convocation.name')
+                TextColumn::make('convocation.label')
                     ->label('Скликання')
                     ->placeholder('—'),
             ])

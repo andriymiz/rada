@@ -31,6 +31,6 @@ class CouncilOrganization extends Model
     /** @return HasMany<Convocation, $this> */
     public function convocations(): HasMany
     {
-        return $this->hasMany(Convocation::class);
+        return $this->hasMany(Convocation::class, 'organization_id');
     }
 }

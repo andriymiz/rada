@@ -2,9 +2,10 @@
 
 use App\Enums\ContactPointType;
 use App\Enums\Gender;
-use App\Filament\Resources\Deputies\Pages\CreateDeputy;
-use App\Filament\Resources\Deputies\Pages\EditDeputy;
-use App\Filament\Resources\Deputies\Pages\ListDeputies;
+use App\Filament\Resources\Convocations\ConvocationResource;
+use App\Filament\Resources\Convocations\Resources\Deputies\Pages\CreateDeputy;
+use App\Filament\Resources\Convocations\Resources\Deputies\Pages\EditDeputy;
+use App\Filament\Resources\Convocations\Resources\Deputies\Pages\ListDeputies;
 use App\Filament\Resources\Deputies\RelationManagers\ContactPointsRelationManager;
 use App\Models\ContactPoint;
 use App\Models\Convocation;
@@ -29,14 +30,12 @@ beforeEach(function () {
 });
 
 it('creates a deputy profile without requiring reception details', function () {
-    $organization = CouncilOrganization::factory()->create();
+    $convocation = Convocation::factory()->create([
+        'label' => 'Дев’яте скликання',
+    ]);
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class)
-        ->callFormComponentAction('convocation_id', 'createOption', [
-            'organization_id' => $organization->id,
-            'name' => 'Дев’яте скликання',
-        ])
+    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
         ->callFormComponentAction('person_id', 'createOption', [
             'last_name' => 'Тестове',
             'first_name' => 'Ім’я',
@@ -57,7 +56,7 @@ it('creates a deputy profile without requiring reception details', function () {
     $this->assertModelExists($deputy);
     $this->assertModelExists($deputy->person);
 
-    expect($deputy->convocation->name)->toBe('Дев’яте скликання')
+    expect($deputy->convocation->is($convocation))->toBeTrue()
         ->and($deputy->person->gender)->toBe(Gender::Female)
         ->and($deputy->person->date_of_birth->toDateString())->toBe('1985-03-12')
         ->and($deputy->homepage)->toBe('https://council.example.gov.ua/deputies/test')
@@ -82,9 +81,8 @@ it('rejects deputy homepage values that are not HTTP URLs', function () {
     $convocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class)
+    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
         ->fillForm([
-            'convocation_id' => $convocation->id,
             'person_id' => $person->id,
             'political_party_id' => $party->id,
             'homepage' => 'not-a-url',
@@ -107,9 +105,8 @@ it('links an existing person to a new deputy', function () {
     $convocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class)
+    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
         ->fillForm([
-            'convocation_id' => $convocation->id,
             'person_id' => $person->id,
             'political_party_id' => $party->id,
             'biography' => 'Біографія депутата.',
@@ -129,9 +126,8 @@ it('rejects linking the same person to two deputy records in one convocation', f
     $existingDeputy = Deputy::factory()->for($person, 'person')->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class)
+    livewire(CreateDeputy::class, ['parentRecord' => $existingDeputy->convocation])
         ->fillForm([
-            'convocation_id' => $existingDeputy->convocation_id,
             'person_id' => $person->id,
             'political_party_id' => $party->id,
             'biography' => 'Біографія депутата.',
@@ -148,9 +144,8 @@ it('allows one person to have a deputy record in each convocation', function () 
     $secondConvocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class)
+    livewire(CreateDeputy::class, ['parentRecord' => $secondConvocation])
         ->fillForm([
-            'convocation_id' => $secondConvocation->id,
             'person_id' => $person->id,
             'political_party_id' => $party->id,
             'biography' => 'Біографія наступного скликання.',
@@ -173,7 +168,10 @@ it('shows the linked person full name in the deputy selector', function () {
         ]), 'person')
         ->create();
 
-    livewire(EditDeputy::class, ['record' => $deputy->getKey()])
+    livewire(EditDeputy::class, [
+        'parentRecord' => $deputy->convocation,
+        'record' => $deputy->getKey(),
+    ])
         ->assertSee('Іваненко Іван Іванович');
 });
 
@@ -190,7 +188,9 @@ it('formats a deputy short name with initials', function () {
 });
 
 it('searches deputies by the linked person name', function () {
+    $convocation = Convocation::factory()->create();
     $matchingDeputy = Deputy::factory()
+        ->for($convocation, 'convocation')
         ->for(Person::factory()->state([
             'last_name' => 'Іваненко',
             'first_name' => 'Іван',
@@ -198,6 +198,7 @@ it('searches deputies by the linked person name', function () {
         ]), 'person')
         ->create();
     $otherDeputy = Deputy::factory()
+        ->for($convocation, 'convocation')
         ->for(Person::factory()->state([
             'last_name' => 'Петренко',
             'first_name' => 'Петро',
@@ -205,14 +206,16 @@ it('searches deputies by the linked person name', function () {
         ]), 'person')
         ->create();
 
-    livewire(ListDeputies::class)
+    livewire(ListDeputies::class, ['parentRecord' => $convocation])
         ->searchTable('Іваненко')
         ->assertCanSeeTableRecords([$matchingDeputy])
         ->assertCanNotSeeTableRecords([$otherDeputy]);
 });
 
 it('sorts deputies by the linked person name', function () {
+    $convocation = Convocation::factory()->create();
     $laterDeputy = Deputy::factory()
+        ->for($convocation, 'convocation')
         ->for(Person::factory()->state([
             'last_name' => 'Петренко',
             'first_name' => 'Петро',
@@ -220,6 +223,7 @@ it('sorts deputies by the linked person name', function () {
         ]), 'person')
         ->create();
     $earlierDeputy = Deputy::factory()
+        ->for($convocation, 'convocation')
         ->for(Person::factory()->state([
             'last_name' => 'Іваненко',
             'first_name' => 'Іван',
@@ -227,7 +231,7 @@ it('sorts deputies by the linked person name', function () {
         ]), 'person')
         ->create();
 
-    livewire(ListDeputies::class)
+    livewire(ListDeputies::class, ['parentRecord' => $convocation])
         ->sortTable('full_name')
         ->assertCanSeeTableRecords([$earlierDeputy, $laterDeputy], inOrder: true);
 });
@@ -236,9 +240,8 @@ it('stores gender code 9 for a person created from the dropdown', function () {
     $convocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class)
+    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
         ->fillForm([
-            'convocation_id' => $convocation->id,
             'political_party_id' => $party->id,
         ])
         ->callFormComponentAction('person_id', 'createOption', [
@@ -264,15 +267,14 @@ it('keeps the person and convocation fixed when editing a deputy', function () {
     $originalPersonId = $deputy->person_id;
     $originalConvocationId = $deputy->convocation_id;
     $otherPerson = Person::factory()->create();
-    $otherConvocation = Convocation::factory()->create();
 
-    livewire(EditDeputy::class, ['record' => $deputy->getKey()])
-        ->assertFormFieldDisabled('convocation_id')
+    livewire(EditDeputy::class, [
+        'parentRecord' => $deputy->convocation,
+        'record' => $deputy->getKey(),
+    ])
         ->assertFormFieldDisabled('person_id')
-        ->assertFormComponentActionDoesNotExist('convocation_id', 'createOption')
         ->assertFormComponentActionDoesNotExist('person_id', 'createOption')
         ->fillForm([
-            'convocation_id' => $otherConvocation->id,
             'person_id' => $otherPerson->id,
             'biography' => 'Оновлена біографія.',
         ])
@@ -289,7 +291,10 @@ it('keeps the person and convocation fixed when editing a deputy', function () {
 it('adds reception details only when requested', function () {
     $deputy = Deputy::factory()->create();
 
-    livewire(EditDeputy::class, ['record' => $deputy->getKey()])
+    livewire(EditDeputy::class, [
+        'parentRecord' => $deputy->convocation,
+        'record' => $deputy->getKey(),
+    ])
         ->callAction(TestAction::make('addReception')->schemaComponent('reception-add-section'), [
             'katoottg' => 'UA12345678901234567',
             'address_post_code' => '01001',
@@ -411,7 +416,10 @@ it('updates deputy details without changing its linked person or reception', fun
     $personId = $deputy->person_id;
     $receptionId = $deputy->reception->id;
 
-    livewire(EditDeputy::class, ['record' => $deputy->getKey()])
+    livewire(EditDeputy::class, [
+        'parentRecord' => $deputy->convocation,
+        'record' => $deputy->getKey(),
+    ])
         ->fillForm(['biography' => 'Оновлена біографія.'])
         ->call('save')
         ->assertHasNoFormErrors();
@@ -479,7 +487,10 @@ it('saves term, faction, and commission-related data on the deputy', function ()
         ->for($convocation, 'convocation')
         ->create(['name' => 'Фракція розвитку']);
 
-    livewire(EditDeputy::class, ['record' => $deputy->getKey()])
+    livewire(EditDeputy::class, [
+        'parentRecord' => $deputy->convocation,
+        'record' => $deputy->getKey(),
+    ])
         ->fillForm([
             'faction_id' => $faction->id,
             'faction_position' => 'Голова фракції',
@@ -516,8 +527,36 @@ it('rejects a deputy faction from another convocation', function () {
 it('keeps term details on the deputy form instead of a membership manager', function () {
     $deputy = Deputy::factory()->create();
 
-    $page = livewire(EditDeputy::class, ['record' => $deputy->getKey()])->assertOk();
+    $page = livewire(EditDeputy::class, [
+        'parentRecord' => $deputy->convocation,
+        'record' => $deputy->getKey(),
+    ])->assertOk();
 
     expect($page->instance()->getRelationManagers())
         ->toBe([ContactPointsRelationManager::class]);
+});
+
+it('shows breadcrumbs on deputy pages with links to return to convocations', function () {
+    $convocation = Convocation::factory()->create([
+        'label' => 'Сьоме скликання',
+    ]);
+    $deputy = Deputy::factory()->create([
+        'convocation_id' => $convocation->id,
+    ]);
+
+    $listPage = livewire(ListDeputies::class, ['parentRecord' => $convocation])->assertOk();
+    $breadcrumbs = $listPage->instance()->getBreadcrumbs();
+
+    expect($breadcrumbs)
+        ->toHaveKey(ConvocationResource::getUrl(), 'Скликання')
+        ->toContain('Сьоме скликання');
+
+    $editPage = livewire(EditDeputy::class, [
+        'parentRecord' => $convocation,
+        'record' => $deputy->getKey(),
+    ])->assertOk();
+
+    expect($editPage->instance()->getBreadcrumbs())
+        ->toHaveKey(ConvocationResource::getUrl(), 'Скликання')
+        ->toContain('Сьоме скликання');
 });

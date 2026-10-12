@@ -3,8 +3,9 @@
 namespace App\Filament\Resources\Deputies\Schemas;
 
 use App\Enums\Gender;
+use App\Filament\Resources\Convocations\Resources\Deputies\Pages\CreateDeputy;
+use App\Filament\Resources\Convocations\Resources\Deputies\Pages\EditDeputy;
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
 use App\Models\Deputy;
 use App\Models\Faction;
 use App\Models\PermanentCommission;
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 
 class DeputyForm
 {
@@ -30,68 +32,34 @@ class DeputyForm
     {
         return $schema
             ->components([
-                Select::make('convocation_id')
-                    ->label('Скликання')
-                    ->options(fn (): array => Convocation::query()
-                        ->whereNotNull('organization_id')
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->all())
-                    ->required()
-                    ->searchable()
-                    ->live()
-                    ->disabledOn('edit')
-                    ->createOptionForm([
-                        Select::make('organization_id')
-                            ->label('Організація ради')
-                            ->options(fn (): array => CouncilOrganization::query()
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all())
-                            ->required()
-                            ->searchable()
-                            ->native(false),
-                        TextInput::make('name')
-                            ->label('Назва скликання')
-                            ->required()
-                            ->maxLength(255),
-                    ])
-                    ->createOptionUsing(fn (array $data): int => (int) Convocation::query()
-                        ->create($data)
-                        ->getKey())
-                    ->createOptionModalHeading('Нове скликання')
-                    ->createOptionAction(fn (Action $action): Action => $action->tooltip('Створити скликання'))
-                    ->afterStateUpdated(function (Set $set): void {
-                        $set('faction_id', null);
-                        $set('faction_position', null);
-                        $set('permanent_commission_id', null);
-                        $set('commission_position', null);
-                    }),
                 Select::make('person_id')
                     ->label('Особа')
                     ->relationship(
                         'person',
                         'last_name',
-                        modifyQueryUsing: fn (Builder $query, ?Deputy $record, Get $get): Builder => $query
-                            ->where(fn (Builder $query): Builder => $query
+                        modifyQueryUsing: function (Builder $query, ?Deputy $record, CreateDeputy|EditDeputy $livewire): Builder {
+                            $convocationId = self::getConvocationId($livewire);
+
+                            return $query->where(fn (Builder $query): Builder => $query
                                 ->whereDoesntHave(
                                     'deputies',
                                     fn (Builder $deputies): Builder => $deputies->where(
                                         'convocation_id',
-                                        $get('convocation_id'),
+                                        $convocationId,
                                     ),
                                 )
                                 ->when(
                                     $record?->person_id,
                                     fn (Builder $query, int $personId): Builder => $query->orWhereKey($personId),
-                                )),
+                                ));
+                        },
                     )
                     ->getOptionLabelFromRecordUsing(fn (Person $record): string => $record->full_name)
                     ->searchable(['last_name', 'first_name', 'middle_name'])
                     ->required()
-                    ->disabled(fn (Get $get, string $operation): bool => $operation === 'edit' || blank($get('convocation_id')))
-                    ->rule(fn (Get $get, ?Deputy $record) => Rule::unique('deputies', 'person_id')
-                        ->where('convocation_id', $get('convocation_id'))
+                    ->disabledOn('edit')
+                    ->rule(fn (CreateDeputy|EditDeputy $livewire, ?Deputy $record) => Rule::unique('deputies', 'person_id')
+                        ->where('convocation_id', self::getConvocationId($livewire))
                         ->ignore($record?->getKey()))
                     ->createOptionForm(self::personFields())
                     ->createOptionUsing(fn (array $data): int => (int) Person::query()
@@ -297,6 +265,17 @@ class DeputyForm
                 ->maxLength(2048)
                 ->columnSpanFull(),
         ];
+    }
+
+    private static function getConvocationId(CreateDeputy|EditDeputy $livewire): int
+    {
+        $parentRecord = $livewire->getParentRecord();
+
+        if (! $parentRecord instanceof Convocation) {
+            throw new LogicException('Deputy forms must be scoped to a convocation.');
+        }
+
+        return (int) $parentRecord->getKey();
     }
 
     /**

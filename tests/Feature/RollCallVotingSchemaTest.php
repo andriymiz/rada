@@ -44,10 +44,10 @@ it('scopes convocation names to their council organization', function () {
 
     $firstConvocation = Convocation::factory()
         ->for($firstOrganization, 'organization')
-        ->create(['name' => '8 скликання']);
+        ->create(['label' => '8 скликання']);
     $secondConvocation = Convocation::factory()
         ->for($secondOrganization, 'organization')
-        ->create(['name' => '8 скликання']);
+        ->create(['label' => '8 скликання']);
 
     expect($firstConvocation->organization->is($firstOrganization))->toBeTrue()
         ->and($secondConvocation->organization->is($secondOrganization))->toBeTrue();

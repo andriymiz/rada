@@ -160,7 +160,7 @@ it('requeues a failed import from the error modal', function () {
 });
 
 it('derives the session label from the linked meeting', function () {
-    $convocation = Convocation::factory()->create(['name' => '8 скликання']);
+    $convocation = Convocation::factory()->create(['label' => '8 скликання']);
     $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => 'Сесія № 2']);

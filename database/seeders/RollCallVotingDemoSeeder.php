@@ -31,7 +31,7 @@ class RollCallVotingDemoSeeder extends Seeder
 
         $convocation = Convocation::query()->firstOrCreate([
             'organization_id' => $organization->id,
-            'name' => 'Демо скликання',
+            'label' => 'Демо скликання',
         ]);
 
         $session = CouncilSession::query()->firstOrCreate(

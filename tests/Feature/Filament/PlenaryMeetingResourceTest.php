@@ -36,7 +36,7 @@ it('lists plenary meetings with question counts and actionable statuses', functi
     $organization = CouncilOrganization::factory()->create(['name' => 'Зборівська міська рада']);
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
-        ->create(['name' => '8 скликання']);
+        ->create(['label' => '8 скликання']);
     $olderSession = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '98 сесія']);
@@ -81,7 +81,7 @@ it('creates a meeting without exposing the organization field', function () {
     CouncilOrganization::factory()->create();
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
-        ->create(['name' => '8 скликання']);
+        ->create(['label' => '8 скликання']);
     $session = CouncilSession::factory()
         ->for($convocation, 'convocation')
         ->create(['name' => '99 сесія']);
@@ -106,7 +106,7 @@ it('creates a new council session from the session dropdown', function () {
     $organization = CouncilOrganization::factory()->create();
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
-        ->create(['name' => '9 скликання']);
+        ->create(['label' => '9 скликання']);
 
     livewire(ListPlenaryMeetings::class)
         ->mountAction('create')

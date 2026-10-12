@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\PlenaryMeetings\Schemas;
 
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -34,7 +33,7 @@ class PlenaryMeetingForm
                     ->orderBy('id')
                     ->get()
                     ->mapWithKeys(fn (CouncilSession $session): array => [
-                        $session->id => "{$session->name} ({$session->convocation->name} скликання)",
+                        $session->id => "{$session->name} ({$session->convocation->label})",
                     ])
                     ->all())
                 ->createOptionForm([
@@ -46,26 +45,20 @@ class PlenaryMeetingForm
                         ->label('Скликання')
                         ->options(fn (): array => Convocation::query()
                             ->whereNotNull('organization_id')
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
+                            ->orderBy('label')
+                            ->pluck('label', 'id')
                             ->all())
                         ->required()
                         ->searchable()
                         ->native(false)
                         ->createOptionForm([
-                            Select::make('organization_id')
-                                ->label('Організація ради')
-                                ->options(fn (): array => CouncilOrganization::query()
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id')
-                                    ->all())
-                                ->required()
-                                ->searchable()
-                                ->native(false),
-                            TextInput::make('name')
+                            TextInput::make('label')
                                 ->label('Назва скликання')
                                 ->required()
                                 ->maxLength(255),
+                            DatePicker::make('date_from')
+                                ->label('Дата початку')
+                                ->native(false),
                         ])
                         ->createOptionUsing(fn (array $data): int => (int) Convocation::query()
                             ->create($data)

@@ -60,6 +60,6 @@ class PlenaryMeeting extends Model
 
     public function displayName(): string
     {
-        return "{$this->councilSession->name} сесія {$this->councilSession->convocation->name} скликання";
+        return "{$this->councilSession->name} сесія {$this->councilSession->convocation->label}";
     }
 }

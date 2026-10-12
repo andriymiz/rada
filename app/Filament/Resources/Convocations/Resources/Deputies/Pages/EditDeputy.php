@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\Deputies\Pages;
+namespace App\Filament\Resources\Convocations\Resources\Deputies\Pages;
 
 use App\Filament\Concerns\HasRadaBreadcrumbs;
-use App\Filament\Resources\Deputies\DeputyResource;
+use App\Filament\Resources\Convocations\Resources\Deputies\DeputyResource;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditDeputy extends EditRecord
@@ -11,6 +12,13 @@ class EditDeputy extends EditRecord
     use HasRadaBreadcrumbs;
 
     protected static string $resource = DeputyResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            DeleteAction::make(),
+        ];
+    }
 
     /**
      * @param  array<string, mixed>  $data

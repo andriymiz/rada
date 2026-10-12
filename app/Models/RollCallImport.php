@@ -51,7 +51,7 @@ class RollCallImport extends Model
 
             return $convocation === null
                 ? $session->name
-                : "{$session->name} ({$convocation->name})";
+                : "{$session->name} ({$convocation->label})";
         }
 
         $parsedSession = $this->parsed_result['session'] ?? null;

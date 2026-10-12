@@ -21,7 +21,7 @@ class ConvocationFactory extends Factory
     {
         return [
             'organization_id' => CouncilOrganization::factory(),
-            'name' => Str::upper(fake()->unique()->bothify('?? скликання')),
+            'label' => Str::upper(fake()->unique()->bothify('?? скликання')),
         ];
     }
 }
