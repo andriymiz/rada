@@ -37,6 +37,7 @@ class ConvocationsTable
                     ->numeric(),
             ])
             ->defaultSort('id', 'desc')
+            ->searchable(false)
             ->recordActions([
                 Action::make('deputies')
                     ->label('Депутати')
