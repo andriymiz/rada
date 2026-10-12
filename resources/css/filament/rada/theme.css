@@ -127,8 +127,7 @@
     border-color: #b91c1c;
 }
 
-.fi-btn:not(.fi-color-primary),
-.fi-ac-icon-btn-action.fi-icon-btn {
+.fi-btn:not(.fi-color-primary) {
     @apply border-2 border-black bg-transparent text-black shadow-none ring-0;
 }
 
@@ -136,8 +135,7 @@
     @apply border-2 border-black bg-black text-white shadow-none ring-0;
 }
 
-.fi-btn:not(.fi-color-primary) > .fi-icon,
-.fi-ac-icon-btn-action.fi-icon-btn > .fi-icon {
+.fi-btn:not(.fi-color-primary) > .fi-icon {
     @apply text-black;
 }
 
