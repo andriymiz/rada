@@ -1,12 +1,9 @@
 <?php
 
 use App\Enums\UserRole;
-use App\Filament\Resources\Users\Pages\CreateUser;
-use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
-use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Models\User;
-use Filament\Actions\DeleteAction;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -28,14 +25,13 @@ it('lists users', function () {
 });
 
 it('creates a user with a role', function () {
-    livewire(CreateUser::class)
-        ->fillForm([
+    livewire(ListUsers::class)
+        ->callAction(TestAction::make('create'), [
             'name' => 'Іван',
             'email' => 'ivan@example.com',
             'password' => 'secret-pass',
             'role' => UserRole::Employee,
         ])
-        ->call('create')
         ->assertHasNoFormErrors();
 
     $user = User::where('email', 'ivan@example.com')->firstOrFail();
@@ -44,19 +40,32 @@ it('creates a user with a role', function () {
 });
 
 it('validates required fields and unique email', function () {
-    livewire(CreateUser::class)
-        ->fillForm(['name' => null, 'email' => $this->admin->email, 'password' => null, 'role' => null])
-        ->call('create')
+    livewire(ListUsers::class)
+        ->callAction(TestAction::make('create'), [
+            'name' => null,
+            'email' => $this->admin->email,
+            'password' => null,
+            'role' => null,
+        ])
         ->assertHasFormErrors(['name' => 'required', 'email' => 'unique', 'password' => 'required', 'role' => 'required']);
 });
 
 it('views a user', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'name' => 'Оригінальний Користувач',
+        'email' => 'original@example.com',
+    ]);
 
-    $page = livewire(ViewUser::class, ['record' => $user->id])->assertOk();
+    $component = livewire(ListUsers::class);
+    $action = TestAction::make('view')->table($user);
+    $component->mountAction($action)
+        ->assertActionMounted($action);
 
-    expect(array_values($page->instance()->getBreadcrumbs()))
-        ->toBe(['Налаштування', 'Користувачі']);
+    $schema = $component->instance()->getSchema('mountedActionSchema0');
+
+    expect($schema->toHtml())
+        ->toContain('Оригінальний Користувач')
+        ->toContain('original@example.com');
 });
 
 it('displays timestamps in Kyiv time while keeping them stored in UTC', function () {
@@ -65,11 +74,17 @@ it('displays timestamps in Kyiv time while keeping them stored in UTC', function
         'updated_at' => '2026-10-25 02:30:00',
     ]);
 
-    livewire(ViewUser::class, ['record' => $user->id])
-        ->assertSee('25.10.2026 00:30')
-        ->assertSee('25.10.2026 04:30');
+    $component = livewire(ListUsers::class);
+    $action = TestAction::make('view')->table($user);
+    $component->mountAction($action);
 
-    $table = livewire(ListUsers::class)->instance()->getTable();
+    $schema = $component->instance()->getSchema('mountedActionSchema0');
+
+    expect($schema->toHtml())
+        ->toContain('25.10.2026 00:30')
+        ->toContain('25.10.2026 04:30');
+
+    $table = $component->instance()->getTable();
     $createdAtColumn = $table->getColumn('created_at')->record($user);
 
     expect($createdAtColumn->formatState($createdAtColumn->getState()))
@@ -95,9 +110,12 @@ it('edits a user and keeps the password when left blank', function () {
     $user = User::factory()->create();
     $hash = $user->password;
 
-    livewire(EditUser::class, ['record' => $user->id])
-        ->fillForm(['name' => 'Новий', 'role' => UserRole::Admin, 'password' => ''])
-        ->call('save')
+    livewire(ListUsers::class)
+        ->callAction(TestAction::make('edit')->table($user), [
+            'name' => 'Новий',
+            'role' => UserRole::Admin,
+            'password' => '',
+        ])
         ->assertHasNoFormErrors();
 
     $user->refresh();
@@ -109,7 +127,8 @@ it('edits a user and keeps the password when left blank', function () {
 it('deletes a user', function () {
     $user = User::factory()->create();
 
-    livewire(EditUser::class, ['record' => $user->id])->callAction(DeleteAction::class);
+    livewire(ListUsers::class)
+        ->callAction(TestAction::make('delete')->table($user));
 
     $this->assertModelMissing($user);
 });
