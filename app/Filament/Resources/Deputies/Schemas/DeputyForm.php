@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Deputies\Schemas;
 use App\Enums\Gender;
 use App\Filament\Resources\Convocations\Resources\Deputies\Pages\CreateDeputy;
 use App\Filament\Resources\Convocations\Resources\Deputies\Pages\EditDeputy;
+use App\Filament\Resources\Convocations\Resources\Deputies\Pages\ListDeputies;
 use App\Models\Convocation;
 use App\Models\Deputy;
 use App\Models\Faction;
@@ -22,7 +23,6 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\ValidationException;
 use LogicException;
 
@@ -37,7 +37,7 @@ class DeputyForm
                     ->relationship(
                         'person',
                         'last_name',
-                        modifyQueryUsing: function (Builder $query, ?Deputy $record, CreateDeputy|EditDeputy $livewire): Builder {
+                        modifyQueryUsing: function (Builder $query, ?Deputy $record, CreateDeputy|EditDeputy|ListDeputies $livewire): Builder {
                             $convocationId = self::getConvocationId($livewire);
 
                             return $query->where(fn (Builder $query): Builder => $query
@@ -58,7 +58,7 @@ class DeputyForm
                     ->searchable(['last_name', 'first_name', 'middle_name'])
                     ->required()
                     ->disabledOn('edit')
-                    ->rule(fn (CreateDeputy|EditDeputy $livewire, ?Deputy $record) => Rule::unique('deputies', 'person_id')
+                    ->rule(fn (CreateDeputy|EditDeputy|ListDeputies $livewire, ?Deputy $record) => Rule::unique('deputies', 'person_id')
                         ->where('convocation_id', self::getConvocationId($livewire))
                         ->ignore($record?->getKey()))
                     ->createOptionForm(self::personFields())
@@ -97,16 +97,7 @@ class DeputyForm
                         ->getKey()),
                 TextInput::make('voting_identifier')
                     ->label('Номер у системі голосування')
-                    ->maxLength(255)
-                    ->unique(
-                        table: 'deputies',
-                        column: 'voting_identifier',
-                        ignoreRecord: true,
-                        modifyRuleUsing: fn (Unique $rule, Get $get): Unique => $rule->where(
-                            'convocation_id',
-                            $get('convocation_id'),
-                        ),
-                    ),
+                    ->maxLength(255),
                 Select::make('faction_id')
                     ->label('Фракція')
                     ->options(fn (Get $get): array => Faction::query()
@@ -263,7 +254,7 @@ class DeputyForm
         ];
     }
 
-    private static function getConvocationId(CreateDeputy|EditDeputy $livewire): int
+    private static function getConvocationId(CreateDeputy|EditDeputy|ListDeputies $livewire): int
     {
         $parentRecord = $livewire->getParentRecord();
 

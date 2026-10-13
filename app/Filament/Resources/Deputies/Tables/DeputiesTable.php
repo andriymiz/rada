@@ -15,8 +15,8 @@ class DeputiesTable
     {
         return $table
             ->columns([
-                TextColumn::make('full_name')
-                    ->label('Депутат')
+                TextColumn::make('short_name')
+                    ->label('ПІБ')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
                         ->whereHas('person', fn (Builder $personQuery): Builder => $personQuery
                             ->where('last_name', 'like', "%{$search}%")

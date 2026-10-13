@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 it('moves existing deputy profile data to people without changing biography', function () {
     $deputyTermsMigration = require database_path('migrations/2026_10_11_201319_move_membership_fields_to_deputies.php');
     $peopleMigration = require database_path('migrations/2026_10_11_190654_create_people_table_and_link_deputies.php');
+    $votingIdentifierMigration = require database_path('migrations/2026_10_13_205434_drop_voting_identifier_unique_from_deputies_table.php');
+    $votingIdentifierMigration->down();
     $deputyTermsMigration->down();
     $peopleMigration->down();
 
@@ -25,6 +27,7 @@ it('moves existing deputy profile data to people without changing biography', fu
 
     $peopleMigration->up();
     $deputyTermsMigration->up();
+    $votingIdentifierMigration->up();
 
     $deputy = Deputy::query()
         ->with('person')

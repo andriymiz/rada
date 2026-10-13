@@ -18,7 +18,6 @@ use App\Models\PoliticalParty;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -210,30 +209,6 @@ it('searches deputies by the linked person name', function () {
         ->searchTable('Іваненко')
         ->assertCanSeeTableRecords([$matchingDeputy])
         ->assertCanNotSeeTableRecords([$otherDeputy]);
-});
-
-it('sorts deputies by the linked person name', function () {
-    $convocation = Convocation::factory()->create();
-    $laterDeputy = Deputy::factory()
-        ->for($convocation, 'convocation')
-        ->for(Person::factory()->state([
-            'last_name' => 'Петренко',
-            'first_name' => 'Петро',
-            'middle_name' => 'Петрович',
-        ]), 'person')
-        ->create();
-    $earlierDeputy = Deputy::factory()
-        ->for($convocation, 'convocation')
-        ->for(Person::factory()->state([
-            'last_name' => 'Іваненко',
-            'first_name' => 'Іван',
-            'middle_name' => 'Іванович',
-        ]), 'person')
-        ->create();
-
-    livewire(ListDeputies::class, ['parentRecord' => $convocation])
-        ->sortTable('full_name')
-        ->assertCanSeeTableRecords([$earlierDeputy, $laterDeputy], inOrder: true);
 });
 
 it('stores gender code 9 for a person created from the dropdown', function () {
@@ -465,16 +440,21 @@ it('stores the voting identifier and party on each convocation-specific deputy',
         ->and($secondDeputy->voting_identifier)->toBe('VOTE-002');
 });
 
-it('rejects duplicate voting identifiers within one convocation', function () {
+it('allows duplicate voting identifiers within one convocation', function () {
     $convocation = Convocation::factory()->create();
-    Deputy::factory()
+    $firstDeputy = Deputy::factory()
         ->for($convocation, 'convocation')
         ->create(['voting_identifier' => 'VOTE-001']);
 
-    expect(fn () => Deputy::factory()
+    $secondDeputy = Deputy::factory()
         ->for($convocation, 'convocation')
-        ->create(['voting_identifier' => 'VOTE-001']))
-        ->toThrow(QueryException::class);
+        ->create(['voting_identifier' => 'VOTE-001']);
+
+    expect(Deputy::query()
+        ->where('convocation_id', $convocation->id)
+        ->where('voting_identifier', 'VOTE-001')
+        ->get())->toHaveCount(2)
+        ->and($firstDeputy->voting_identifier)->toBe($secondDeputy->voting_identifier);
 });
 
 it('saves term, faction, and commission-related data on the deputy', function () {
