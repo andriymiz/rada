@@ -211,14 +211,6 @@ class DeputyImporter extends Importer
         $this->savePoliticalParty();
         $this->saveFaction($convocationId);
         $this->savePermanentCommission($convocationId);
-
-        if (blank($record->role)) {
-            $record->role = 'Депутат місцевої ради';
-        }
-
-        if ($record->biography === null) {
-            $record->biography = '';
-        }
     }
 
     protected function afterSave(): void

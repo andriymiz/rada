@@ -10,7 +10,6 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ImportAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -25,25 +24,9 @@ class DeputiesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return DeputiesTable::configure($table)
-            ->pushColumns([
-                TextColumn::make('politicalParty.name')
-                    ->label('Партія')
-                    ->placeholder('—'),
-                TextColumn::make('voting_identifier')
-                    ->label('Номер пульта')
-                    ->placeholder('—')
-                    ->sortable(),
-                // Тимчасова заглушка: реальні статуси буде реалізовано пізніше.
-                TextColumn::make('status')
-                    ->label('Статус')
-                    ->badge()
-                    ->state('Активний')
-                    ->color('success'),
-            ])
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['person', 'politicalParty']))
             ->headerActions([
-                CreateAction::make()
-                    ->schema(DeputyForm::components()),
+                CreateAction::make()->schema(DeputyForm::components()),
                 ImportAction::make()
                     ->label('Імпорт')
                     ->importer(DeputyImporter::class)

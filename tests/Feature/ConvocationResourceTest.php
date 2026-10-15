@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DeputyStatus;
 use App\Filament\Resources\Convocations\ConvocationResource;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\Pages\ListConvocations;
@@ -117,11 +118,10 @@ it('lists only the convocation deputies on its edit page with links to the neste
     ])
         ->assertCanSeeTableRecords([$deputy])
         ->assertCanNotSeeTableRecords([$otherDeputy])
-        ->assertTableColumnHidden('convocation.label')
         ->assertTableColumnStateSet('politicalParty.name', 'Тестова партія', $deputy)
         ->assertTableColumnStateSet('voting_identifier', 'COUNCIL-007', $deputy)
         ->assertSee('Номер пульта')
-        ->assertTableColumnStateSet('status', 'Активний', $deputy)
+        ->assertTableColumnStateSet('status', DeputyStatus::Active, $deputy)
         ->assertTableActionExists('edit', record: $deputy)
         ->assertTableActionExists('delete', record: $deputy)
         ->assertTableActionExists('create');
@@ -131,6 +131,31 @@ it('lists only the convocation deputies on its edit page with links to the neste
         ->assertSeeLivewire(DeputiesRelationManager::class)
         ->assertSee('Постійні комісії')
         ->assertSee('Фракції');
+});
+
+it('filters deputies by status', function () {
+    $convocation = Convocation::factory()->create();
+    $queuedDeputy = Deputy::factory()
+        ->for($convocation, 'convocation')
+        ->create(['status' => DeputyStatus::Queued]);
+    $activeDeputy = Deputy::factory()
+        ->for($convocation, 'convocation')
+        ->create(['status' => DeputyStatus::Active]);
+    $departedDeputy = Deputy::factory()
+        ->for($convocation, 'convocation')
+        ->create(['status' => DeputyStatus::Departed]);
+
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->assertSeeText(DeputyStatus::Queued->getLabel())
+        ->assertSeeText(DeputyStatus::Active->getLabel())
+        ->assertSeeText(DeputyStatus::Departed->getLabel())
+        ->assertTableColumnStateSet('status', DeputyStatus::Queued, $queuedDeputy)
+        ->filterTable('status', DeputyStatus::Queued->value)
+        ->assertCanSeeTableRecords([$queuedDeputy])
+        ->assertCanNotSeeTableRecords([$activeDeputy, $departedDeputy]);
 });
 
 it('shows only permanent commissions belonging to the selected convocation', function () {

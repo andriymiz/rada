@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\ContactPointType;
+use App\Enums\DeputyStatus;
 use App\Enums\Gender;
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
@@ -97,7 +98,7 @@ class RollCallVotingDemoSeeder extends Seeder
                 ],
                 [
                     'biography' => 'Демонстраційний депутат.',
-                    'role' => 'Депутат міської ради',
+                    'status' => DeputyStatus::Active,
                     'voting_identifier' => $votingIdentifier,
                     'start_date' => '2020-11-01',
                 ],

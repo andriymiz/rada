@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ContactPointType;
+use App\Enums\DeputyStatus;
 use App\Enums\Gender;
 use App\Filament\Imports\DeputyImporter;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
@@ -60,6 +61,7 @@ it('imports a deputy with open data attributes and related entities', function (
         ->and($deputy->person->date_of_birth->toDateString())->toBe('1980-12-01')
         ->and($deputy->image)->toBe('https://example.gov.ua/photo.png')
         ->and($deputy->biography)->toBe('Біографічні дані депутата.')
+        ->and($deputy->status)->toBe(DeputyStatus::Active)
         ->and($deputy->voting_identifier)->toBe('dep-23')
         ->and($deputy->area_id)->toBe(4)
         ->and($deputy->homepage)->toBe('https://council.example.gov.ua/deputy/kovalchuk')

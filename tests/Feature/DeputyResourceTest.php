@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ContactPointType;
+use App\Enums\DeputyStatus;
 use App\Enums\Gender;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
@@ -61,6 +62,7 @@ it('creates a deputy profile without requiring reception details', function () {
         ->and($deputy->person->date_of_birth->toDateString())->toBe('1985-03-12')
         ->and($deputy->homepage)->toBe('https://council.example.gov.ua/deputies/test')
         ->and($deputy->image)->toBe('https://council.example.gov.ua/photos/test.png')
+        ->and($deputy->status)->toBe(DeputyStatus::Active)
         ->and($deputy->full_name)->toBe('Тестове Ім’я ПоБатькові')
         ->and($deputy->voting_identifier)->toBe('1')
         ->and($deputy->reception)->toBeNull()
@@ -70,6 +72,8 @@ it('creates a deputy profile without requiring reception details', function () {
         ->and($deputy->getAttributes())->toHaveKey('voting_identifier');
 
     expect(Schema::hasColumn('deputies', 'last_name'))->toBeFalse()
+        ->and(Schema::hasColumn('deputies', 'role'))->toBeFalse()
+        ->and(Schema::hasColumn('deputies', 'status'))->toBeTrue()
         ->and(Schema::hasColumn('people', 'last_name'))->toBeTrue();
 
     expect(Schema::hasColumn('deputies', 'homepage'))->toBeTrue()
@@ -77,6 +81,29 @@ it('creates a deputy profile without requiring reception details', function () {
 
     expect($deputy->contactPoints)->toBeEmpty();
 });
+
+it('saves each selected deputy status', function (DeputyStatus $status) {
+    $convocation = Convocation::factory()->create();
+    $person = Person::factory()->create();
+    $party = PoliticalParty::factory()->create();
+
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => $person->id,
+        'political_party_id' => $party->id,
+        'biography' => 'Біографія депутата.',
+        'status' => $status->value,
+    ])
+        ->assertHasNoTableActionErrors();
+
+    expect(Deputy::query()->firstOrFail()->status)->toBe($status);
+})->with([
+    'queued' => DeputyStatus::Queued,
+    'active' => DeputyStatus::Active,
+    'departed' => DeputyStatus::Departed,
+]);
 
 it('rejects deputy homepage and image values that are not HTTP URLs', function () {
     $person = Person::factory()->create();
@@ -528,7 +555,7 @@ it('saves term, faction, and commission-related data on the deputy', function ()
     ])->callTableAction('edit', $deputy, [
         'faction_id' => $faction->id,
         'faction_position' => 'Голова фракції',
-        'role' => 'Депутат міської ради',
+        'status' => DeputyStatus::Departed->value,
     ])
         ->assertHasNoTableActionErrors();
 
@@ -536,6 +563,7 @@ it('saves term, faction, and commission-related data on the deputy', function ()
 
     expect($deputy->faction->is($faction))->toBeTrue()
         ->and($deputy->faction_position)->toBe('Голова фракції')
+        ->and($deputy->status)->toBe(DeputyStatus::Departed)
         ->and($deputy->convocation_id)->toBe($convocation->id);
 });
 
@@ -565,7 +593,7 @@ it('keeps term details on the deputy form instead of a membership manager', func
         'pageClass' => EditConvocation::class,
     ])
         ->mountTableAction('edit', $deputy)
-        ->assertTableActionDataSet(fn (array $data): bool => array_key_exists('role', $data)
+        ->assertTableActionDataSet(fn (array $data): bool => array_key_exists('status', $data)
             && array_key_exists('faction_id', $data)
             && array_key_exists('permanent_commission_id', $data));
 });

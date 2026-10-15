@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\Deputies\Tables;
 
+use App\Enums\DeputyStatus;
 use App\Models\Person;
 use Filament\Actions\EditAction;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -40,11 +41,25 @@ class DeputiesTable
                                 ->select('middle_name')
                                 ->whereColumn('people.id', 'deputies.person_id'), $sortDirection);
                     }),
-                TextColumn::make('convocation.label')
-                    ->label('Скликання')
+                TextColumn::make('politicalParty.name')
+                    ->label('Партія')
+                    ->placeholder('—'),
+                TextColumn::make('voting_identifier')
+                    ->label('Номер пульта')
                     ->placeholder('—')
-                    ->hiddenOn(RelationManager::class),
+                    ->sortable(),
+                TextColumn::make('status')
+                    ->label('Статус')
+                    ->badge()
+                    ->color(fn (DeputyStatus $state): string => $state->getColor())
+                    ->sortable(),
             ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Статус')
+                    ->options(DeputyStatus::class),
+            ])
+            ->searchable(true)
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('person'))
             ->recordActions([
                 EditAction::make(),

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\DeputyStatus;
 use App\Models\Convocation;
 use App\Models\Deputy;
 use App\Models\Person;
@@ -22,7 +23,7 @@ class DeputyFactory extends Factory
         return [
             'person_id' => Person::factory(),
             'convocation_id' => Convocation::factory(),
-            'role' => 'Депутат міської ради',
+            'status' => DeputyStatus::Active,
             'biography' => fake()->paragraph(),
         ];
     }

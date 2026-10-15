@@ -9,6 +9,9 @@ it('moves existing deputy profile data to people without changing biography', fu
     $peopleMigration = require database_path('migrations/2026_10_11_190654_create_people_table_and_link_deputies.php');
     $votingIdentifierMigration = require database_path('migrations/2026_10_13_205434_drop_voting_identifier_unique_from_deputies_table.php');
     $deputyImageMigration = require database_path('migrations/2026_10_15_181842_move_image_from_people_to_deputies.php');
+    $deputyStatusMigration = require database_path('migrations/2026_10_15_202204_replace_role_with_status_on_deputies_table.php');
+
+    $deputyStatusMigration->down();
     $deputyImageMigration->down();
     $votingIdentifierMigration->down();
     $deputyTermsMigration->down();
@@ -30,6 +33,7 @@ it('moves existing deputy profile data to people without changing biography', fu
     $peopleMigration->up();
     $deputyTermsMigration->up();
     $votingIdentifierMigration->up();
+    $deputyStatusMigration->up();
 
     $deputy = Deputy::query()
         ->with('person')

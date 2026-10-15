@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DeputyStatus;
 use Database\Factories\DeputyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -17,6 +18,7 @@ use Illuminate\Validation\ValidationException;
  * @property-read Person $person
  * @property-read string $full_name
  * @property-read string $short_name
+ * @property DeputyStatus $status
  */
 #[Fillable([
     'person_id',
@@ -25,7 +27,7 @@ use Illuminate\Validation\ValidationException;
     'permanent_commission_id',
     'faction_id',
     'voting_identifier',
-    'role',
+    'status',
     'start_date',
     'end_date',
     'faction_position',
@@ -70,6 +72,7 @@ class Deputy extends Model
     protected function casts(): array
     {
         return [
+            'status' => DeputyStatus::class,
             'start_date' => 'date',
             'end_date' => 'date',
         ];

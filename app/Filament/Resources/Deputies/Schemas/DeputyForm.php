@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Deputies\Schemas;
 
 use App\Enums\ContactPointType;
+use App\Enums\DeputyStatus;
 use App\Enums\Gender;
 use App\Models\Convocation;
 use App\Models\Deputy;
@@ -152,11 +153,12 @@ class DeputyForm
                 ->label('Посада у фракції')
                 ->maxLength(255)
                 ->visible(fn (Get $get): bool => filled($get('faction_id'))),
-            TextInput::make('role')
+            Select::make('status')
                 ->label('Статус')
-                ->default('Депутат місцевої ради')
+                ->options(DeputyStatus::class)
+                ->default(DeputyStatus::Active->value)
                 ->required()
-                ->maxLength(255),
+                ->native(false),
             FusedGroup::make([
                 DatePicker::make('start_date')
                     ->label('Дата початку')
