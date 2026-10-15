@@ -9,7 +9,6 @@ use App\Models\Faction;
 use App\Models\PermanentCommission;
 use App\Models\Person;
 use App\Models\PoliticalParty;
-use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -33,7 +32,7 @@ class DeputyImporter extends Importer
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('voting_identifier')
-                ->label('Номер в системі голосування')
+                ->label('Номер пульта')
                 ->guess(['votingIdentifier'])
                 ->rules(['nullable', 'string', 'max:255']),
 
@@ -74,16 +73,12 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('image')
                 ->label('Фото')
-                ->rules(['nullable', 'string', 'max:2048'])
-                ->fillRecordUsing(fn (): null => null),
+                ->rules(['nullable', 'string', 'max:2048']),
 
             ImportColumn::make('biography')
                 ->label('Біографічні дані')
                 ->requiredMapping()
-                ->rules(['required', 'string'])
-                ->fillRecordUsing(function (Deputy $record, mixed $state): void {
-                    $record->biography = $state;
-                }),
+                ->rules(['required', 'string']),
 
             ImportColumn::make('partyName')
                 ->label('Назва партії')
@@ -152,16 +147,7 @@ class DeputyImporter extends Importer
                 ->castStateUsing(function (mixed $state): ?int {
                     return is_numeric($state) ? (int) $state : null;
                 })
-                ->rules(['nullable', 'integer', 'min:0'])
-                ->fillRecordUsing(function (Deputy $record, mixed $state): void {
-                    $areaId = is_numeric($state) ? (int) $state : null;
-
-                    if ($areaId !== null && $areaId < 0) {
-                        throw new RowImportFailedException('Виборчий округ не може бути від’ємним.');
-                    }
-
-                    $record->area_id = $areaId;
-                }),
+                ->rules(['nullable', 'integer', 'min:0']),
         ];
 
         // Place and reception schedule (CATUTTC, addressPostCode, addressAdminUnitL1, addressAdminUnitL2,
@@ -253,7 +239,6 @@ class DeputyImporter extends Importer
         $person->first_name = $this->data['first_name'] ?? null;
         $person->middle_name = $this->data['middle_name'] ?? null;
         $person->date_of_birth = $this->data['date_of_birth'] ?? null;
-        $person->image = $this->data['image'] ?? null;
         $person->gender = $this->data['gender'] ?? null;
         $person->save();
 

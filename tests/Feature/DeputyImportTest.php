@@ -3,7 +3,8 @@
 use App\Enums\ContactPointType;
 use App\Enums\Gender;
 use App\Filament\Imports\DeputyImporter;
-use App\Filament\Resources\Convocations\Resources\Deputies\Pages\ListDeputies;
+use App\Filament\Resources\Convocations\Pages\EditConvocation;
+use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Models\Convocation;
 use App\Models\Deputy;
 use App\Models\Person;
@@ -57,7 +58,7 @@ it('imports a deputy with open data attributes and related entities', function (
         ->and($deputy->person->middle_name)->toBe('Зосимович')
         ->and($deputy->person->gender)->toBe(Gender::Male)
         ->and($deputy->person->date_of_birth->toDateString())->toBe('1980-12-01')
-        ->and($deputy->person->image)->toBe('https://example.gov.ua/photo.png')
+        ->and($deputy->image)->toBe('https://example.gov.ua/photo.png')
         ->and($deputy->biography)->toBe('Біографічні дані депутата.')
         ->and($deputy->voting_identifier)->toBe('dep-23')
         ->and($deputy->area_id)->toBe(4)
@@ -124,7 +125,7 @@ it('handles nullable optional values with Filament default casting', function ()
 
     expect($deputy->person->last_name)->toBe('Шевченко')
         ->and($deputy->person->gender)->toBe(Gender::Female)
-        ->and($deputy->person->image)->toBeNull()
+        ->and($deputy->image)->toBeNull()
         ->and($deputy->biography)->toBe('Біографічні дані Олени Шевченко.')
         ->and($deputy->politicalParty->name)->toBe('Партія Шевченка')
         ->and($deputy->politicalParty->edrpou)->toBeNull()
@@ -166,6 +167,7 @@ it('updates existing deputy and person on repeated import', function () {
             'date_of_birth' => '1975-08-20',
             'biography' => 'Оновлена біографія депутата.',
             'voting_identifier' => 'dep-01-new',
+            'image' => 'https://example.gov.ua/photo-updated.png',
             'homepage' => 'https://example.gov.ua/deputies/melnyk',
         ])
         ->assertImported();
@@ -176,6 +178,7 @@ it('updates existing deputy and person on repeated import', function () {
     $deputy->refresh();
     expect($deputy->biography)->toBe('Оновлена біографія депутата.')
         ->and($deputy->voting_identifier)->toBe('dep-01-new')
+        ->and($deputy->image)->toBe('https://example.gov.ua/photo-updated.png')
         ->and($deputy->homepage)->toBe('https://example.gov.ua/deputies/melnyk');
 });
 
@@ -429,11 +432,14 @@ it('guesses the open-data headers for person name columns', function () {
         ->and($columns['middle_name']->getGuesses())->toContain('additionalname');
 });
 
-it('renders import action on list deputies page with correct convocation options', function () {
+it('renders import action in the convocation deputies table', function () {
     $convocation = Convocation::factory()->create();
 
-    livewire(ListDeputies::class, ['parentRecord' => $convocation])
-        ->assertActionExists('import');
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->assertTableActionExists('import');
 });
 
 it('formats completed notification body in Ukrainian with proper pluralization', function () {

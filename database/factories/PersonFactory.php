@@ -27,7 +27,6 @@ class PersonFactory extends Factory
             'middle_name' => 'Батькович',
             'gender' => fake()->randomElement([Gender::Male, Gender::Female]),
             'date_of_birth' => fake()->dateTimeBetween('-80 years', '-25 years')->format('Y-m-d'),
-            'image' => null,
         ];
     }
 }

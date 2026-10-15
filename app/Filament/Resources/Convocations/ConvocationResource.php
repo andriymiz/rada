@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Convocations;
 
+use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\Pages\ListConvocations;
+use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Filament\Resources\Convocations\Schemas\ConvocationForm;
 use App\Filament\Resources\Convocations\Tables\ConvocationsTable;
 use App\Models\Convocation;
@@ -37,13 +39,16 @@ class ConvocationResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            DeputiesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => ListConvocations::route('/'),
+            'edit' => EditConvocation::route('/{record}/edit'),
         ];
     }
 

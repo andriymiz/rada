@@ -26,10 +26,15 @@ class ContactPointValue implements DataAwareRule, ValidationRule
 
     public function validate(string $attribute, mixed $value, \Closure $fail): void
     {
-        $mountedActionTypes = data_get($this->data, 'mountedActions.*.data.type');
-        $contactType = is_array($mountedActionTypes) && $mountedActionTypes !== []
-            ? end($mountedActionTypes)
-            : data_get($this->data, 'type');
+        $contactTypeAttribute = (string) str($attribute)->beforeLast('.')->append('.type');
+        $contactType = data_get($this->data, $contactTypeAttribute);
+
+        if ($contactType === null) {
+            $mountedActionTypes = data_get($this->data, 'mountedActions.*.data.type');
+            $contactType = is_array($mountedActionTypes) && $mountedActionTypes !== []
+                ? end($mountedActionTypes)
+                : data_get($this->data, 'type');
+        }
 
         $rules = match ($contactType) {
             ContactPointType::Email->value => ['email'],

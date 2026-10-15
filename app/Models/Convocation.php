@@ -44,26 +44,6 @@ class Convocation extends Model
                 'organization_id' => 'Скликання має належати до організації ради.',
             ]);
         });
-
-        static::saved(function (Convocation $convocation): void {
-            if ($convocation->date_from === null || $convocation->organization_id === null) {
-                return;
-            }
-
-            $previousConvocation = self::query()
-                ->where('organization_id', $convocation->organization_id)
-                ->where('id', '<', $convocation->getKey())
-                ->orderByDesc('id')
-                ->first();
-
-            if ($previousConvocation === null) {
-                return;
-            }
-
-            $previousConvocation->updateQuietly([
-                'date_until' => $convocation->date_from->copy()->subDay(),
-            ]);
-        });
     }
 
     protected function casts(): array

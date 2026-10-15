@@ -2,11 +2,8 @@
 
 use App\Enums\ContactPointType;
 use App\Enums\Gender;
-use App\Filament\Resources\Convocations\ConvocationResource;
-use App\Filament\Resources\Convocations\Resources\Deputies\Pages\CreateDeputy;
-use App\Filament\Resources\Convocations\Resources\Deputies\Pages\EditDeputy;
-use App\Filament\Resources\Convocations\Resources\Deputies\Pages\ListDeputies;
-use App\Filament\Resources\Deputies\RelationManagers\ContactPointsRelationManager;
+use App\Filament\Resources\Convocations\Pages\EditConvocation;
+use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Models\ContactPoint;
 use App\Models\Convocation;
 use App\Models\CouncilOrganization;
@@ -16,7 +13,6 @@ use App\Models\Faction;
 use App\Models\Person;
 use App\Models\PoliticalParty;
 use App\Models\User;
-use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -34,21 +30,26 @@ it('creates a deputy profile without requiring reception details', function () {
     ]);
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->mountTableAction('create')
         ->callFormComponentAction('person_id', 'createOption', [
             'last_name' => 'Тестове',
             'first_name' => 'Ім’я',
             'middle_name' => 'ПоБатькові',
             'gender' => Gender::Female->value,
             'date_of_birth' => '1985-03-12',
-        ])
-        ->fillForm([
+        ], formName: 'mountedActionSchema0')
+        ->setTableActionData([
             'political_party_id' => $party->id,
             'homepage' => 'https://council.example.gov.ua/deputies/test',
+            'image' => 'https://council.example.gov.ua/photos/test.png',
             'biography' => 'Біографія депутата.',
         ])
-        ->call('create')
-        ->assertHasNoFormErrors();
+        ->callMountedTableAction()
+        ->assertHasNoTableActionErrors();
 
     $deputy = Deputy::query()->with('person')->firstOrFail();
 
@@ -59,7 +60,9 @@ it('creates a deputy profile without requiring reception details', function () {
         ->and($deputy->person->gender)->toBe(Gender::Female)
         ->and($deputy->person->date_of_birth->toDateString())->toBe('1985-03-12')
         ->and($deputy->homepage)->toBe('https://council.example.gov.ua/deputies/test')
+        ->and($deputy->image)->toBe('https://council.example.gov.ua/photos/test.png')
         ->and($deputy->full_name)->toBe('Тестове Ім’я ПоБатькові')
+        ->and($deputy->voting_identifier)->toBe('1')
         ->and($deputy->reception)->toBeNull()
         ->and($deputy->getAttributes())->not->toHaveKey('last_name')
         ->and($deputy->getAttributes())->not->toHaveKey('name')
@@ -75,20 +78,22 @@ it('creates a deputy profile without requiring reception details', function () {
     expect($deputy->contactPoints)->toBeEmpty();
 });
 
-it('rejects deputy homepage values that are not HTTP URLs', function () {
+it('rejects deputy homepage and image values that are not HTTP URLs', function () {
     $person = Person::factory()->create();
     $convocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
-        ->fillForm([
-            'person_id' => $person->id,
-            'political_party_id' => $party->id,
-            'homepage' => 'not-a-url',
-            'biography' => 'Біографія депутата.',
-        ])
-        ->call('create')
-        ->assertHasFormErrors(['homepage']);
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => $person->id,
+        'political_party_id' => $party->id,
+        'homepage' => 'not-a-url',
+        'image' => 'not-a-url',
+        'biography' => 'Біографія депутата.',
+    ])
+        ->assertHasTableActionErrors(['homepage', 'image']);
 
     expect(Deputy::query()->count())->toBe(0)
         ->and(Person::query()->count())->toBe(1);
@@ -104,14 +109,15 @@ it('links an existing person to a new deputy', function () {
     $convocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
-        ->fillForm([
-            'person_id' => $person->id,
-            'political_party_id' => $party->id,
-            'biography' => 'Біографія депутата.',
-        ])
-        ->call('create')
-        ->assertHasNoFormErrors();
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => $person->id,
+        'political_party_id' => $party->id,
+        'biography' => 'Біографія депутата.',
+    ])
+        ->assertHasNoTableActionErrors();
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
 
@@ -120,19 +126,67 @@ it('links an existing person to a new deputy', function () {
         ->and(Person::query()->count())->toBe(1);
 });
 
+it('defaults a new deputy term start date to its convocation start date', function () {
+    $convocation = Convocation::factory()->create([
+        'date_from' => '2020-01-01',
+    ]);
+    $person = Person::factory()->create();
+    $party = PoliticalParty::factory()->create();
+
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => $person->id,
+        'political_party_id' => $party->id,
+        'biography' => 'Біографія депутата.',
+    ])
+        ->assertHasNoTableActionErrors();
+
+    $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
+
+    expect($deputy->start_date?->toDateString())->toBe('2020-01-01');
+});
+
+it('defaults a new deputy pult number to one more than the largest numeric identifier', function () {
+    $convocation = Convocation::factory()->create();
+    Deputy::factory()->for($convocation)->create(['voting_identifier' => '4']);
+    Deputy::factory()->for($convocation)->create(['voting_identifier' => '10']);
+    Deputy::factory()->for($convocation)->create(['voting_identifier' => 'PULT-100']);
+    Deputy::factory()->create(['voting_identifier' => '999']);
+
+    $person = Person::factory()->create();
+    $party = PoliticalParty::factory()->create();
+
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => $person->id,
+        'political_party_id' => $party->id,
+        'biography' => 'Біографія депутата.',
+    ])
+        ->assertHasNoTableActionErrors();
+
+    $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
+
+    expect($deputy->voting_identifier)->toBe('11');
+});
+
 it('rejects linking the same person to two deputy records in one convocation', function () {
     $person = Person::factory()->create();
     $existingDeputy = Deputy::factory()->for($person, 'person')->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class, ['parentRecord' => $existingDeputy->convocation])
-        ->fillForm([
-            'person_id' => $person->id,
-            'political_party_id' => $party->id,
-            'biography' => 'Біографія депутата.',
-        ])
-        ->call('create')
-        ->assertHasFormErrors(['person_id']);
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $existingDeputy->convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => $person->id,
+        'political_party_id' => $party->id,
+        'biography' => 'Біографія депутата.',
+    ])
+        ->assertHasTableActionErrors(['person_id']);
 
     expect(Deputy::query()->count())->toBe(1);
 });
@@ -143,21 +197,22 @@ it('allows one person to have a deputy record in each convocation', function () 
     $secondConvocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class, ['parentRecord' => $secondConvocation])
-        ->fillForm([
-            'person_id' => $person->id,
-            'political_party_id' => $party->id,
-            'biography' => 'Біографія наступного скликання.',
-        ])
-        ->call('create')
-        ->assertHasNoFormErrors();
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $secondConvocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => $person->id,
+        'political_party_id' => $party->id,
+        'biography' => 'Біографія наступного скликання.',
+    ])
+        ->assertHasNoTableActionErrors();
 
     expect($person->deputies()->count())->toBe(2)
         ->and($person->deputies()->where('convocation_id', $firstDeputy->convocation_id)->exists())->toBeTrue()
         ->and($person->deputies()->where('convocation_id', $secondConvocation->id)->exists())->toBeTrue();
 });
 
-it('shows the linked person full name in the deputy selector', function () {
+it('shows a deputy name in the relation manager and opens its edit action', function () {
     $deputy = Deputy::factory()
         ->for(Person::factory()->state([
             'last_name' => 'Іваненко',
@@ -167,11 +222,12 @@ it('shows the linked person full name in the deputy selector', function () {
         ]), 'person')
         ->create();
 
-    livewire(EditDeputy::class, [
-        'parentRecord' => $deputy->convocation,
-        'record' => $deputy->getKey(),
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
     ])
-        ->assertSee('Іваненко Іван Іванович');
+        ->assertTableColumnStateSet('short_name', 'Іваненко І. І.', $deputy)
+        ->mountTableAction('edit', $deputy);
 });
 
 it('formats a deputy short name with initials', function () {
@@ -205,7 +261,10 @@ it('searches deputies by the linked person name', function () {
         ]), 'person')
         ->create();
 
-    livewire(ListDeputies::class, ['parentRecord' => $convocation])
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
         ->searchTable('Іваненко')
         ->assertCanSeeTableRecords([$matchingDeputy])
         ->assertCanNotSeeTableRecords([$otherDeputy]);
@@ -215,20 +274,24 @@ it('stores gender code 9 for a person created from the dropdown', function () {
     $convocation = Convocation::factory()->create();
     $party = PoliticalParty::factory()->create();
 
-    livewire(CreateDeputy::class, ['parentRecord' => $convocation])
-        ->fillForm([
-            'political_party_id' => $party->id,
-        ])
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->mountTableAction('create')
         ->callFormComponentAction('person_id', 'createOption', [
             'last_name' => 'Тестове',
             'first_name' => 'Ім’я',
             'middle_name' => 'ПоБатькові',
             'gender' => 9,
             'date_of_birth' => '1985-03-12',
+        ], formName: 'mountedActionSchema0')
+        ->setTableActionData([
+            'political_party_id' => $party->id,
+            'biography' => 'Біографія депутата.',
         ])
-        ->fillForm(['biography' => 'Біографія депутата.'])
-        ->call('create')
-        ->assertHasNoFormErrors();
+        ->callMountedTableAction()
+        ->assertHasNoTableActionErrors();
 
     $deputy = Deputy::query()->whereHas('person', fn ($query) => $query->where('last_name', 'Тестове'))->firstOrFail();
 
@@ -243,34 +306,34 @@ it('keeps the person and convocation fixed when editing a deputy', function () {
     $originalConvocationId = $deputy->convocation_id;
     $otherPerson = Person::factory()->create();
 
-    livewire(EditDeputy::class, [
-        'parentRecord' => $deputy->convocation,
-        'record' => $deputy->getKey(),
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
     ])
-        ->assertFormFieldDisabled('person_id')
-        ->assertFormComponentActionDoesNotExist('person_id', 'createOption')
-        ->fillForm([
+        ->callTableAction('edit', $deputy, [
             'person_id' => $otherPerson->id,
             'biography' => 'Оновлена біографія.',
+            'image' => 'https://example.gov.ua/photos/updated.png',
         ])
-        ->call('save')
-        ->assertHasNoFormErrors();
+        ->assertHasNoTableActionErrors();
 
     $deputy->refresh();
 
     expect($deputy->person_id)->toBe($originalPersonId)
         ->and($deputy->convocation_id)->toBe($originalConvocationId)
-        ->and($deputy->biography)->toBe('Оновлена біографія.');
+        ->and($deputy->biography)->toBe('Оновлена біографія.')
+        ->and($deputy->image)->toBe('https://example.gov.ua/photos/updated.png');
 });
 
 it('adds reception details only when requested', function () {
     $deputy = Deputy::factory()->create();
 
-    livewire(EditDeputy::class, [
-        'parentRecord' => $deputy->convocation,
-        'record' => $deputy->getKey(),
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
     ])
-        ->callAction(TestAction::make('addReception')->schemaComponent('reception-add-section'), [
+        ->mountTableAction('edit', $deputy)
+        ->callFormComponentAction('reception-add-section', 'addReception', [
             'katoottg' => 'UA12345678901234567',
             'address_post_code' => '01001',
             'address_admin_unit_l1' => 'Україна',
@@ -279,8 +342,8 @@ it('adds reception details only when requested', function () {
             'address_thoroughfare' => 'Тестова',
             'address_locator_designator' => '1',
             'opening_hours' => 'Пн 09:00–18:00',
-        ])
-        ->assertHasNoFormErrors();
+        ], formName: 'mountedActionSchema0')
+        ->assertHasNoTableActionErrors();
 
     $this->assertDatabaseHas(DeputyReception::class, [
         'deputy_id' => $deputy->id,
@@ -290,32 +353,34 @@ it('adds reception details only when requested', function () {
     ]);
 });
 
-it('creates public and private contact points with notes through the relation manager', function () {
+it('creates public and private contact points in the deputy edit form', function () {
     $deputy = Deputy::factory()->create();
+    $party = PoliticalParty::factory()->create();
 
-    $manager = livewire(ContactPointsRelationManager::class, [
-        'ownerRecord' => $deputy,
-        'pageClass' => EditDeputy::class,
-    ]);
-
-    $manager->callTableAction('create', null, [
-        'type' => ContactPointType::Email->value,
-        'value' => 'deputy@example.gov.ua',
-        'is_public' => true,
-        'note' => 'Робоча адреса',
-    ])->assertHasNoTableActionErrors();
-
-    $manager->callTableAction('create', null, [
-        'type' => ContactPointType::Phone->value,
-        'value' => '+380123456789',
-        'is_public' => false,
-        'note' => 'Для внутрішнього зв’язку',
-    ])->assertHasNoTableActionErrors();
-
-    $manager->callTableAction('create', null, [
-        'type' => ContactPointType::Website->value,
-        'value' => 'https://council.example.gov.ua',
-        'is_public' => true,
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('edit', $deputy, [
+        'political_party_id' => $party->id,
+        'contactPoints' => [
+            [
+                'type' => ContactPointType::Email->value,
+                'value' => 'deputy@example.gov.ua',
+                'is_public' => true,
+                'note' => 'Робоча адреса',
+            ],
+            [
+                'type' => ContactPointType::Phone->value,
+                'value' => '+380123456789',
+                'is_public' => false,
+                'note' => 'Для внутрішнього зв’язку',
+            ],
+            [
+                'type' => ContactPointType::Website->value,
+                'value' => 'https://council.example.gov.ua',
+                'is_public' => true,
+            ],
+        ],
     ])->assertHasNoTableActionErrors();
 
     $contacts = $deputy->contactPoints()->orderBy('id')->get();
@@ -354,31 +419,21 @@ it('associates contact points with other model types', function () {
 it('validates values according to the selected contact type', function () {
     $deputy = Deputy::factory()->create();
 
-    livewire(ContactPointsRelationManager::class, [
-        'ownerRecord' => $deputy,
-        'pageClass' => EditDeputy::class,
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
     ])
-        ->mountTableAction('create')
-        ->setTableActionData([
-            'type' => ContactPointType::Email->value,
-            'value' => 'not-an-email',
-            'is_public' => false,
+        ->callTableAction('edit', $deputy, [
+            'political_party_id' => $deputy->political_party_id,
+            'contactPoints' => [
+                [
+                    'type' => ContactPointType::Email->value,
+                    'value' => 'not-an-email',
+                    'is_public' => false,
+                ],
+            ],
         ])
-        ->callMountedTableAction()
-        ->assertHasTableActionErrors(['value']);
-
-    livewire(ContactPointsRelationManager::class, [
-        'ownerRecord' => $deputy,
-        'pageClass' => EditDeputy::class,
-    ])
-        ->mountTableAction('create')
-        ->setTableActionData([
-            'type' => ContactPointType::Website->value,
-            'value' => 'not-a-url',
-            'is_public' => false,
-        ])
-        ->callMountedTableAction()
-        ->assertHasTableActionErrors(['value']);
+        ->assertHasTableActionErrors();
 
     expect($deputy->contactPoints()->count())->toBe(0);
 });
@@ -391,13 +446,14 @@ it('updates deputy details without changing its linked person or reception', fun
     $personId = $deputy->person_id;
     $receptionId = $deputy->reception->id;
 
-    livewire(EditDeputy::class, [
-        'parentRecord' => $deputy->convocation,
-        'record' => $deputy->getKey(),
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
     ])
-        ->fillForm(['biography' => 'Оновлена біографія.'])
-        ->call('save')
-        ->assertHasNoFormErrors();
+        ->callTableAction('edit', $deputy, [
+            'biography' => 'Оновлена біографія.',
+        ])
+        ->assertHasNoTableActionErrors();
 
     $deputy->refresh();
 
@@ -467,17 +523,15 @@ it('saves term, faction, and commission-related data on the deputy', function ()
         ->for($convocation, 'convocation')
         ->create(['name' => 'Фракція розвитку']);
 
-    livewire(EditDeputy::class, [
-        'parentRecord' => $deputy->convocation,
-        'record' => $deputy->getKey(),
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('edit', $deputy, [
+        'faction_id' => $faction->id,
+        'faction_position' => 'Голова фракції',
+        'role' => 'Депутат міської ради',
     ])
-        ->fillForm([
-            'faction_id' => $faction->id,
-            'faction_position' => 'Голова фракції',
-            'role' => 'Депутат міської ради',
-        ])
-        ->call('save')
-        ->assertHasNoFormErrors();
+        ->assertHasNoTableActionErrors();
 
     $deputy->refresh();
 
@@ -507,16 +561,17 @@ it('rejects a deputy faction from another convocation', function () {
 it('keeps term details on the deputy form instead of a membership manager', function () {
     $deputy = Deputy::factory()->create();
 
-    $page = livewire(EditDeputy::class, [
-        'parentRecord' => $deputy->convocation,
-        'record' => $deputy->getKey(),
-    ])->assertOk();
-
-    expect($page->instance()->getRelationManagers())
-        ->toBe([ContactPointsRelationManager::class]);
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->mountTableAction('edit', $deputy)
+        ->assertTableActionDataSet(fn (array $data): bool => array_key_exists('role', $data)
+            && array_key_exists('faction_id', $data)
+            && array_key_exists('permanent_commission_id', $data));
 });
 
-it('shows breadcrumbs on deputy pages with links to return to convocations', function () {
+it('removes the separate deputy list and edit pages', function () {
     $convocation = Convocation::factory()->create([
         'label' => 'Сьоме скликання',
     ]);
@@ -524,19 +579,7 @@ it('shows breadcrumbs on deputy pages with links to return to convocations', fun
         'convocation_id' => $convocation->id,
     ]);
 
-    $listPage = livewire(ListDeputies::class, ['parentRecord' => $convocation])->assertOk();
-    $breadcrumbs = $listPage->instance()->getBreadcrumbs();
-
-    expect($breadcrumbs)
-        ->toHaveKey(ConvocationResource::getUrl(), 'Скликання')
-        ->toContain('Сьоме скликання');
-
-    $editPage = livewire(EditDeputy::class, [
-        'parentRecord' => $convocation,
-        'record' => $deputy->getKey(),
-    ])->assertOk();
-
-    expect($editPage->instance()->getBreadcrumbs())
-        ->toHaveKey(ConvocationResource::getUrl(), 'Скликання')
-        ->toContain('Сьоме скликання');
+    $this->get("/panel/convocations/{$convocation->id}/deputies")->assertNotFound();
+    $this->get("/panel/convocations/{$convocation->id}/deputies/create")->assertNotFound();
+    $this->get("/panel/convocations/{$convocation->id}/deputies/{$deputy->id}/edit")->assertNotFound();
 });

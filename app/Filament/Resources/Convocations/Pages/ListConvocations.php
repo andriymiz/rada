@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Convocations\Pages;
 use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Resources\Convocations\ConvocationResource;
 use App\Filament\Resources\Convocations\Schemas\ConvocationForm;
+use App\Models\Convocation;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
@@ -18,7 +19,10 @@ class ListConvocations extends ListRecords
     {
         return [
             CreateAction::make()
-                ->schema(ConvocationForm::components()),
+                ->schema(ConvocationForm::components())
+                ->successRedirectUrl(fn (Convocation $record): string => ConvocationResource::getUrl('edit', [
+                    'record' => $record,
+                ])),
         ];
     }
 }

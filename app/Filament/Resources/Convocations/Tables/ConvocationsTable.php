@@ -2,10 +2,8 @@
 
 namespace App\Filament\Resources\Convocations\Tables;
 
-use App\Filament\Resources\Convocations\Resources\Deputies\DeputyResource;
-use App\Filament\Resources\Convocations\Schemas\ConvocationForm;
 use App\Models\Convocation;
-use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -39,15 +37,11 @@ class ConvocationsTable
             ->defaultSort('id', 'desc')
             ->searchable(false)
             ->recordActions([
-                Action::make('deputies')
-                    ->label('Депутати')
-                    ->icon(Heroicon::OutlinedUsers)
-                    ->iconButton()
-                    ->url(fn (Convocation $record): string => DeputyResource::getUrl(
-                        parameters: ['convocation' => $record],
-                    )),
+                DeleteAction::make()
+                    ->authorizationNotification(),
                 EditAction::make()
-                    ->schema(ConvocationForm::components()),
+                    ->icon(Heroicon::ArrowRight)
+                    ->iconButton(),
             ]);
     }
 }

@@ -21,7 +21,6 @@ use Illuminate\Support\Str;
     'middle_name',
     'gender',
     'date_of_birth',
-    'image',
 ])]
 class Person extends Model
 {

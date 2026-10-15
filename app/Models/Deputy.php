@@ -32,6 +32,7 @@ use Illuminate\Validation\ValidationException;
     'commission_position',
     'area_id',
     'homepage',
+    'image',
     'biography',
 ])]
 class Deputy extends Model

@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Deputies\Tables;
 
 use App\Models\Person;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,12 +42,12 @@ class DeputiesTable
                     }),
                 TextColumn::make('convocation.label')
                     ->label('Скликання')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->hiddenOn(RelationManager::class),
             ])
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('person'))
             ->searchable(false)
             ->recordActions([
-                ViewAction::make(),
                 EditAction::make(),
             ]);
     }
