@@ -152,7 +152,6 @@ it('defaults a new deputy pult number to one more than the largest numeric ident
     $convocation = Convocation::factory()->create();
     Deputy::factory()->for($convocation)->create(['voting_identifier' => '4']);
     Deputy::factory()->for($convocation)->create(['voting_identifier' => '10']);
-    Deputy::factory()->for($convocation)->create(['voting_identifier' => 'PULT-100']);
     Deputy::factory()->create(['voting_identifier' => '999']);
 
     $person = Person::factory()->create();

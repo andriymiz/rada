@@ -324,11 +324,9 @@ class DeputyForm
             ->where('convocation_id', self::getConvocationId($livewire))
             ->whereNotNull('voting_identifier')
             ->pluck('voting_identifier')
-            ->filter(fn (string $identifier): bool => ctype_digit($identifier))
-            ->map(fn (string $identifier): int => (int) $identifier)
             ->max() ?? 0;
 
-        return $highestIdentifier + 1;
+        return ((int) $highestIdentifier) + 1;
     }
 
     private static function getConvocationId(RelationManager $livewire): int
