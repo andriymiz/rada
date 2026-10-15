@@ -27,7 +27,6 @@ class PermanentCommissionsRelationManager extends RelationManager
                     ->sortable()
                     ->searchable(),
             ])
-            ->searchable(false)
             ->headerActions([
                 CreateAction::make()
                     ->label('Додати комісію')

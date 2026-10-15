@@ -46,7 +46,6 @@ class DeputiesTable
                     ->hiddenOn(RelationManager::class),
             ])
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('person'))
-            ->searchable(false)
             ->recordActions([
                 EditAction::make(),
             ]);

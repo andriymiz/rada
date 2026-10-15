@@ -40,7 +40,8 @@ class RadaPanelProvider extends PanelProvider
             $table
                 ->paginationMode(PaginationMode::Default)
                 ->defaultDateDisplayFormat('d.m.Y')
-                ->defaultDateTimeDisplayFormat('d.m.Y H:i');
+                ->defaultDateTimeDisplayFormat('d.m.Y H:i')
+                ->searchable(false);
         });
         Schema::configureUsing(function (Schema $schema): void {
             $schema
@@ -54,7 +55,7 @@ class RadaPanelProvider extends PanelProvider
                 ->defaultDateTimeWithSecondsDisplayFormat('d.m.Y H:i:s');
         });
         Select::configureUsing(function (Select $select): void {
-            $select->native(false);
+            $select->native(false)->searchable(false);
         });
         EditAction::configureUsing(function (EditAction $action): void {
             $action->iconButton();
