@@ -4,6 +4,7 @@ use App\Filament\Resources\Convocations\ConvocationResource;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\Pages\ListConvocations;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
+use App\Filament\Resources\Convocations\RelationManagers\FactionsRelationManager;
 use App\Filament\Resources\Convocations\RelationManagers\PermanentCommissionsRelationManager;
 use App\Models\Convocation;
 use App\Models\CouncilOrganization;
@@ -128,7 +129,8 @@ it('lists only the convocation deputies on its edit page with links to the neste
     $this->get(ConvocationResource::getUrl('edit', ['record' => $convocation]))
         ->assertOk()
         ->assertSeeLivewire(DeputiesRelationManager::class)
-        ->assertSee('Постійні комісії');
+        ->assertSee('Постійні комісії')
+        ->assertSee('Фракції');
 });
 
 it('shows only permanent commissions belonging to the selected convocation', function () {
@@ -147,6 +149,24 @@ it('shows only permanent commissions belonging to the selected convocation', fun
     ])
         ->assertCanSeeTableRecords([$commission])
         ->assertCanNotSeeTableRecords([$otherCommission]);
+});
+
+it('shows only factions belonging to the selected convocation', function () {
+    $convocation = Convocation::factory()->create();
+    $otherConvocation = Convocation::factory()->create();
+    $faction = Faction::factory()->for($convocation, 'convocation')->create([
+        'name' => 'Єдність',
+    ]);
+    $otherFaction = Faction::factory()->for($otherConvocation, 'convocation')->create([
+        'name' => 'Розвиток',
+    ]);
+
+    livewire(FactionsRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->assertCanSeeTableRecords([$faction])
+        ->assertCanNotSeeTableRecords([$otherFaction]);
 });
 
 it('creates a permanent commission through the selected convocation relationship', function () {
@@ -168,6 +188,25 @@ it('creates a permanent commission through the selected convocation relationship
     expect($commission->convocation->is($convocation))->toBeTrue();
 });
 
+it('creates a faction through the selected convocation relationship', function () {
+    $convocation = Convocation::factory()->create();
+
+    livewire(FactionsRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->callTableAction('create', data: [
+            'name' => 'Єдність',
+        ])
+        ->assertHasNoFormErrors();
+
+    $faction = Faction::query()
+        ->where('name', 'Єдність')
+        ->firstOrFail();
+
+    expect($faction->convocation->is($convocation))->toBeTrue();
+});
+
 it('updates a permanent commission through its relation manager', function () {
     $convocation = Convocation::factory()->create();
     $commission = PermanentCommission::factory()->for($convocation, 'convocation')->create([
@@ -187,6 +226,25 @@ it('updates a permanent commission through its relation manager', function () {
     expect($commission->refresh()->name)->toBe('Комісія з питань бюджету');
 });
 
+it('updates a faction through its relation manager', function () {
+    $convocation = Convocation::factory()->create();
+    $faction = Faction::factory()->for($convocation, 'convocation')->create([
+        'name' => 'Єдність',
+    ]);
+
+    livewire(FactionsRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->assertTableActionVisible('edit', $faction)
+        ->callTableAction('edit', $faction, data: [
+            'name' => 'Єдність громади',
+        ])
+        ->assertHasNoFormErrors();
+
+    expect($faction->refresh()->name)->toBe('Єдність громади');
+});
+
 it('deletes a permanent commission without assigned deputies', function () {
     $convocation = Convocation::factory()->create();
     $commission = PermanentCommission::factory()->for($convocation, 'convocation')->create();
@@ -200,6 +258,21 @@ it('deletes a permanent commission without assigned deputies', function () {
         ->assertNotified();
 
     $this->assertModelMissing($commission);
+});
+
+it('deletes a faction without assigned deputies', function () {
+    $convocation = Convocation::factory()->create();
+    $faction = Faction::factory()->for($convocation, 'convocation')->create();
+
+    livewire(FactionsRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->assertTableActionVisible('delete', $faction)
+        ->callTableAction('delete', $faction)
+        ->assertNotified();
+
+    $this->assertModelMissing($faction);
 });
 
 it('prevents deleting a permanent commission with assigned deputies', function () {
@@ -218,6 +291,25 @@ it('prevents deleting a permanent commission with assigned deputies', function (
         ->assertNotified('Неможливо видалити комісію, до якої прив’язані депутати.');
 
     $this->assertModelExists($commission);
+    $this->assertModelExists($deputy);
+});
+
+it('prevents deleting a faction with assigned deputies', function () {
+    $convocation = Convocation::factory()->create();
+    $faction = Faction::factory()->for($convocation, 'convocation')->create();
+    $deputy = Deputy::factory()
+        ->for($convocation, 'convocation')
+        ->create(['faction_id' => $faction->id]);
+
+    livewire(FactionsRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])
+        ->assertTableActionVisible('delete', $faction)
+        ->callTableAction('delete', $faction)
+        ->assertNotified('Неможливо видалити фракцію, до якої прив’язані депутати.');
+
+    $this->assertModelExists($faction);
     $this->assertModelExists($deputy);
 });
 
