@@ -9,10 +9,10 @@ use App\Models\ContactPoint;
 use App\Models\Convocation;
 use App\Models\CouncilOrganization;
 use App\Models\Deputy;
-use App\Models\DeputyReception;
 use App\Models\Faction;
 use App\Models\Person;
 use App\Models\PoliticalParty;
+use App\Models\Reception;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
@@ -371,8 +371,9 @@ it('adds reception details only when requested', function () {
         ], formName: 'mountedActionSchema0')
         ->assertHasNoTableActionErrors();
 
-    $this->assertDatabaseHas(DeputyReception::class, [
-        'deputy_id' => $deputy->id,
+    $this->assertDatabaseHas(Reception::class, [
+        'receptionable_type' => $deputy->getMorphClass(),
+        'receptionable_id' => $deputy->id,
         'katoottg' => 'UA12345678901234567',
         'address_post_name' => 'Тестове',
         'opening_hours' => 'Пн 09:00–18:00',
@@ -467,7 +468,7 @@ it('validates values according to the selected contact type', function () {
 it('updates deputy details without changing its linked person or reception', function () {
     $party = PoliticalParty::factory()->create();
     $deputy = Deputy::factory()
-        ->has(DeputyReception::factory(), 'reception')
+        ->has(Reception::factory(), 'reception')
         ->create(['political_party_id' => $party->id]);
     $personId = $deputy->person_id;
     $receptionId = $deputy->reception->id;

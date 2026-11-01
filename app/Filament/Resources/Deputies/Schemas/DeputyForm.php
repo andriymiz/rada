@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Deputies\Schemas;
 use App\Enums\ContactPointType;
 use App\Enums\DeputyStatus;
 use App\Enums\Gender;
+use App\Filament\Resources\People\Schemas\PersonForm;
 use App\Models\Convocation;
 use App\Models\Deputy;
 use App\Models\Faction;
@@ -62,7 +63,7 @@ class DeputyForm
                         ->rule(fn (RelationManager $livewire, ?Deputy $record) => Rule::unique('deputies', 'person_id')
                             ->where('convocation_id', self::getConvocationId($livewire))
                             ->ignore($record?->getKey()))
-                        ->createOptionForm(self::personFields())
+                        ->createOptionForm(PersonForm::components())
                         ->createOptionUsing(fn (array $data): int => (int) Person::query()
                             ->create($data)
                             ->getKey())

@@ -61,4 +61,10 @@ class Person extends Model
     {
         return $this->hasMany(Deputy::class);
     }
+
+    /** @return HasMany<Official, $this> */
+    public function officials(): HasMany
+    {
+        return $this->hasMany(Official::class);
+    }
 }

@@ -28,6 +28,12 @@ class CouncilOrganization extends Model
         );
     }
 
+    /** @return HasMany<Official, $this> */
+    public function officials(): HasMany
+    {
+        return $this->hasMany(Official::class);
+    }
+
     /** @return HasMany<Convocation, $this> */
     public function convocations(): HasMany
     {

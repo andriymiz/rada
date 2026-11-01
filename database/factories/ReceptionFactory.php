@@ -3,13 +3,13 @@
 namespace Database\Factories;
 
 use App\Models\Deputy;
-use App\Models\DeputyReception;
+use App\Models\Reception;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<DeputyReception>
+ * @extends Factory<Reception>
  */
-class DeputyReceptionFactory extends Factory
+class ReceptionFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -19,7 +19,8 @@ class DeputyReceptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'deputy_id' => Deputy::factory(),
+            'receptionable_type' => (new Deputy)->getMorphClass(),
+            'receptionable_id' => Deputy::factory(),
             'katoottg' => 'UA12345678901234567',
             'address_post_code' => '01001',
             'address_admin_unit_l1' => 'Україна',

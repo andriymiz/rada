@@ -2,14 +2,13 @@
 
 namespace App\Models;
 
-use Database\Factories\DeputyReceptionFactory;
+use Database\Factories\ReceptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
-    'deputy_id',
     'katoottg',
     'address_post_code',
     'address_admin_unit_l1',
@@ -24,14 +23,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'opening_hours',
     'availability_restriction',
 ])]
-class DeputyReception extends Model
+class Reception extends Model
 {
-    /** @use HasFactory<DeputyReceptionFactory> */
+    /** @use HasFactory<ReceptionFactory> */
     use HasFactory;
 
-    /** @return BelongsTo<Deputy, $this> */
-    public function deputy(): BelongsTo
+    /** @return MorphTo<Model, $this> */
+    public function receptionable(): MorphTo
     {
-        return $this->belongsTo(Deputy::class);
+        return $this->morphTo();
     }
 }

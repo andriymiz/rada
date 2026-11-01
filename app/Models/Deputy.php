@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -132,9 +132,9 @@ class Deputy extends Model
         return $this->morphMany(ContactPoint::class, 'contactable');
     }
 
-    /** @return HasOne<DeputyReception, $this> */
-    public function reception(): HasOne
+    /** @return MorphOne<Reception, $this> */
+    public function reception(): MorphOne
     {
-        return $this->hasOne(DeputyReception::class);
+        return $this->morphOne(Reception::class, 'receptionable');
     }
 }
