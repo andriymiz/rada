@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\ContactPointable;
 use Database\Factories\OfficialFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
     'image',
     'homepage',
 ])]
-class Official extends Model
+class Official extends Model implements ContactPointable
 {
     /** @use HasFactory<OfficialFactory> */
     use HasFactory;

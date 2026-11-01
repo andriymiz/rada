@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\ContactPointable;
 use App\Enums\DeputyStatus;
 use Database\Factories\DeputyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -37,7 +38,7 @@ use Illuminate\Validation\ValidationException;
     'image',
     'biography',
 ])]
-class Deputy extends Model
+class Deputy extends Model implements ContactPointable
 {
     /** @use HasFactory<DeputyFactory> */
     use HasFactory;

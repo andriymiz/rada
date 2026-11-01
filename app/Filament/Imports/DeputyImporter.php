@@ -2,7 +2,7 @@
 
 namespace App\Filament\Imports;
 
-use App\Enums\ContactPointType;
+use App\Actions\StoreImportedContactPoints;
 use App\Enums\Gender;
 use App\Models\Deputy;
 use App\Models\Faction;
@@ -18,6 +18,15 @@ use LogicException;
 class DeputyImporter extends Importer
 {
     protected static ?string $model = Deputy::class;
+
+    public function __construct(
+        Import $import,
+        array $columnMap,
+        array $options,
+        private readonly StoreImportedContactPoints $storeImportedContactPoints,
+    ) {
+        parent::__construct($import, $columnMap, $options);
+    }
 
     /**
      * @return array<ImportColumn>
@@ -215,7 +224,12 @@ class DeputyImporter extends Importer
 
     protected function afterSave(): void
     {
-        $this->saveContactPoints();
+        $this->storeImportedContactPoints->handle(
+            contactable: $this->getDeputyRecord(),
+            emails: $this->data['email'] ?? [],
+            telephones: $this->data['telephone'] ?? [],
+            socialAccounts: $this->data['account'] ?? [],
+        );
     }
 
     protected function savePerson(): void
@@ -322,54 +336,6 @@ class DeputyImporter extends Importer
             $record->commission_position = $commissionPost;
         } else {
             $record->commission_position = null;
-        }
-    }
-
-    protected function saveContactPoints(): void
-    {
-        $record = $this->getDeputyRecord();
-
-        foreach ($this->data['email'] ?? [] as $email) {
-            $record->contactPoints()->firstOrCreate([
-                'type' => ContactPointType::Email,
-                'value' => $email,
-            ], [
-                'is_public' => true,
-            ]);
-        }
-
-        foreach ($this->data['telephone'] ?? [] as $telephone) {
-            $cleaned = ltrim($telephone, "'+‘’ \t\n\r\0\x0B");
-            if ($cleaned !== '') {
-                $formatted = str_starts_with($telephone, '+') ? $telephone : (str_starts_with($cleaned, '380') ? '+'.$cleaned : $telephone);
-                $record->contactPoints()->firstOrCreate([
-                    'type' => ContactPointType::Phone,
-                    'value' => $formatted,
-                ], [
-                    'is_public' => true,
-                ]);
-            }
-        }
-
-        foreach ($this->data['account'] ?? [] as $account) {
-            $type = match (true) {
-                str_contains($account, 'facebook.com') || str_contains($account, 'fb.com') => ContactPointType::Facebook,
-                str_contains($account, 'instagram.com') => ContactPointType::Instagram,
-                str_contains($account, 't.me') || str_contains($account, 'telegram.me') => ContactPointType::Telegram,
-                str_contains($account, 'youtube.com') || str_contains($account, 'youtu.be') => ContactPointType::YouTube,
-                str_contains($account, 'tiktok.com') => ContactPointType::TikTok,
-                str_contains($account, 'twitter.com') || str_contains($account, 'x.com') => ContactPointType::X,
-                str_contains($account, 'linkedin.com') => ContactPointType::LinkedIn,
-                str_contains($account, 'wa.me') || str_contains($account, 'whatsapp.com') => ContactPointType::WhatsApp,
-                default => ContactPointType::Website,
-            };
-
-            $record->contactPoints()->firstOrCreate([
-                'type' => $type,
-                'value' => $account,
-            ], [
-                'is_public' => true,
-            ]);
         }
     }
 
