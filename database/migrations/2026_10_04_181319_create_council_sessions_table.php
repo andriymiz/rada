@@ -6,15 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('parliamentary_sessions', function (Blueprint $table) {
+        Schema::create('council_sessions', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('convocation_id')
-                ->constrained('parliamentary_convocations')
+                ->constrained('convocations')
                 ->restrictOnDelete();
             $table->string('name');
             $table->unique(['convocation_id', 'name']);
@@ -22,11 +19,8 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('parliamentary_sessions');
+        Schema::dropIfExists('council_sessions');
     }
 };

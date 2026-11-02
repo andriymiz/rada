@@ -6,15 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('roll_call_imports', function (Blueprint $table) {
+        Schema::create('roll_call_imports', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('session_id')
-                ->constrained('parliamentary_sessions')
+            $table->foreignId('plenary_meeting_id')
+                ->nullable()
+                ->constrained('plenary_meetings')
                 ->restrictOnDelete();
             $table->foreignId('user_id')
                 ->constrained()
@@ -22,14 +20,14 @@ return new class extends Migration
             $table->string('file_path');
             $table->string('original_filename');
             $table->string('status')->default('queued');
+            $table->text('error_message')->nullable();
+            $table->json('parsed_result')->nullable();
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('roll_call_imports');

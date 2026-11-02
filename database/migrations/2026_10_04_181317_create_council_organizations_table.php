@@ -6,23 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('parliamentary_convocations', function (Blueprint $table) {
+        Schema::create('council_organizations', function (Blueprint $table): void {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name');
+            $table->string('edrpou', 8)->unique();
+            $table->string('katoottg', 19)->unique();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('parliamentary_convocations');
+        Schema::dropIfExists('council_organizations');
     }
 };

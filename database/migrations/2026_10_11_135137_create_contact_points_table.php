@@ -20,10 +20,6 @@ return new class extends Migration
             $table->text('note')->nullable();
             $table->timestamps();
         });
-
-        Schema::table('deputies', function (Blueprint $table): void {
-            $table->dropColumn(['email', 'telephone', 'account']);
-        });
     }
 
     /**
@@ -31,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        throw new RuntimeException('Contact point migration is intentionally irreversible because contact values and visibility are now stored as individual records.');
+        Schema::dropIfExists('contact_points');
     }
 };
