@@ -61,7 +61,7 @@ erDiagram
     }
     CONVOCATIONS {
         int id PK
-        int organization_id FK, "nullable"
+        int organization_id FK
         string label
         date date_from
         date date_until
@@ -97,10 +97,10 @@ erDiagram
     DEPUTIES {
         int id PK
         int person_id FK
-        int convocation_id FK, "nullable"
-        int political_party_id FK, "nullable"
-        int permanent_commission_id FK, "nullable"
-        int faction_id FK, "nullable"
+        int convocation_id FK
+        int political_party_id FK
+        int permanent_commission_id FK
+        int faction_id FK
         string voting_identifier
         int status
         date start_date
@@ -190,7 +190,7 @@ erDiagram
     VOTES {
         int id PK
         int vote_event_id FK
-        int deputy_id FK, "nullable"
+        int deputy_id FK
         string voter_identifier
         string voter_name
         string option
