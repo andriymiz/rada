@@ -16,6 +16,10 @@ class DeputiesTable
     {
         return $table
             ->columns([
+                TextColumn::make('number')
+                    ->label('Номер')
+                    ->placeholder('—')
+                    ->sortable(),
                 TextColumn::make('short_name')
                     ->label('ПІБ')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query

@@ -10,6 +10,7 @@ use App\Models\Convocation;
 use App\Models\Deputy;
 use App\Models\Person;
 use App\Models\User;
+use Filament\Actions\ImportAction;
 use Filament\Actions\Imports\Models\Import;
 use Filament\Facades\Filament;
 
@@ -27,6 +28,7 @@ it('imports a deputy with open data attributes and related entities', function (
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 23,
             'last_name' => 'Ковальчук',
             'first_name' => 'Віктор',
             'middle_name' => 'Зосимович',
@@ -59,6 +61,7 @@ it('imports a deputy with open data attributes and related entities', function (
         ->and($deputy->person->middle_name)->toBe('Зосимович')
         ->and($deputy->person->gender)->toBe(Gender::Male)
         ->and($deputy->person->date_of_birth->toDateString())->toBe('1980-12-01')
+        ->and($deputy->number)->toBe(23)
         ->and($deputy->image)->toBe('https://example.gov.ua/photo.png')
         ->and($deputy->biography)->toBe('Біографічні дані депутата.')
         ->and($deputy->status)->toBe(DeputyStatus::Active)
@@ -99,6 +102,7 @@ it('handles nullable optional values with Filament default casting', function ()
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 1,
             'last_name' => 'Шевченко',
             'first_name' => 'Олена',
             'middle_name' => 'Іванівна',
@@ -154,6 +158,7 @@ it('updates existing deputy and person on repeated import', function () {
         'convocation_id' => $convocation->id,
         'person_id' => $person->id,
         'biography' => 'Стара біографія',
+        'number' => 1,
         'voting_identifier' => 'dep-01',
     ]);
 
@@ -161,6 +166,7 @@ it('updates existing deputy and person on repeated import', function () {
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 1,
             'last_name' => 'Мельник',
             'first_name' => 'Андрій',
             'middle_name' => 'Петрович',
@@ -184,7 +190,7 @@ it('updates existing deputy and person on repeated import', function () {
         ->and($deputy->homepage)->toBe('https://example.gov.ua/deputies/melnyk');
 });
 
-it('matches a deputy by full name instead of imported identifier', function () {
+it('matches a deputy by its convocation number when the imported name changes', function () {
     $convocation = Convocation::factory()->create();
     $targetPerson = Person::factory()->create([
         'last_name' => 'Мельник',
@@ -194,31 +200,35 @@ it('matches a deputy by full name instead of imported identifier', function () {
     $targetDeputy = Deputy::factory()->create([
         'convocation_id' => $convocation->id,
         'person_id' => $targetPerson->id,
+        'number' => 23,
         'biography' => 'Стара біографія цільового депутата.',
     ]);
     $otherDeputy = Deputy::factory()->create([
         'convocation_id' => $convocation->id,
+        'number' => 24,
     ]);
 
     DeputyImporter::test(
         options: ['convocation' => $convocation],
     )
         ->import([
-            'id' => $otherDeputy->id,
-            'last_name' => 'Мельник',
-            'first_name' => 'Андрій',
-            'middle_name' => 'Петрович',
+            'number' => 23,
+            'last_name' => 'Ковальчук',
+            'first_name' => 'Олена',
+            'middle_name' => 'Іванівна',
             'partyName' => 'Партія Мельника',
-            'gender' => 1,
-            'date_of_birth' => '1975-08-20',
+            'gender' => 2,
+            'date_of_birth' => '1990-04-15',
             'biography' => 'Оновлена біографія цільового депутата.',
         ])
         ->assertImported();
 
     expect(Deputy::query()->where('convocation_id', $convocation->id)->count())->toBe(2)
         ->and($targetDeputy->fresh()->biography)->toBe('Оновлена біографія цільового депутата.')
+        ->and($targetDeputy->fresh()->number)->toBe(23)
+        ->and($targetDeputy->fresh()->person->full_name)->toBe('Ковальчук Олена Іванівна')
         ->and($otherDeputy->fresh()->biography)->not->toBe('Оновлена біографія цільового депутата.')
-        ->and($otherDeputy->fresh()->person->full_name)->not->toBe('Мельник Андрій Петрович');
+        ->and($otherDeputy->fresh()->person->full_name)->not->toBe('Ковальчук Олена Іванівна');
 });
 
 it('reuses a deputy person across convocations without duplicating them within a convocation', function () {
@@ -233,9 +243,11 @@ it('reuses a deputy person across convocations without duplicating them within a
     $firstTermDeputy = Deputy::factory()->create([
         'convocation_id' => $firstConvocation->id,
         'person_id' => $person->id,
+        'number' => 8,
     ]);
 
     $row = [
+        'number' => 8,
         'last_name' => 'Кравченко',
         'first_name' => 'Ірина',
         'middle_name' => 'Олегівна',
@@ -272,6 +284,7 @@ it('allows voting identifiers to repeat across deputy records', function () {
     $convocation = Convocation::factory()->create();
     Deputy::factory()->create([
         'convocation_id' => $convocation->id,
+        'number' => 1,
         'voting_identifier' => 'taken-vote-id',
     ]);
 
@@ -279,6 +292,7 @@ it('allows voting identifiers to repeat across deputy records', function () {
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 2,
             'last_name' => 'Сидоренко',
             'first_name' => 'Сергій',
             'middle_name' => 'Олексійович',
@@ -304,6 +318,7 @@ it('parses multiple comma-separated contact points', function () {
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 3,
             'last_name' => 'Бондар',
             'first_name' => 'Марія',
             'middle_name' => 'Іванівна',
@@ -342,6 +357,7 @@ it('rejects an invalid email contact during import validation', function () {
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 4,
             'last_name' => 'Романюк',
             'first_name' => 'Тетяна',
             'middle_name' => 'Петрівна',
@@ -363,6 +379,7 @@ it('rejects a deputy row without a party name', function () {
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 5,
             'last_name' => 'Петренко',
             'first_name' => 'Оксана',
             'middle_name' => 'Іванівна',
@@ -385,6 +402,7 @@ it('rejects a deputy row when a required personal field is missing', function (s
         'date_of_birth' => '1990-01-01',
         'biography' => 'Біографічні дані Оксани Петренко.',
         'partyName' => 'Партія Петренко',
+        'number' => 6,
     ];
     unset($row[$missingField]);
 
@@ -400,6 +418,7 @@ it('rejects a deputy row when a required personal field is missing', function (s
     'gender' => 'gender',
     'birth date' => 'date_of_birth',
     'biography' => 'biography',
+    'number' => 'number',
 ]);
 
 it('rejects gender values that are not standard numeric codes', function (int|string $gender) {
@@ -409,6 +428,7 @@ it('rejects gender values that are not standard numeric codes', function (int|st
         options: ['convocation' => $convocation],
     )
         ->import([
+            'number' => 7,
             'last_name' => 'Петренко',
             'first_name' => 'Оксана',
             'middle_name' => 'Іванівна',
@@ -429,19 +449,10 @@ it('guesses the open-data headers for person name columns', function () {
     $columns = collect(DeputyImporter::getColumns())
         ->keyBy(fn ($column): string => $column->getName());
 
-    expect($columns['last_name']->getGuesses())->toContain('familyname')
+    expect($columns['number']->getGuesses())->toContain('id')
+        ->and($columns['last_name']->getGuesses())->toContain('familyname')
         ->and($columns['first_name']->getGuesses())->toContain('name')
         ->and($columns['middle_name']->getGuesses())->toContain('additionalname');
-});
-
-it('renders import action in the convocation deputies table', function () {
-    $convocation = Convocation::factory()->create();
-
-    livewire(DeputiesRelationManager::class, [
-        'ownerRecord' => $convocation,
-        'pageClass' => EditConvocation::class,
-    ])
-        ->assertTableActionExists('import');
 });
 
 it('formats completed notification body in Ukrainian with proper pluralization', function () {

@@ -34,11 +34,12 @@ class DeputyImporter extends Importer
     public static function getColumns(): array
     {
         return [
-            ImportColumn::make('id')
-                ->label('Ідентифікатор')
+            ImportColumn::make('number')
+                ->label('Порядковий номер')
+                ->guess(['number', 'id'])
                 ->integer()
-                ->rules(['numeric', 'min:0'])
-                ->fillRecordUsing(fn (): null => null),
+                ->requiredMapping()
+                ->rules(['required', 'integer', 'min:1']),
 
             ImportColumn::make('voting_identifier')
                 ->label('Номер пульта')
@@ -168,6 +169,18 @@ class DeputyImporter extends Importer
     public function resolveRecord(): Deputy
     {
         $convocationId = $this->getConvocationId();
+
+        $number = $this->data['number'] ?? null;
+        if ($number !== null) {
+            $existing = Deputy::query()
+                ->where('convocation_id', $convocationId)
+                ->where('number', $number)
+                ->first();
+
+            if ($existing instanceof Deputy) {
+                return $existing;
+            }
+        }
 
         $existing = Deputy::query()
             ->where('convocation_id', $convocationId)

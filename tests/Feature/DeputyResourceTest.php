@@ -64,6 +64,7 @@ it('creates a deputy profile without requiring reception details', function () {
         ->and($deputy->image)->toBe('https://council.example.gov.ua/photos/test.png')
         ->and($deputy->status)->toBe(DeputyStatus::Active)
         ->and($deputy->full_name)->toBe('Тестове Ім’я ПоБатькові')
+        ->and($deputy->number)->toBe(1)
         ->and($deputy->voting_identifier)->toBe('1')
         ->and($deputy->reception)->toBeNull()
         ->and($deputy->getAttributes())->not->toHaveKey('last_name')
@@ -175,11 +176,20 @@ it('defaults a new deputy term start date to its convocation start date', functi
     expect($deputy->start_date?->toDateString())->toBe('2020-01-01');
 });
 
-it('defaults a new deputy pult number to one more than the largest numeric identifier', function () {
+it('defaults a new deputy number and pult number after the current highest values', function () {
     $convocation = Convocation::factory()->create();
-    Deputy::factory()->for($convocation)->create(['voting_identifier' => '4']);
-    Deputy::factory()->for($convocation)->create(['voting_identifier' => '10']);
-    Deputy::factory()->create(['voting_identifier' => '999']);
+    Deputy::factory()->for($convocation)->create([
+        'number' => 4,
+        'voting_identifier' => '4',
+    ]);
+    Deputy::factory()->for($convocation)->create([
+        'number' => 10,
+        'voting_identifier' => '10',
+    ]);
+    Deputy::factory()->create([
+        'number' => 999,
+        'voting_identifier' => '999',
+    ]);
 
     $person = Person::factory()->create();
     $party = PoliticalParty::factory()->create();
@@ -196,7 +206,26 @@ it('defaults a new deputy pult number to one more than the largest numeric ident
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
 
-    expect($deputy->voting_identifier)->toBe('11');
+    expect($deputy->number)->toBe(11)
+        ->and($deputy->voting_identifier)->toBe('11');
+});
+
+it('rejects a deputy number already used in the same convocation', function () {
+    $convocation = Convocation::factory()->create();
+    Deputy::factory()->for($convocation)->create(['number' => 5]);
+
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('create', data: [
+        'person_id' => Person::factory()->create()->id,
+        'political_party_id' => PoliticalParty::factory()->create()->id,
+        'number' => 5,
+        'biography' => 'Біографія депутата.',
+    ])
+        ->assertHasTableActionErrors(['number']);
+
+    expect(Deputy::query()->where('convocation_id', $convocation->id)->count())->toBe(1);
 });
 
 it('rejects linking the same person to two deputy records in one convocation', function () {

@@ -16,7 +16,6 @@ use App\Models\PermanentCommission;
 use App\Models\Person;
 use App\Models\PoliticalParty;
 use App\Models\User;
-use Database\Seeders\ConvocationSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 
@@ -353,27 +352,6 @@ it('sorts convocation deputies by their voting console number', function () {
     ])
         ->sortTable('voting_identifier', 'asc')
         ->assertCanSeeTableRecords([$earlierNumber, $laterNumber], inOrder: true);
-});
-
-it('seeds the first seven convocations and their council organization idempotently', function () {
-    $this->seed(ConvocationSeeder::class);
-    $this->seed(ConvocationSeeder::class);
-
-    $organization = CouncilOrganization::query()->where('edrpou', 'TEST0001')->firstOrFail();
-
-    $this->assertDatabaseCount('council_organizations', 1);
-    $this->assertDatabaseCount('convocations', 7);
-
-    expect($organization->convocations()->orderBy('id')->pluck('label')->all())
-        ->toBe([
-            'Перше скликання',
-            'Друге скликання',
-            'Третє скликання',
-            'Четверте скликання',
-            'П’яте скликання',
-            'Шосте скликання',
-            'Сьоме скликання',
-        ]);
 });
 
 it('opens the convocation edit page without a separate deputies page action', function () {

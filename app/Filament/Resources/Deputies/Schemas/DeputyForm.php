@@ -50,7 +50,8 @@ class DeputyForm
     public static function components(): array
     {
         return [
-            Grid::make(2)
+            Grid::make(4)
+                ->columns(['default' => 1, 'md' => 4])
                 ->schema([
                     Select::make('person_id')
                         ->label('Особа')
@@ -66,7 +67,18 @@ class DeputyForm
                         ->createOptionUsing(fn (array $data): int => (int) Person::query()
                             ->create($data)
                             ->getKey())
-                        ->createOptionModalHeading('Нова особа'),
+                        ->createOptionModalHeading('Нова особа')
+                        ->columnSpan(['default' => 1, 'md' => 2]),
+                    TextInput::make('number')
+                        ->label('Порядковий номер')
+                        ->numeric()
+                        ->rule('integer')
+                        ->minValue(1)
+                        ->required(fn (?Deputy $record): bool => $record === null || $record->number !== null)
+                        ->default(fn (RelationManager $livewire): int => self::nextDeputyNumber($livewire))
+                        ->rule(fn (RelationManager $livewire, ?Deputy $record) => Rule::unique('deputies', 'number')
+                            ->where('convocation_id', self::getConvocationId($livewire))
+                            ->ignore($record?->getKey())),
                     TextInput::make('voting_identifier')
                         ->label('Номер пульта')
                         ->default(fn (RelationManager $livewire): string => (string) self::nextVotingIdentifier($livewire))
@@ -284,6 +296,13 @@ class DeputyForm
             ->max() ?? 0;
 
         return ((int) $highestIdentifier) + 1;
+    }
+
+    private static function nextDeputyNumber(RelationManager $livewire): int
+    {
+        return ((int) Deputy::query()
+            ->where('convocation_id', self::getConvocationId($livewire))
+            ->max('number')) + 1;
     }
 
     private static function getConvocationId(RelationManager $livewire): int

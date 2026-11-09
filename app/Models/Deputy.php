@@ -19,11 +19,13 @@ use Illuminate\Validation\ValidationException;
  * @property-read Person $person
  * @property-read string $full_name
  * @property-read string $short_name
+ * @property int|null $number
  * @property DeputyStatus $status
  */
 #[Fillable([
     'person_id',
     'convocation_id',
+    'number',
     'political_party_id',
     'permanent_commission_id',
     'faction_id',
