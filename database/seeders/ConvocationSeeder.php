@@ -13,8 +13,6 @@ class ConvocationSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(CouncilOrganizationSeeder::class);
-
         $organization = CouncilOrganization::query()
             ->where('edrpou', 'TEST0001')
             ->firstOrFail();
