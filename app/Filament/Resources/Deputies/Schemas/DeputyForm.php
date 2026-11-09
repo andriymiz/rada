@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Deputies\Schemas;
 
 use App\Enums\ContactPointType;
 use App\Enums\DeputyStatus;
-use App\Enums\Gender;
 use App\Filament\Resources\People\Schemas\PersonForm;
 use App\Models\Convocation;
 use App\Models\Deputy;
@@ -273,51 +272,6 @@ class DeputyForm
                         ->maxLength(2048),
                 ])
                 ->addActionLabel('Додати контакт'),
-        ];
-    }
-
-    /**
-     * @return array<int, Component>
-     */
-    private static function personFields(): array
-    {
-        return [
-            Grid::make(3)
-                ->columns(['sm' => 2, 'lg' => 3])
-                ->schema([
-                    TextInput::make('last_name')
-                        ->label('Прізвище')
-                        ->required()
-                        ->maxLength(255),
-                    TextInput::make('first_name')
-                        ->label('Ім’я')
-                        ->required()
-                        ->maxLength(255),
-                    TextInput::make('middle_name')
-                        ->label('По батькові')
-                        ->required()
-                        ->maxLength(255),
-                ])
-                ->columnSpanFull(),
-            Grid::make(2)
-                ->columns(['sm' => 2])
-                ->schema([
-                    Select::make('gender')
-                        ->label('Стать')
-                        ->options(Gender::class)
-                        ->rule(Rule::in(array_map(
-                            static fn (Gender $gender): int => $gender->value,
-                            Gender::cases(),
-                        )))
-                        ->required()
-                        ->native(false),
-                    DatePicker::make('date_of_birth')
-                        ->label('Дата народження')
-                        ->required()
-                        ->native(false)
-                        ->maxDate(now()),
-                ])
-                ->columnSpanFull(),
         ];
     }
 
