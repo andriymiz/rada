@@ -33,7 +33,7 @@ beforeEach(function () {
 });
 
 it('lists plenary meetings with question counts and actionable statuses', function () {
-    $organization = CouncilOrganization::factory()->create(['name' => 'Зборівська міська рада']);
+    $organization = CouncilOrganization::factory()->create(['name' => 'Міська рада']);
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
         ->create(['label' => '8 скликання']);

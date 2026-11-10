@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Models\CouncilOrganization;
+use App\Services\OpenDataPortal;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
@@ -16,6 +17,7 @@ use Filament\Schemas\Components\Form as FormComponent;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 use LogicException;
 use UnitEnum;
 
@@ -85,6 +87,16 @@ class OrganizationSettings extends Page
                     ->length(19)
                     ->unique(ignoreRecord: true)
                     ->required(),
+                TextInput::make('open_data_id')
+                    ->label('ID відкритих даних')
+                    ->helperText(function (): HtmlString {
+                        $url = app(OpenDataPortal::class)->getOrganizationUrl();
+
+                        return new HtmlString(
+                            'Ідентифікатор розпорядника можна знайти на порталі відкритих даних <a href="'.e($url).'" target="_blank" rel="noopener noreferrer">'.e($url).'</a>.',
+                        );
+                    })
+                    ->rule('uuid'),
             ]);
     }
 

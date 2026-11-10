@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'open_data' => [
+        'base_url' => env('OPEN_DATA_PORTAL_URL', 'https://data.gov.ua'),
+        'organization_slug' => env('OPEN_DATA_PORTAL_ORGANIZATION_SLUG'),
+    ],
+
 ];

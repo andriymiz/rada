@@ -1,6 +1,6 @@
 # RADA
 
-An internal information system for Zboriv City Council, designed to digitize and automate work processes. The project is being developed as a modular platform, with functionality added incrementally to meet the council's needs.
+An internal information system for a local council, designed to digitize and automate work processes. The project is being developed as a modular platform, with functionality added incrementally to meet the council's needs.
 
 ## Current Features
 

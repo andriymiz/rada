@@ -23,7 +23,7 @@
                     </li>
                     <li>
                         <a
-                            href="https://data.gov.ua/organization/zborivska-miska-rada"
+                            href="{{ app(\App\Services\OpenDataPortal::class)->getOrganizationUrl() }}"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="font-medium text-primary-600 underline underline-offset-4 hover:text-primary-700"

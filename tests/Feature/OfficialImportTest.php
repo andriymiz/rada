@@ -2,13 +2,18 @@
 
 use App\Enums\ContactPointType;
 use App\Enums\Gender;
+use App\Enums\OpenDataResourceCode;
 use App\Filament\Imports\OfficialImporter;
 use App\Filament\Resources\Officials\Pages\ListOfficials;
 use App\Models\CouncilOrganization;
 use App\Models\Official;
+use App\Models\OpenDataResource;
 use App\Models\Person;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 
 use function Pest\Livewire\livewire;
 
@@ -68,4 +73,61 @@ it('imports an official from the posts csv row', function (): void {
 it('renders the csv import action on the officials list', function (): void {
     livewire(ListOfficials::class)
         ->assertActionExists('import');
+});
+
+it('links the officials importer to the configured open data resource', function (): void {
+    OpenDataResource::factory()->create([
+        'package_id' => 'officials-package-id',
+        'resource_id' => 'officials-resource-id',
+        'code' => OpenDataResourceCode::Posts->value,
+    ]);
+
+    $downloadUrl = 'https://data.gov.ua/dataset/officials/resource/officials.csv';
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'data.gov.ua/api/3/action/package_show*' => Http::response([
+            'success' => true,
+            'result' => [
+                'resources' => [
+                    [
+                        'id' => 'officials-resource-id',
+                        'name' => 'Посадовці',
+                        'url' => $downloadUrl,
+                    ],
+                ],
+            ],
+        ]),
+    ]);
+
+    livewire(ListOfficials::class)
+        ->assertActionExists(
+            'import',
+            function (Action $action) use ($downloadUrl): bool {
+                $downloadAction = $action->getModalAction('downloadExample');
+
+                return $downloadAction?->getLabel() === 'Завантажити актуальний CSV з порталу відкритих даних'
+                    && $downloadAction->isLink()
+                    && $downloadAction->getUrl() === $downloadUrl
+                    && $downloadAction->shouldOpenUrlInNewTab();
+            },
+        );
+
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/package_show')
+        && $request->data()['id'] === 'officials-package-id');
+});
+
+it('keeps the built-in example download when no officials resource is configured', function (): void {
+    Http::preventStrayRequests();
+
+    livewire(ListOfficials::class)
+        ->assertActionExists(
+            'import',
+            function (Action $action): bool {
+                $downloadAction = $action->getModalAction('downloadExample');
+
+                return $downloadAction?->hasAction() === true
+                    && $downloadAction->getUrl() === null;
+            },
+        );
 });

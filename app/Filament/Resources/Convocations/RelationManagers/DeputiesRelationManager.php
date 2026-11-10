@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\Convocations\RelationManagers;
 
+use App\Enums\OpenDataResourceCode;
 use App\Filament\Imports\DeputyImporter;
 use App\Filament\Resources\Deputies\Schemas\DeputyForm;
 use App\Filament\Resources\Deputies\Tables\DeputiesTable;
+use App\Services\OpenDataPortal;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -30,6 +33,21 @@ class DeputiesRelationManager extends RelationManager
                 ImportAction::make()
                     ->label('Імпорт')
                     ->importer(DeputyImporter::class)
+                    ->registerModalActions([
+                        function (): ?Action {
+                            $downloadUrl = app(OpenDataPortal::class)
+                                ->getResourceDownloadUrl(OpenDataResourceCode::Deputies);
+
+                            if ($downloadUrl === null) {
+                                return null;
+                            }
+
+                            return Action::make('downloadExample')
+                                ->label('Завантажити актуальний CSV з порталу відкритих даних')
+                                ->link()
+                                ->url($downloadUrl, true);
+                        },
+                    ])
                     ->options(fn (): array => [
                         'convocationId' => $this->getOwnerRecord()->getKey(),
                         'convocation' => $this->getOwnerRecord(),

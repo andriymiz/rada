@@ -24,9 +24,10 @@ it('creates and updates the council organization', function () {
     expect($component->instance()->getBreadcrumbs())->toBe([]);
 
     $component->fillForm([
-        'name' => 'Зборівська міська рада',
+        'name' => 'Міська рада',
         'edrpou' => '12345678',
         'katoottg' => 'UA61040090010012345',
+        'open_data_id' => '123e4567-e89b-42d3-a456-426614174000',
     ])
         ->call('save')
         ->assertHasNoFormErrors()
@@ -37,20 +38,36 @@ it('creates and updates the council organization', function () {
     $this->assertModelExists($organization);
 
     $component->fillForm([
-        'name' => 'Зборівська міська рада (оновлена)',
+        'name' => 'Міська рада (оновлена)',
         'edrpou' => '12345678',
         'katoottg' => 'UA61040090010012345',
+        'open_data_id' => '11111111-2222-4333-8444-555555555555',
     ])
         ->call('save')
         ->assertHasNoFormErrors();
 
     expect(CouncilOrganization::query()->count())->toBe(1)
-        ->and($organization->fresh()->name)->toBe('Зборівська міська рада (оновлена)');
+        ->and($organization->fresh()->name)->toBe('Міська рада (оновлена)')
+        ->and($organization->fresh()->open_data_id)->toBe('11111111-2222-4333-8444-555555555555');
+});
+
+it('rejects a non-uuid open data identifier', function (): void {
+    livewire(OrganizationSettings::class)
+        ->fillForm([
+            'name' => 'Міська рада',
+            'edrpou' => '12345678',
+            'katoottg' => 'UA61040090010012345',
+            'open_data_id' => 'not-a-uuid',
+        ])
+        ->call('save')
+        ->assertHasFormErrors(['open_data_id' => 'uuid']);
+
+    expect(CouncilOrganization::query()->exists())->toBeFalse();
 });
 
 it('creates meetings under the organization attached to their convocation', function () {
     $organization = CouncilOrganization::factory()->create([
-        'name' => 'Зборівська міська рада',
+        'name' => 'Міська рада',
     ]);
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
