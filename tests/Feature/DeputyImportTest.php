@@ -216,6 +216,39 @@ it('handles nullable optional values with Filament default casting', function ()
         ->and($deputy->contactPoints)->toBeEmpty();
 });
 
+it('normalizes mixed-case null values while preserving other contact values', function (): void {
+    $convocation = Convocation::factory()->create();
+
+    DeputyImporter::test(options: ['convocation' => $convocation])
+        ->import([
+            'number' => '1',
+            'last_name' => 'Шевченко',
+            'first_name' => 'Олена',
+            'middle_name' => 'Іванівна',
+            'gender' => '2',
+            'date_of_birth' => '1992-05-15',
+            'biography' => 'Біографія',
+            'partyName' => 'Партія',
+            'partyId' => ' NuLl ',
+            'homepage' => ' NULL ',
+            'area_id' => ' null ',
+            'email' => ' NuLl ',
+            'account' => ' NULL ',
+            'telephone' => '380501234567,380501234568',
+        ])
+        ->assertImported();
+
+    $deputy = Deputy::query()->sole();
+
+    expect($deputy->politicalParty->edrpou)->toBeNull()
+        ->and($deputy->homepage)->toBeNull()
+        ->and($deputy->area_id)->toBeNull()
+        ->and($deputy->contactPoints->pluck('value')->sort()->values()->all())->toBe([
+            '+380501234567',
+            '+380501234568',
+        ]);
+});
+
 it('updates existing deputy and person on repeated import', function () {
     $convocation = Convocation::factory()->create();
     $person = Person::factory()->create([

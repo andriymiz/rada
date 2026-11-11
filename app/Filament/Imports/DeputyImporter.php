@@ -43,6 +43,7 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('voting_identifier')
                 ->label('Номер пульта')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->guess(['votingIdentifier'])
                 ->rules(['nullable', 'string', 'max:255']),
 
@@ -83,6 +84,7 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('image')
                 ->label('Фото')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:2048']),
 
             ImportColumn::make('biography')
@@ -98,11 +100,13 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('partyId')
                 ->label('Ідентифікатор партії')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:8'])
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('email')
                 ->label('Електронна пошта')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['email'])
@@ -110,6 +114,7 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('telephone')
                 ->label('Номер телефону')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['string'])
@@ -117,11 +122,12 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('homepage')
                 ->label('Веб-сторінка')
-                ->castStateUsing(fn (mixed $state): mixed => blank($state) ? null : $state)
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'url', 'max:2048']),
 
             ImportColumn::make('account')
                 ->label('Соціальні медіа')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['url'])
@@ -129,11 +135,13 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('factionName')
                 ->label('Назва фракції')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:255'])
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('factionPost')
                 ->label('Посада у фракції')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:255'])
                 ->fillRecordUsing(function (Deputy $record, mixed $state): void {
                     $record->faction_position = ($state === 'Член депутатської фракції') ? null : $state;
@@ -141,11 +149,13 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('commissionName')
                 ->label('Назва постійної комісії')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:255'])
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('commissionPost')
                 ->label('Посада у постійній комісії')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:255'])
                 ->fillRecordUsing(function (Deputy $record, mixed $state): void {
                     $record->commission_position = ($state === 'Член постійної комісії') ? null : $state;
@@ -154,9 +164,7 @@ class DeputyImporter extends Importer
             ImportColumn::make('area_id')
                 ->label('Виборчий округ')
                 ->guess(['areaId'])
-                ->castStateUsing(function (mixed $state): ?int {
-                    return is_numeric($state) ? (int) $state : null;
-                })
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'integer', 'min:0']),
         ];
 
@@ -212,15 +220,6 @@ class DeputyImporter extends Importer
         $deputy->convocation_id = $convocationId;
 
         return $deputy;
-    }
-
-    public function castData(): void
-    {
-        foreach ($this->data as $column => $value) {
-            $this->data[$column] = $this->normalizeNullValue($value);
-        }
-
-        parent::castData();
     }
 
     protected function beforeSave(): void
@@ -371,22 +370,6 @@ class DeputyImporter extends Importer
         }
 
         return $record;
-    }
-
-    protected function normalizeNullValue(mixed $value): mixed
-    {
-        if (is_string($value) && mb_strtolower(trim($value)) === 'null') {
-            return null;
-        }
-
-        if (is_array($value)) {
-            return array_map(
-                fn (mixed $item): mixed => $this->normalizeNullValue($item),
-                $value,
-            );
-        }
-
-        return $value;
     }
 
     /** @return int<0, max> */

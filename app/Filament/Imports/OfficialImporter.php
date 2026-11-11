@@ -65,6 +65,7 @@ class OfficialImporter extends Importer
 
             ImportColumn::make('img')
                 ->label('Фото')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'url', 'max:2048'])
                 ->fillRecordUsing(function (Official $record, mixed $state): void {
                     $record->image = $state;
@@ -72,15 +73,18 @@ class OfficialImporter extends Importer
 
             ImportColumn::make('homepage')
                 ->label('Домашня сторінка')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'url', 'max:2048']),
 
             ImportColumn::make('socialAccount')
                 ->label('Соціальна мережа')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'url', 'max:2048'])
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('telephone')
                 ->label('Телефон')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['string', 'max:255'])
@@ -88,6 +92,7 @@ class OfficialImporter extends Importer
 
             ImportColumn::make('email')
                 ->label('Електронна пошта')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['email'])
@@ -95,18 +100,22 @@ class OfficialImporter extends Importer
 
             ImportColumn::make('unitId')
                 ->label('Код підрозділу')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('unitName')
                 ->label('Назва підрозділу')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('openingHours')
                 ->label('Графік прийому')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('availabilityRestriction')
                 ->label('Обмеження доступності')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->fillRecordUsing(fn (): null => null),
         ];
     }
@@ -114,43 +123,22 @@ class OfficialImporter extends Importer
     public function resolveRecord(): Official
     {
         $organization = $this->resolveOrganization();
-        [$lastName, $firstName, $middleName] = $this->parseName($this->data['name'] ?? '');
-        $person = Person::query()
-            ->where('last_name', $lastName)
-            ->where('first_name', $firstName)
-            ->where('middle_name', $middleName)
-            ->first();
+        [$lastName, $firstName, $middleName] = ImportHelper::parseName($this->data['name'] ?? '');
 
-        if ($person instanceof Person) {
-            $existing = Official::query()
-                ->whereBelongsTo($person)
-                ->whereBelongsTo($organization)
-                ->first();
-
-            if ($existing instanceof Official) {
-                return $existing;
-            }
-        }
-
-        $official = new Official;
-        $official->organization()->associate($organization);
-
-        return $official;
-    }
-
-    public function castData(): void
-    {
-        foreach ($this->data as $column => $value) {
-            $this->data[$column] = $this->normalizeNullValue($value);
-        }
-
-        parent::castData();
+        return Official::query()
+            ->select('officials.*')
+            ->join('people', 'people.id', '=', 'officials.person_id')
+            ->where('people.last_name', $lastName)
+            ->where('people.first_name', $firstName)
+            ->where('people.middle_name', $middleName)
+            ->whereBelongsTo($organization, 'organization')
+            ->firstOrNew([], ['organization_id' => $organization->getKey()]);
     }
 
     protected function beforeSave(): void
     {
         $official = $this->getOfficialRecord();
-        [$lastName, $firstName, $middleName] = $this->parseName($this->data['name'] ?? '');
+        [$lastName, $firstName, $middleName] = ImportHelper::parseName($this->data['name'] ?? '');
 
         $person = $official->person ?? new Person;
         $person->last_name = $lastName;
@@ -205,24 +193,6 @@ class OfficialImporter extends Importer
         return $organization;
     }
 
-    /**
-     * @return array{0: string, 1: ?string, 2: ?string}
-     */
-    private function parseName(string $name): array
-    {
-        $parts = preg_split('/\s+/u', trim($name), -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($parts) || count($parts) < 2) {
-            throw new LogicException('ПІБ посадовця має містити щонайменше прізвище та ім’я.');
-        }
-
-        return [
-            $parts[0],
-            $parts[1],
-            count($parts) > 2 ? implode(' ', array_slice($parts, 2)) : null,
-        ];
-    }
-
     private function getOfficialRecord(): Official
     {
         if (! $this->record instanceof Official) {
@@ -230,18 +200,5 @@ class OfficialImporter extends Importer
         }
 
         return $this->record;
-    }
-
-    private function normalizeNullValue(mixed $value): mixed
-    {
-        if (is_string($value) && mb_strtolower(trim($value)) === 'null') {
-            return null;
-        }
-
-        if (is_array($value)) {
-            return array_map($this->normalizeNullValue(...), $value);
-        }
-
-        return $value;
     }
 }
