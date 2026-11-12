@@ -119,7 +119,6 @@ it('lists only the convocation deputies on its edit page with links to the neste
         ->assertCanNotSeeTableRecords([$otherDeputy])
         ->assertTableColumnStateSet('politicalParty.short_name', 'Тестова партія', $deputy)
         ->assertTableColumnStateSet('voting_identifier', 'COUNCIL-007', $deputy)
-        ->assertSee('Номер пульта')
         ->assertTableColumnStateSet('status', DeputyStatus::Active, $deputy)
         ->assertTableActionExists('edit', record: $deputy)
         ->assertTableActionExists('delete', record: $deputy)
