@@ -9,6 +9,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ImportAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -72,6 +73,9 @@ class RadaPanelProvider extends PanelProvider
         });
         CreateAction::configureUsing(function (CreateAction $action): void {
             $action->label('Додати');
+        });
+        ImportAction::configureUsing(function (ImportAction $action): void {
+            $action->label('Імпорт');
         });
     }
 
