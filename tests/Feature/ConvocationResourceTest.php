@@ -106,7 +106,7 @@ it('shows a failure notification and preserves a convocation that has related re
 
 it('lists only the convocation deputies on its edit page with links to the nested deputy pages', function () {
     $convocation = Convocation::factory()->create();
-    $party = PoliticalParty::factory()->create(['name' => 'Тестова партія']);
+    $party = PoliticalParty::factory()->create(['name' => 'Політична партія «Тестова партія»']);
     $deputy = Deputy::factory()->for($convocation, 'convocation')->create(['political_party_id' => $party->id]);
     $deputy->update(['voting_identifier' => 'COUNCIL-007']);
     $otherDeputy = Deputy::factory()->create();
@@ -117,7 +117,7 @@ it('lists only the convocation deputies on its edit page with links to the neste
     ])
         ->assertCanSeeTableRecords([$deputy])
         ->assertCanNotSeeTableRecords([$otherDeputy])
-        ->assertTableColumnStateSet('politicalParty.name', 'Тестова партія', $deputy)
+        ->assertTableColumnStateSet('politicalParty.short_name', 'Тестова партія', $deputy)
         ->assertTableColumnStateSet('voting_identifier', 'COUNCIL-007', $deputy)
         ->assertSee('Номер пульта')
         ->assertTableColumnStateSet('status', DeputyStatus::Active, $deputy)

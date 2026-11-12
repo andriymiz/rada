@@ -25,6 +25,20 @@ beforeEach(function () {
     $this->actingAs(User::factory()->admin()->create());
 });
 
+it('derives a short political party name without changing the full name', function (string $name, string $shortName): void {
+    $party = PoliticalParty::factory()->make(['name' => $name]);
+
+    expect($party->short_name)->toBe($shortName)
+        ->and($party->name)->toBe($name);
+})->with([
+    'political party' => ['Політична партія «Єдність»', 'Єдність'],
+    'all-ukrainian association' => ["ВСЕУКРАЇНСЬКЕ ОБ'ЄДНАННЯ \"БАТЬКІВЩИНА\"", 'БАТЬКІВЩИНА'],
+    'combined prefixes' => ['Політична партія «Всеукраїнське об’єднання “Свобода”»', 'Свобода'],
+    'apostrophe in name' => ['Політична партія «Об’єднання громад»', 'Об’єднання громад'],
+    'ordinary name' => ['Партія розвитку', 'Партія розвитку'],
+    'phrase inside name' => ['Наша політична партія', 'Наша політична партія'],
+]);
+
 it('creates a deputy profile without requiring reception details', function () {
     $convocation = Convocation::factory()->create([
         'label' => 'Дев’яте скликання',

@@ -52,6 +52,7 @@ it('imports a deputy with open data attributes and related entities', function (
             'commissionPost' => 'Секретар',
             'area_id' => 4,
             'voting_identifier' => 'dep-23',
+            'start_date' => '2020-12-01',
         ])
         ->assertImported();
 
@@ -70,6 +71,7 @@ it('imports a deputy with open data attributes and related entities', function (
         ->and($deputy->biography)->toBe('Біографічні дані депутата.')
         ->and($deputy->status)->toBe(DeputyStatus::Active)
         ->and($deputy->voting_identifier)->toBe('dep-23')
+        ->and($deputy->start_date?->toDateString())->toBe('2020-12-01')
         ->and($deputy->area_id)->toBe(4)
         ->and($deputy->homepage)->toBe('https://council.example.gov.ua/deputy/kovalchuk')
         ->and($deputy->politicalParty->name)->toBe('Партія розвитку')
@@ -97,6 +99,59 @@ it('imports a deputy with open data attributes and related entities', function (
     expect($social)->not->toBeNull()
         ->and($social->value)->toBe('https://facebook.com/kovalchuk')
         ->and($social->is_public)->toBeTrue();
+});
+
+it('updates the start date and preserves it when the imported date is blank', function (): void {
+    $convocation = Convocation::factory()->create();
+    $deputy = Deputy::factory()->for($convocation, 'convocation')->create([
+        'number' => 23,
+        'start_date' => '2020-01-01',
+    ]);
+    $row = [
+        'number' => 23,
+        'last_name' => 'Ковальчук',
+        'first_name' => 'Віктор',
+        'middle_name' => 'Зосимович',
+        'gender' => 1,
+        'date_of_birth' => '1980-12-01',
+        'biography' => 'Біографія',
+        'partyName' => 'Партія розвитку',
+        'start_date' => '2021-03-15',
+    ];
+
+    DeputyImporter::test(options: ['convocation' => $convocation])
+        ->import($row)
+        ->assertImported();
+
+    expect($deputy->refresh()->start_date?->toDateString())->toBe('2021-03-15');
+
+    $row['start_date'] = ' NULL ';
+
+    DeputyImporter::test(options: ['convocation' => $convocation])
+        ->import($row)
+        ->assertImported();
+
+    expect($deputy->refresh()->start_date?->toDateString())->toBe('2021-03-15');
+});
+
+it('rejects invalid start dates without saving the deputy', function (): void {
+    $convocation = Convocation::factory()->create();
+
+    DeputyImporter::test(options: ['convocation' => $convocation])
+        ->import([
+            'number' => 23,
+            'last_name' => 'Ковальчук',
+            'first_name' => 'Віктор',
+            'middle_name' => 'Зосимович',
+            'gender' => 1,
+            'date_of_birth' => '1980-12-01',
+            'biography' => 'Біографія',
+            'partyName' => 'Партія розвитку',
+            'start_date' => 'not-a-date',
+        ])
+        ->assertHasErrors(['start_date' => 'date']);
+
+    expect(Deputy::query()->whereBelongsTo($convocation)->exists())->toBeFalse();
 });
 
 it('links the deputy importer to the configured open data resource', function (): void {
@@ -555,7 +610,8 @@ it('guesses the open-data headers for person name columns', function () {
     expect($columns['number']->getGuesses())->toContain('id')
         ->and($columns['last_name']->getGuesses())->toContain('familyname')
         ->and($columns['first_name']->getGuesses())->toContain('name')
-        ->and($columns['middle_name']->getGuesses())->toContain('additionalname');
+        ->and($columns['middle_name']->getGuesses())->toContain('additionalname')
+        ->and($columns['start_date']->getGuesses())->toContain('startdate');
 });
 
 it('formats completed notification body in Ukrainian with proper pluralization', function () {

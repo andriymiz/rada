@@ -17,7 +17,7 @@ class DeputiesTable
         return $table
             ->columns([
                 TextColumn::make('number')
-                    ->label('Номер')
+                    ->label('№')
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('short_name')
@@ -45,11 +45,11 @@ class DeputiesTable
                                 ->select('middle_name')
                                 ->whereColumn('people.id', 'deputies.person_id'), $sortDirection);
                     }),
-                TextColumn::make('politicalParty.name')
+                TextColumn::make('politicalParty.short_name')
                     ->label('Партія')
                     ->placeholder('—'),
                 TextColumn::make('voting_identifier')
-                    ->label('Номер пульта')
+                    ->label('Пульт')
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('status')

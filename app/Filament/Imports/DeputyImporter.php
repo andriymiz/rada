@@ -147,6 +147,13 @@ class DeputyImporter extends Importer
                     $record->faction_position = ($state === 'Член депутатської фракції') ? null : $state;
                 }),
 
+            ImportColumn::make('start_date')
+                ->label('Дата початку')
+                ->guess(['startDate'])
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
+                ->ignoreBlankState()
+                ->rules(['nullable', 'date']),
+
             ImportColumn::make('commissionName')
                 ->label('Назва постійної комісії')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
