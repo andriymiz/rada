@@ -10,7 +10,6 @@ use App\Models\Person;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
-use Illuminate\Support\Number;
 use LogicException;
 
 class OfficialImporter extends Importer
@@ -164,13 +163,7 @@ class OfficialImporter extends Importer
 
     public static function getCompletedNotificationBody(Import $import): string
     {
-        $body = 'Імпорт посадовців завершено: успішно імпортовано '.Number::format($import->successful_rows).' '.trans_choice('{1} запис|[2,4] записи|[5,*] записів', $import->successful_rows).'.';
-
-        if (($failedRowsCount = $import->getFailedRowsCount()) > 0) {
-            $body .= ' Не вдалося імпортувати: '.Number::format($failedRowsCount).' '.trans_choice('{1} рядок|[2,4] рядки|[5,*] рядків', $failedRowsCount).'.';
-        }
-
-        return $body;
+        return ImportHelper::getCompletedNotificationBody($import);
     }
 
     private function resolveOrganization(): CouncilOrganization

@@ -11,6 +11,7 @@ use App\Models\Dataset;
 use App\Models\Official;
 use App\Models\Person;
 use App\Models\User;
+use Filament\Actions\Imports\Models\Import;
 use Filament\Facades\Filament;
 use Illuminate\Validation\Rules\Enum as EnumRule;
 
@@ -19,6 +20,22 @@ use function Pest\Livewire\livewire;
 beforeEach(function (): void {
     Filament::setCurrentPanel('rada');
     $this->actingAs(User::factory()->admin()->create());
+});
+
+it('uses only the importer class name in the completed notification', function (): void {
+    $import = new Import;
+    $import->importer = DatasetImporter::class;
+    $import->total_rows = 1;
+    $import->successful_rows = 1;
+
+    expect(DatasetImporter::getCompletedNotificationBody($import))
+        ->toBe('DatasetImporter - Успішно імпортовано 1 запис.');
+
+    $import->total_rows = 3;
+    $import->successful_rows = 1;
+
+    expect(DatasetImporter::getCompletedNotificationBody($import))
+        ->toBe('DatasetImporter - Успішно імпортовано 1 запис. Не вдалося імпортувати: 2 рядки.');
 });
 
 it('imports and updates a dataset from a register row', function (): void {
@@ -48,7 +65,7 @@ it('imports and updates a dataset from a register row', function (): void {
         'publisher_id' => '04058410',
         'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
         'contact_point_name' => 'Симоненко Олена Петрівна',
-        'contact_point_email' => 'contact@example.gov.ua',
+        'contact_point_email' => 'not-an-email',
     ];
 
     DatasetImporter::test()
@@ -67,9 +84,7 @@ it('imports and updates a dataset from a register row', function (): void {
             DatasetResourceFormat::Json->value,
         ])
         ->and($dataset->publisher->is($organization))->toBeTrue()
-        ->and($dataset->responsibleOfficial->is($official))->toBeTrue()
-        ->and($dataset->responsibleOfficial->contactPoints->firstWhere('type', ContactPointType::Email)->value)
-        ->toBe('contact@example.gov.ua');
+        ->and($dataset->responsibleOfficial->is($official))->toBeTrue();
 
     $this->assertDatabaseHas(Dataset::class, [
         'id' => $dataset->id,
@@ -87,11 +102,11 @@ it('imports and updates a dataset from a register row', function (): void {
         ->and($dataset->refresh()->description)->toBe('Оновлений опис.')
         ->and($dataset->external_id)->toBe($externalId);
 
-    $this->assertDatabaseHas(ContactPoint::class, [
+    $this->assertDatabaseMissing(ContactPoint::class, [
         'contactable_type' => $official->getMorphClass(),
         'contactable_id' => $official->id,
         'type' => ContactPointType::Email->value,
-        'value' => 'contact@example.gov.ua',
+        'value' => 'not-an-email',
     ]);
 });
 
@@ -109,7 +124,6 @@ it('rejects a dataset row when its publisher is unknown', function (): void {
             'publisher_id' => '04058410',
             'publisher_name' => 'Невідома рада',
             'contact_point_name' => 'Невідома Особа',
-            'contact_point_email' => 'unknown@example.gov.ua',
         ])
         ->assertHasRowFailure();
 
@@ -137,18 +151,30 @@ it('preserves a UUID supplied as the register identifier', function (): void {
             'publisher_id' => '04058410',
             'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
             'contact_point_name' => $official->person->full_name,
-            'contact_point_email' => 'contact@example.gov.ua',
         ])
         ->assertImported();
 
     expect(Dataset::query()->sole()->external_id)->toBe($externalId);
 });
 
-it('rejects a dataset row when its responsible official is unknown', function (): void {
+it('rejects a dataset row when its responsible official is not found in its organization', function (): void {
     CouncilOrganization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
+    $otherOrganization = CouncilOrganization::factory()->create([
+        'edrpou' => '04058411',
+        'name' => 'ІНША МІСЬКА РАДА',
+    ]);
+    $person = Person::factory()->create([
+        'last_name' => 'Симоненко',
+        'first_name' => 'Олена',
+        'middle_name' => 'Петрівна',
+    ]);
+    Official::factory()
+        ->for($person)
+        ->for($otherOrganization, 'organization')
+        ->create();
 
     DatasetImporter::test()
         ->import([
@@ -162,8 +188,7 @@ it('rejects a dataset row when its responsible official is unknown', function ()
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
             'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
-            'contact_point_name' => 'Невідома Особа',
-            'contact_point_email' => 'unknown@example.gov.ua',
+            'contact_point_name' => 'Симоненко Олена Петрівна',
         ])
         ->assertHasRowFailure();
 

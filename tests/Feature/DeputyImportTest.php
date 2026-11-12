@@ -616,24 +616,26 @@ it('guesses the open-data headers for person name columns', function () {
 
 it('formats completed notification body in Ukrainian with proper pluralization', function () {
     $import = new Import;
+    $import->importer = DeputyImporter::class;
     $import->total_rows = 1;
     $import->successful_rows = 1;
     expect(DeputyImporter::getCompletedNotificationBody($import))
-        ->toBe('Імпорт депутатів завершено: успішно імпортовано 1 запис.');
+        ->toBe('DeputyImporter - Успішно імпортовано 1 запис.');
 
     $import->total_rows = 3;
     $import->successful_rows = 3;
     expect(DeputyImporter::getCompletedNotificationBody($import))
-        ->toBe('Імпорт депутатів завершено: успішно імпортовано 3 записи.');
+        ->toBe('DeputyImporter - Успішно імпортовано 3 записи.');
 
     $import->total_rows = 10;
     $import->successful_rows = 10;
     expect(DeputyImporter::getCompletedNotificationBody($import))
-        ->toBe('Імпорт депутатів завершено: успішно імпортовано 10 записів.');
+        ->toBe('DeputyImporter - Успішно імпортовано 10 записів.');
 
     $importWithFailures = new Import;
+    $importWithFailures->importer = DeputyImporter::class;
     $importWithFailures->total_rows = 5;
     $importWithFailures->successful_rows = 3;
     expect(DeputyImporter::getCompletedNotificationBody($importWithFailures))
-        ->toBe('Імпорт депутатів завершено: успішно імпортовано 3 записи. Не вдалося імпортувати: 2 рядки.');
+        ->toBe('DeputyImporter - Успішно імпортовано 3 записи. Не вдалося імпортувати: 2 рядки.');
 });

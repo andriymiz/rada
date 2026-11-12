@@ -2,7 +2,6 @@
 
 namespace App\Filament\Imports;
 
-use App\Actions\StoreImportedContactPoints;
 use App\Enums\DatasetResourceFormat;
 use App\Enums\DatasetUpdateFrequency;
 use App\Models\CouncilOrganization;
@@ -12,7 +11,7 @@ use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
-use Illuminate\Support\Number;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use LogicException;
@@ -25,7 +24,6 @@ class DatasetImporter extends Importer
         Import $import,
         array $columnMap,
         array $options,
-        private readonly StoreImportedContactPoints $storeImportedContactPoints,
     ) {
         parent::__construct($import, $columnMap, $options);
     }
@@ -73,13 +71,6 @@ class DatasetImporter extends Importer
                 ->requiredMapping()
                 ->rules(['required', 'string']),
 
-            ImportColumn::make('source_url')
-                ->label('Посилання на сторінку набору даних')
-                ->guess(['url'])
-                ->requiredMapping()
-                ->rules(['required', 'url:https', 'max:2048'])
-                ->fillRecordUsing(fn (): null => null),
-
             ImportColumn::make('distribution_formats')
                 ->label('Формати ресурсів')
                 ->guess(['distributionFormat'])
@@ -103,17 +94,10 @@ class DatasetImporter extends Importer
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('contact_point_name')
-                ->label('Відповідальна особа')
+                ->label('Відповідальна особа (ПІБ)')
                 ->guess(['contactPointName'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
-                ->fillRecordUsing(fn (): null => null),
-
-            ImportColumn::make('contact_point_email')
-                ->label('Email відповідальної особи')
-                ->guess(['contactPointEmail'])
-                ->requiredMapping()
-                ->rules(['required', 'email', 'max:255'])
                 ->fillRecordUsing(fn (): null => null),
         ];
     }
@@ -149,13 +133,15 @@ class DatasetImporter extends Importer
 
     protected function beforeSave(): void
     {
+        $organization = $this->resolveOrganization();
+
         $this->getDatasetRecord()
             ->publisher()
-            ->associate($this->resolveOrganization());
+            ->associate($organization);
 
         $this->getDatasetRecord()
             ->responsibleOfficial()
-            ->associate($this->resolveResponsibleOfficial());
+            ->associate($this->resolveResponsibleOfficial($organization));
     }
 
     protected function afterValidate(): void
@@ -168,23 +154,9 @@ class DatasetImporter extends Importer
             ->get($frequencyLabel);
     }
 
-    protected function afterSave(): void
-    {
-        $this->storeImportedContactPoints->handle(
-            contactable: $this->getDatasetRecord()->responsibleOfficial,
-            emails: [$this->data['contact_point_email']],
-        );
-    }
-
     public static function getCompletedNotificationBody(Import $import): string
     {
-        $body = 'Імпорт наборів даних завершено: успішно імпортовано '.Number::format($import->successful_rows).' '.trans_choice('{1} запис|[2,4] записи|[5,*] записів', $import->successful_rows).'.';
-
-        if (($failedRowsCount = $import->getFailedRowsCount()) > 0) {
-            $body .= ' Не вдалося імпортувати: '.Number::format($failedRowsCount).' '.trans_choice('{1} рядок|[2,4] рядки|[5,*] рядків', $failedRowsCount).'.';
-        }
-
-        return $body;
+        return ImportHelper::getCompletedNotificationBody($import);
     }
 
     private function resolveOrganization(): CouncilOrganization
@@ -196,15 +168,7 @@ class DatasetImporter extends Importer
             throw new RowImportFailedException('Назва розпорядника є обов’язковою для імпорту набору даних.');
         }
 
-        $query = CouncilOrganization::query();
-
-        if (is_string($organizationId) && filled($organizationId)) {
-            $query->where('edrpou', $organizationId);
-        } else {
-            $query->where('name', $organizationName);
-        }
-
-        $organization = $query->first();
+        $organization = self::findOrganization($this->data);
 
         if (! $organization instanceof CouncilOrganization) {
             $identifier = is_string($organizationId) && filled($organizationId)
@@ -217,30 +181,55 @@ class DatasetImporter extends Importer
         return $organization;
     }
 
-    private function resolveResponsibleOfficial(): Official
+    private function resolveResponsibleOfficial(CouncilOrganization $organization): Official
     {
-        $organization = $this->resolveOrganization();
-        $contactName = $this->data['contact_point_name'] ?? null;
+        // Contact-point email is ignored; the official is resolved from the responsible person's name.
+        $contactName = (string) ($this->data['contact_point_name'] ?? '');
 
-        if (! is_string($contactName) || blank($contactName)) {
-            throw new RowImportFailedException('Ім’я відповідальної особи є обов’язковим для імпорту набору даних.');
+        return self::findResponsibleOfficial($organization, $contactName);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private static function findOrganization(array $data): ?CouncilOrganization
+    {
+        $organizationId = $data['publisher_id'] ?? null;
+        $organizationName = $data['publisher_name'] ?? null;
+
+        if (! is_string($organizationName) || blank($organizationName)) {
+            return null;
         }
 
+        $query = CouncilOrganization::query();
+
+        if (is_string($organizationId) && filled($organizationId)) {
+            $query->where('edrpou', $organizationId);
+        } else {
+            $query->where('name', $organizationName);
+        }
+
+        return $query->first();
+    }
+
+    private static function findResponsibleOfficial(CouncilOrganization $organization, string $contactName): Official
+    {
         [$lastName, $firstName, $middleName] = ImportHelper::parseName($contactName);
 
-        $official = Official::query()
-            ->whereBelongsTo($organization, 'organization')
-            ->whereHas('person', fn ($query) => $query
-                ->where('last_name', $lastName)
-                ->where('first_name', $firstName)
-                ->where('middle_name', $middleName))
-            ->first();
-
-        if (! $official instanceof Official) {
-            throw new RowImportFailedException("Відповідальну особу [{$contactName}] не знайдено серед посадовців організації [{$organization->name}]. Створіть посадовця перед імпортом.");
+        try {
+            return Official::query()
+                ->whereBelongsTo($organization, 'organization')
+                ->whereHas('person', fn ($query) => $query
+                    ->where('last_name', $lastName)
+                    ->where('first_name', $firstName)
+                    ->where('middle_name', $middleName))
+                ->firstOrFail();
+        } catch (ModelNotFoundException $exception) {
+            throw new RowImportFailedException(
+                "Відповідальну особу [{$contactName}] не знайдено серед посадовців організації [{$organization->name}].",
+                previous: $exception,
+            );
         }
-
-        return $official;
     }
 
     private function getDatasetRecord(): Dataset

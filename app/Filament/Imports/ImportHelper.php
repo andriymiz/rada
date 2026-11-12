@@ -6,10 +6,20 @@ use App\Enums\OpenDataResourceCode;
 use App\Services\OpenDataPortal;
 use Closure;
 use Filament\Actions\Action;
+use Filament\Actions\Imports\Models\Import;
+use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 
 class ImportHelper
 {
+    public static function getCompletedNotificationBody(Import $import): string
+    {
+        return class_basename($import->importer)
+            .' - Успішно імпортовано '.Number::format($import->successful_rows)
+            .' із '.Number::format($import->total_rows)
+            .' '.trans_choice('{1} запис|[2,4] записи|[5,*] записів', $import->total_rows).'.';
+    }
+
     public static function downloadPortalResourceAction(OpenDataResourceCode $code): Closure
     {
         return static function (OpenDataPortal $openDataPortal) use ($code): ?Action {
