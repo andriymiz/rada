@@ -155,7 +155,6 @@ class MotionsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Додати')
                     ->mutateDataUsing(function (array $data): array {
                         /** @var PlenaryMeeting $meeting */
                         $meeting = $this->getOwnerRecord();

@@ -29,7 +29,6 @@ class FactionsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Додати фракцію')
                     ->schema([
                         TextInput::make('name')
                             ->label('Назва')
