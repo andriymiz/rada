@@ -98,6 +98,7 @@ class DatasetImporter extends Importer
                 ->guess(['contactPointName'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
+                ->helperText('Електронна пошта контактної особи ігнорується; Якщо особа за ПІБ не знайдена, запис буде пропущено.')
                 ->fillRecordUsing(fn (): null => null),
         ];
     }

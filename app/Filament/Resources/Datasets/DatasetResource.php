@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Datasets;
 
-use App\Enums\ContactPointType;
 use App\Enums\DatasetResourceFormat;
 use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
@@ -42,7 +41,8 @@ class DatasetResource extends Resource
                 TextInput::make('title')
                     ->label('Назва')
                     ->required()
-                    ->maxLength(500),
+                    ->maxLength(500)
+                    ->columnSpanFull(),
                 Textarea::make('description')
                     ->label('Опис')
                     ->required()
@@ -51,20 +51,21 @@ class DatasetResource extends Resource
                     ->label('Частота оновлення')
                     ->options(DatasetUpdateFrequency::class)
                     ->required(),
-                TagsInput::make('keywords')
-                    ->label('Ключові слова')
-                    ->placeholder('Введіть слово та натисніть Enter')
-                    ->required(),
-                Textarea::make('purpose')
-                    ->label('Підстава та призначення збору інформації')
-                    ->required()
-                    ->columnSpanFull(),
                 Select::make('distribution_formats')
                     ->label('Формати ресурсів')
                     ->options(DatasetResourceFormat::class)
                     ->multiple()
                     ->searchable()
                     ->required(),
+                TagsInput::make('keywords')
+                    ->label('Ключові слова')
+                    ->placeholder('Введіть слово та натисніть Enter')
+                    ->required()
+                    ->columnSpanFull(),
+                Textarea::make('purpose')
+                    ->label('Підстава та призначення збору інформації')
+                    ->required()
+                    ->columnSpanFull(),
                 Select::make('publisher_id')
                     ->label('Розпорядник')
                     ->relationship('publisher', 'name')
@@ -78,8 +79,9 @@ class DatasetResource extends Resource
                         'position',
                         modifyQueryUsing: fn (Builder $query): Builder => $query->with(['person', 'contactPoints']),
                     )
-                    ->getOptionLabelFromRecordUsing(fn (Official $record): string => self::contactOptionLabel($record))
+                    ->getOptionLabelFromRecordUsing(fn (Official $record): string => $record->person->short_name)
                     ->searchable()
+                    ->preload()
                     ->required(),
             ]);
     }
@@ -89,12 +91,14 @@ class DatasetResource extends Resource
         return $table
             ->recordTitleAttribute('title')
             ->columns([
-                TextColumn::make('title')
-                    ->label('Назва')
-                    ->searchable(),
                 TextColumn::make('external_id')
                     ->label('Ідентифікатор')
-                    ->copyable(),
+                    ->limit(14)
+                    ->copyable()
+                    ->copyableState(fn (string $state): string => $state),
+                TextColumn::make('title')
+                    ->label('Назва')
+                    ->limit(50),
                 TextColumn::make('accrual_periodicity')
                     ->label('Частота оновлення')
                     ->formatStateUsing(fn (DatasetUpdateFrequency $state): string => $state->getLabel()),
@@ -111,7 +115,6 @@ class DatasetResource extends Resource
                     ->label('Відкрити на порталі')
                     ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                     ->iconButton()
-                    ->tooltip('Відкрити набір даних на порталі')
                     ->url(fn (Dataset $record): string => $record->url)
                     ->openUrlInNewTab(),
                 EditAction::make()
@@ -125,16 +128,5 @@ class DatasetResource extends Resource
         return [
             'index' => ManageDatasets::route('/'),
         ];
-    }
-
-    private static function contactOptionLabel(Official $record): string
-    {
-        $email = $record->contactPoints
-            ->firstWhere('type', ContactPointType::Email)
-            ?->value;
-
-        return collect([$record->person->full_name, $record->position, $email])
-            ->filter(filled(...))
-            ->implode(' — ');
     }
 }

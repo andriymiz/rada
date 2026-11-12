@@ -11,6 +11,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+/**
+ * @property DatasetUpdateFrequency $accrual_periodicity
+ * @property array<int, string> $keywords
+ * @property array<int, string> $distribution_formats
+ */
 #[Fillable([
     'title',
     'description',
