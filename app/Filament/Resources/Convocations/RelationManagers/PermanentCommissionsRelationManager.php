@@ -29,7 +29,6 @@ class PermanentCommissionsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Додати комісію')
                     ->schema([
                         TextInput::make('name')
                             ->label('Назва')

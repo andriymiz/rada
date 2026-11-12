@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\RadaLogin;
 use App\Filament\Pages\RadaDashboard;
 use App\Filament\RadaPanelTheme;
+use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\EditAction;
@@ -68,6 +69,9 @@ class RadaPanelProvider extends PanelProvider
         });
         DetachAction::configureUsing(function (DetachAction $action): void {
             $action->iconButton();
+        });
+        CreateAction::configureUsing(function (CreateAction $action): void {
+            $action->label('Додати');
         });
     }
 

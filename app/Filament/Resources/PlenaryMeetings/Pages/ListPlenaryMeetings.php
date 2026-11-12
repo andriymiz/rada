@@ -24,7 +24,6 @@ class ListPlenaryMeetings extends ListRecords
     {
         return [
             CreateAction::make()
-                ->label('Створити')
                 ->schema([
                     ...PlenaryMeetingForm::components(),
                     RollCallImportForm::fileUpload(),

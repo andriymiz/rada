@@ -20,7 +20,7 @@ class ListOfficials extends ListRecords
         return [
             CreateAction::make(),
             ImportAction::make()
-                ->label('Імпорт CSV')
+                ->label('Імпорт')
                 ->importer(OfficialImporter::class)
                 ->registerModalActions([
                     function (): ?Action {
