@@ -1,0 +1,50 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Laravel Dev",
+            "dependsOn": ["Laravel Dev: Server", "Laravel Dev: Queue", "Laravel Dev: Logs", "Laravel Dev: Vite"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "Laravel Dev: Server",
+            "type": "process",
+            "command": "php",
+            "args": ["artisan", "serve"],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Laravel Dev: Queue",
+            "type": "process",
+            "command": "php",
+            "args": ["artisan", "queue:listen", "--tries=1", "--timeout=0"],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Laravel Dev: Logs",
+            "type": "process",
+            "command": "php",
+            "args": ["artisan", "pail", "--timeout=0"],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Laravel Dev: Vite",
+            "type": "process",
+            "command": "npm",
+            "args": ["run", "dev"],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Frontend",
+            "type": "process",
+            "command": "npm",
+            "args": ["run", "build"],
+            "problemMatcher": []
+        },
+    ]
+}
