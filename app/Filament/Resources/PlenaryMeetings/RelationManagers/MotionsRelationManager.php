@@ -166,8 +166,7 @@ class MotionsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
-                EditAction::make()
-                    ->label('Редагувати'),
+                EditAction::make(),
             ])
             ->defaultSort('number');
     }

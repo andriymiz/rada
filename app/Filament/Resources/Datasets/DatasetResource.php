@@ -4,7 +4,9 @@ namespace App\Filament\Resources\Datasets;
 
 use App\Enums\DatasetResourceFormat;
 use App\Enums\DatasetUpdateFrequency;
+use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
+use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
 use App\Models\Dataset;
 use App\Models\Official;
 use BackedEnum;
@@ -117,16 +119,23 @@ class DatasetResource extends Resource
                     ->iconButton()
                     ->url(fn (Dataset $record): string => $record->url)
                     ->openUrlInNewTab(),
-                EditAction::make()
-                    ->label('Редагувати'),
+                EditAction::make(),
                 DeleteAction::make(),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            ResourcesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => ManageDatasets::route('/'),
+            'edit' => EditDataset::route('/{record}/edit'),
         ];
     }
 }

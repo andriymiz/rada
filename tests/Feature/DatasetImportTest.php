@@ -29,13 +29,13 @@ it('uses only the importer class name in the completed notification', function (
     $import->successful_rows = 1;
 
     expect(DatasetImporter::getCompletedNotificationBody($import))
-        ->toBe('DatasetImporter - Успішно імпортовано 1 запис.');
+        ->toBe('DatasetImporter - Успішно імпортовано 1 із 1 запис.');
 
     $import->total_rows = 3;
     $import->successful_rows = 1;
 
     expect(DatasetImporter::getCompletedNotificationBody($import))
-        ->toBe('DatasetImporter - Успішно імпортовано 1 запис. Не вдалося імпортувати: 2 рядки.');
+        ->toBe('DatasetImporter - Успішно імпортовано 1 із 3 записи.');
 });
 
 it('imports and updates a dataset from a register row', function (): void {

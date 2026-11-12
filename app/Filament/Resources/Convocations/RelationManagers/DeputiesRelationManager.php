@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Convocations\RelationManagers;
 
-use App\Enums\OpenDataResourceCode;
+use App\Enums\DatasetResourceType;
 use App\Filament\Imports\DeputyImporter;
 use App\Filament\Imports\ImportHelper;
 use App\Filament\Resources\Deputies\Schemas\DeputyForm;
@@ -32,7 +32,7 @@ class DeputiesRelationManager extends RelationManager
                 ImportAction::make()
                     ->importer(DeputyImporter::class)
                     ->registerModalActions([
-                        ImportHelper::downloadPortalResourceAction(OpenDataResourceCode::Deputies),
+                        ImportHelper::downloadPortalResourceAction(DatasetResourceType::Deputies),
                     ])
                     ->options(fn (): array => [
                         'convocationId' => $this->getOwnerRecord()->getKey(),

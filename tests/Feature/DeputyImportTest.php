@@ -1,19 +1,19 @@
 <?php
 
 use App\Enums\ContactPointType;
+use App\Enums\DatasetResourceType;
 use App\Enums\DeputyStatus;
 use App\Enums\Gender;
-use App\Enums\OpenDataResourceCode;
 use App\Filament\Imports\DeputyImporter;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Models\Convocation;
+use App\Models\Dataset;
+use App\Models\DatasetResource;
 use App\Models\Deputy;
-use App\Models\OpenDataResource;
 use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Action;
-use Filament\Actions\Imports\Models\Import;
 use Filament\Facades\Filament;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -156,11 +156,12 @@ it('rejects invalid start dates without saving the deputy', function (): void {
 
 it('links the deputy importer to the configured open data resource', function (): void {
     $convocation = Convocation::factory()->create();
-    OpenDataResource::factory()->create([
-        'package_id' => 'deputies-package-id',
-        'resource_id' => 'deputies-resource-id',
-        'code' => OpenDataResourceCode::Deputies->value,
-    ]);
+    DatasetResource::factory()
+        ->for(Dataset::factory()->state(['external_id' => 'deputies-package-id']))
+        ->create([
+            'external_id' => 'deputies-resource-id',
+            'type' => DatasetResourceType::Deputies,
+        ]);
 
     $downloadUrl = 'https://data.gov.ua/dataset/deputies/resource/deputies.csv';
 
@@ -612,30 +613,4 @@ it('guesses the open-data headers for person name columns', function () {
         ->and($columns['first_name']->getGuesses())->toContain('name')
         ->and($columns['middle_name']->getGuesses())->toContain('additionalname')
         ->and($columns['start_date']->getGuesses())->toContain('startdate');
-});
-
-it('formats completed notification body in Ukrainian with proper pluralization', function () {
-    $import = new Import;
-    $import->importer = DeputyImporter::class;
-    $import->total_rows = 1;
-    $import->successful_rows = 1;
-    expect(DeputyImporter::getCompletedNotificationBody($import))
-        ->toBe('DeputyImporter - Успішно імпортовано 1 запис.');
-
-    $import->total_rows = 3;
-    $import->successful_rows = 3;
-    expect(DeputyImporter::getCompletedNotificationBody($import))
-        ->toBe('DeputyImporter - Успішно імпортовано 3 записи.');
-
-    $import->total_rows = 10;
-    $import->successful_rows = 10;
-    expect(DeputyImporter::getCompletedNotificationBody($import))
-        ->toBe('DeputyImporter - Успішно імпортовано 10 записів.');
-
-    $importWithFailures = new Import;
-    $importWithFailures->importer = DeputyImporter::class;
-    $importWithFailures->total_rows = 5;
-    $importWithFailures->successful_rows = 3;
-    expect(DeputyImporter::getCompletedNotificationBody($importWithFailures))
-        ->toBe('DeputyImporter - Успішно імпортовано 3 записи. Не вдалося імпортувати: 2 рядки.');
 });

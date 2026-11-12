@@ -38,7 +38,6 @@ class FactionsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Редагувати')
                     ->schema([
                         TextInput::make('name')
                             ->label('Назва')

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Officials\Pages;
 
-use App\Enums\OpenDataResourceCode;
+use App\Enums\DatasetResourceType;
 use App\Filament\Imports\ImportHelper;
 use App\Filament\Imports\OfficialImporter;
 use App\Filament\Resources\Officials\OfficialResource;
@@ -21,7 +21,7 @@ class ListOfficials extends ListRecords
             ImportAction::make()
                 ->importer(OfficialImporter::class)
                 ->registerModalActions([
-                    ImportHelper::downloadPortalResourceAction(OpenDataResourceCode::Posts),
+                    ImportHelper::downloadPortalResourceAction(DatasetResourceType::Posts),
                 ]),
         ];
     }

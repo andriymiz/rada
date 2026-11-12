@@ -38,7 +38,6 @@ class PermanentCommissionsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Редагувати')
                     ->schema([
                         TextInput::make('name')
                             ->label('Назва')

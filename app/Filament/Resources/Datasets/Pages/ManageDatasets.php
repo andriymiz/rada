@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Datasets\Pages;
 
-use App\Enums\OpenDataResourceCode;
+use App\Enums\DatasetResourceType;
 use App\Filament\Exports\DatasetExporter;
 use App\Filament\Imports\DatasetImporter;
 use App\Filament\Imports\ImportHelper;
@@ -37,7 +37,7 @@ class ManageDatasets extends ManageRecords
                 ->pluralModelLabel('наборів даних')
                 ->importer(DatasetImporter::class)
                 ->registerModalActions([
-                    ImportHelper::downloadPortalResourceAction(OpenDataResourceCode::Register),
+                    ImportHelper::downloadPortalResourceAction(DatasetResourceType::Register),
                 ]),
             CreateAction::make(),
         ];

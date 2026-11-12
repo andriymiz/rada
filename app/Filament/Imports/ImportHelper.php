@@ -2,7 +2,7 @@
 
 namespace App\Filament\Imports;
 
-use App\Enums\OpenDataResourceCode;
+use App\Enums\DatasetResourceType;
 use App\Services\OpenDataPortal;
 use Closure;
 use Filament\Actions\Action;
@@ -20,10 +20,10 @@ class ImportHelper
             .' '.trans_choice('{1} запис|[2,4] записи|[5,*] записів', $import->total_rows).'.';
     }
 
-    public static function downloadPortalResourceAction(OpenDataResourceCode $code): Closure
+    public static function downloadPortalResourceAction(DatasetResourceType $type): Closure
     {
-        return static function (OpenDataPortal $openDataPortal) use ($code): ?Action {
-            $downloadUrl = $openDataPortal->getResourceDownloadUrl($code);
+        return static function (OpenDataPortal $openDataPortal) use ($type): ?Action {
+            $downloadUrl = $openDataPortal->getResourceDownloadUrl($type);
 
             if ($downloadUrl === null) {
                 return null;

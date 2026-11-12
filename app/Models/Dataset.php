@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 /**
@@ -63,5 +64,11 @@ class Dataset extends Model
     public function responsibleOfficial(): BelongsTo
     {
         return $this->belongsTo(Official::class, 'responsible_official_id');
+    }
+
+    /** @return HasMany<DatasetResource, $this> */
+    public function resources(): HasMany
+    {
+        return $this->hasMany(DatasetResource::class);
     }
 }

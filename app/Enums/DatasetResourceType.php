@@ -4,7 +4,7 @@ namespace App\Enums;
 
 use Filament\Support\Contracts\HasLabel;
 
-enum OpenDataResourceCode: string implements HasLabel
+enum DatasetResourceType: string implements HasLabel
 {
     case Organizations = 'organizations';
     case Posts = 'posts';

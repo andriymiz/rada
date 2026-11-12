@@ -1,13 +1,14 @@
 <?php
 
 use App\Enums\ContactPointType;
+use App\Enums\DatasetResourceType;
 use App\Enums\Gender;
-use App\Enums\OpenDataResourceCode;
 use App\Filament\Imports\OfficialImporter;
 use App\Filament\Resources\Officials\Pages\ListOfficials;
 use App\Models\CouncilOrganization;
+use App\Models\Dataset;
+use App\Models\DatasetResource;
 use App\Models\Official;
-use App\Models\OpenDataResource;
 use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -214,11 +215,12 @@ it('renders the csv import action on the officials list', function (): void {
 });
 
 it('links the officials importer to the configured open data resource', function (): void {
-    OpenDataResource::factory()->create([
-        'package_id' => 'officials-package-id',
-        'resource_id' => 'officials-resource-id',
-        'code' => OpenDataResourceCode::Posts->value,
-    ]);
+    DatasetResource::factory()
+        ->for(Dataset::factory()->state(['external_id' => 'officials-package-id']))
+        ->create([
+            'external_id' => 'officials-resource-id',
+            'type' => DatasetResourceType::Posts,
+        ]);
 
     $downloadUrl = 'https://data.gov.ua/dataset/officials/resource/officials.csv';
 

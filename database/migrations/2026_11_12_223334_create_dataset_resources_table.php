@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('open_data_resource', function (Blueprint $table): void {
+        Schema::create('dataset_resources', function (Blueprint $table): void {
             $table->id();
-            $table->string('package_id');
-            $table->string('resource_id');
-            $table->string('code')->unique();
+            $table->foreignId('dataset_id')->constrained()->cascadeOnDelete();
+            $table->uuid('external_id');
+            $table->string('type')->unique();
             $table->timestamps();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('open_data_resource');
+        Schema::dropIfExists('dataset_resources');
     }
 };

@@ -5,13 +5,8 @@ namespace App\Policies;
 use App\Models\CouncilOrganization;
 use App\Models\User;
 
-class OpenDataResourcePolicy
+class DatasetPolicy
 {
-    public function viewAny(User $user): bool
-    {
-        return $user->isAdmin();
-    }
-
     public function create(User $user): bool
     {
         return $user->isAdmin()

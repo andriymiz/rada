@@ -2,9 +2,8 @@
 
 namespace App\Services;
 
-use App\Enums\OpenDataResourceCode;
-use App\Models\CouncilOrganization;
-use App\Models\OpenDataResource;
+use App\Enums\DatasetResourceType;
+use App\Models\DatasetResource;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
@@ -86,19 +85,25 @@ class OpenDataPortal
             ->all();
     }
 
-    public function getResourceDownloadUrl(OpenDataResourceCode $code): ?string
+    public function getResourceLabel(string $packageId, string $resourceId): string
     {
-        $configuredResource = OpenDataResource::query()
-            ->where('code', $code->value)
+        return $this->searchResources($packageId, '')[$resourceId] ?? $resourceId;
+    }
+
+    public function getResourceDownloadUrl(DatasetResourceType $type): ?string
+    {
+        $configuredResource = DatasetResource::query()
+            ->with('dataset')
+            ->where('type', $type->value)
             ->first();
 
         if ($configuredResource === null) {
             return null;
         }
 
-        $resource = $this->getPackageResources($configuredResource->package_id)
+        $resource = $this->getPackageResources($configuredResource->dataset->external_id)
             ->first(fn (mixed $resource): bool => is_array($resource)
-                && ($resource['id'] ?? null) === $configuredResource->resource_id);
+                && ($resource['id'] ?? null) === $configuredResource->external_id);
         $url = is_array($resource) ? ($resource['url'] ?? null) : null;
 
         if (! is_string($url) || filter_var($url, FILTER_VALIDATE_URL) === false) {
