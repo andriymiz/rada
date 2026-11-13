@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DatasetRecommendation;
 use App\Enums\DatasetUpdateFrequency;
 use Database\Factories\DatasetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,10 +15,12 @@ use Illuminate\Support\Str;
 
 /**
  * @property DatasetUpdateFrequency $accrual_periodicity
+ * @property DatasetRecommendation|null $rec_code
  * @property array<int, string> $keywords
  * @property array<int, string> $distribution_formats
  */
 #[Fillable([
+    'rec_code',
     'title',
     'description',
     'accrual_periodicity',
@@ -42,6 +45,7 @@ class Dataset extends Model
     protected function casts(): array
     {
         return [
+            'rec_code' => DatasetRecommendation::class,
             'accrual_periodicity' => DatasetUpdateFrequency::class,
             'keywords' => 'array',
             'distribution_formats' => 'array',

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ContactPointType;
+use App\Enums\DatasetRecommendation;
 use App\Enums\DatasetResourceFormat;
 use App\Enums\DatasetResourceType;
 use App\Enums\DatasetUpdateFrequency;
@@ -17,6 +18,7 @@ use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -44,6 +46,7 @@ it('creates a dataset with an organization and responsible official', function (
 
     livewire(ManageDatasets::class)
         ->callAction(TestAction::make('create'), [
+            'rec_code' => DatasetRecommendation::OrganizationsDirectory->value,
             'title' => $title,
             'description' => 'Перелік наборів відкритих даних.',
             'accrual_periodicity' => DatasetUpdateFrequency::Yearly->value,
@@ -61,6 +64,7 @@ it('creates a dataset with an organization and responsible official', function (
     $dataset = Dataset::query()->where('title', $title)->firstOrFail();
 
     expect($dataset->external_id)->toBeUuid()
+        ->and($dataset->rec_code)->toBe(DatasetRecommendation::OrganizationsDirectory)
         ->and($dataset->accrual_periodicity)->toBe(DatasetUpdateFrequency::Yearly)
         ->and($dataset->keywords)->toBe(['реєстр', 'набори даних'])
         ->and($dataset->distribution_formats)->toBe([
@@ -78,6 +82,30 @@ it('creates a dataset with an organization and responsible official', function (
 it('hides dataset creation until an organization portal ID is configured', function (): void {
     livewire(ManageDatasets::class)
         ->assertActionHidden(TestAction::make('create'));
+});
+
+it('creates a custom dataset without a recommendation', function (): void {
+    $publisher = CouncilOrganization::factory()->create(['open_data_id' => 'portal-id']);
+    $official = Official::factory()->for($publisher, 'organization')->create();
+
+    livewire(ManageDatasets::class)
+        ->callAction(TestAction::make('create'), [
+            'rec_code' => null,
+            'title' => 'Власний набір ради',
+            'description' => 'Опис власного набору.',
+            'accrual_periodicity' => DatasetUpdateFrequency::Yearly->value,
+            'keywords' => ['реєстр'],
+            'purpose' => 'Організація роботи ради.',
+            'distribution_formats' => [DatasetResourceFormat::Csv->value],
+            'publisher_id' => $publisher->id,
+            'responsible_official_id' => $official->id,
+        ])
+        ->assertHasNoFormErrors();
+
+    $this->assertDatabaseHas('datasets', [
+        'title' => 'Власний набір ради',
+        'rec_code' => null,
+    ]);
 });
 
 it('does not allow non-administrators to create datasets when the portal is configured', function (): void {
@@ -101,24 +129,92 @@ it('edits dataset details on its edit page', function () {
     livewire(EditDataset::class, ['record' => $dataset->getKey()])
         ->fillForm([
             'title' => 'Оновлений реєстр',
+            'rec_code' => DatasetRecommendation::LocalDeputies->value,
             'keywords' => ['оновлений реєстр'],
         ])
         ->call('save')
         ->assertHasNoFormErrors();
 
     expect($dataset->refresh()->title)->toBe('Оновлений реєстр')
+        ->and($dataset->rec_code)->toBe(DatasetRecommendation::LocalDeputies)
         ->and($dataset->keywords)->toBe(['оновлений реєстр']);
+});
+
+it('allows a dataset recommendation to remain unchanged or be cleared', function (): void {
+    $dataset = Dataset::factory()->create(['rec_code' => DatasetRecommendation::LocalDeputies]);
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->fillForm(['rec_code' => null])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($dataset->refresh()->rec_code)->toBeNull();
+});
+
+it('rejects a recommendation already assigned to another dataset', function (): void {
+    Dataset::factory()->create(['rec_code' => DatasetRecommendation::LocalDeputies]);
+    $dataset = Dataset::factory()->create();
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->fillForm(['rec_code' => DatasetRecommendation::LocalDeputies->value])
+        ->call('save')
+        ->assertHasFormErrors(['rec_code' => 'unique']);
+
+    expect($dataset->refresh()->rec_code)->toBeNull();
+});
+
+it('rejects an unknown dataset recommendation', function (): void {
+    $dataset = Dataset::factory()->create();
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->fillForm(['rec_code' => 'unknown_recommendation'])
+        ->call('save')
+        ->assertHasFormErrors(['rec_code']);
+
+    expect($dataset->refresh()->rec_code)->toBeNull();
+});
+
+it('allows multiple custom datasets without a recommendation', function (): void {
+    $datasets = Dataset::factory()->count(2)->create();
+
+    expect($datasets->first()->rec_code)->toBeNull()
+        ->and($datasets->last()->rec_code)->toBeNull();
+});
+
+it('enforces recommendation uniqueness in the database', function (): void {
+    Dataset::factory()->create(['rec_code' => DatasetRecommendation::LocalDeputies]);
+
+    expect(fn () => Dataset::factory()->create(['rec_code' => DatasetRecommendation::LocalDeputies]))
+        ->toThrow(QueryException::class);
+});
+
+it('provides official labels and documentation links for the recommendations', function (): void {
+    expect(DatasetRecommendation::cases())->toHaveCount(75)
+        ->and(DatasetRecommendation::LocalDeputies->getLabel())
+        ->toBe('Дані про депутатів місцевих рад, зокрема контактна інформація та графік прийому')
+        ->and(DatasetRecommendation::LocalDeputies->getExternalLink())
+        ->toBe('https://data.gov.ua/pages/835-recm-local-government-deputies')
+        ->and(DatasetRecommendation::Playgrounds->getExternalLink())
+        ->toBe('https://data.gov.ua/pages/835-recm-budget-budget-programs')
+        ->and(DatasetRecommendation::PreschoolCatchmentAreas->getExternalLink())
+        ->toBe('https://data.gov.ua/pages/terytorii-obsluhovuvannia-komunalnykh-zakladiv-doshkilnoi-osvity')
+        ->and(DatasetRecommendation::BurialRegisters->getLabel())
+        ->toBe('Перелік книг обліку реєстрації поховань');
 });
 
 it('opens the dataset edit page from the table action', function (): void {
     $dataset = Dataset::factory()->create();
+    $editUrl = DatasetResource::getUrl('edit', ['record' => $dataset]);
 
     livewire(ManageDatasets::class)
         ->assertTableActionHasUrl(
             'edit',
-            DatasetResource::getUrl('edit', ['record' => $dataset]),
+            $editUrl,
             $dataset,
-        );
+        )
+        ->assertSee('href="'.$editUrl.'"', false);
 });
 
 it('shows portal resource management on the dataset edit page', function (): void {
@@ -297,6 +393,31 @@ it('renders the dataset portal link as an icon action', function () {
         ->assertTableActionHasIcon('portalLink', Heroicon::OutlinedArrowTopRightOnSquare, $dataset)
         ->assertTableActionHasUrl('portalLink', $dataset->url, $dataset)
         ->assertTableActionShouldOpenUrlInNewTab('portalLink', $dataset);
+});
+
+it('renders a documentation action that opens the recommendation in a new tab', function (): void {
+    $dataset = Dataset::factory()->create([
+        'rec_code' => DatasetRecommendation::LocalDeputies,
+    ]);
+
+    livewire(ManageDatasets::class)
+        ->assertCanSeeTableRecords([$dataset])
+        ->assertTableActionVisible('documentationLink', $dataset)
+        ->assertTableActionHasIcon('documentationLink', Heroicon::OutlinedInformationCircle, $dataset)
+        ->assertTableActionHasUrl(
+            'documentationLink',
+            'https://data.gov.ua/pages/835-recm-local-government-deputies',
+            $dataset,
+        )
+        ->assertTableActionShouldOpenUrlInNewTab('documentationLink', $dataset);
+});
+
+it('hides the documentation action for custom datasets', function (): void {
+    $dataset = Dataset::factory()->create(['rec_code' => null]);
+
+    livewire(ManageDatasets::class)
+        ->assertCanSeeTableRecords([$dataset])
+        ->assertTableActionHidden('documentationLink', $dataset);
 });
 
 it('renders the datasets page with the responsible person and email', function () {

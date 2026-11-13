@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Datasets;
 
+use App\Enums\DatasetRecommendation;
 use App\Enums\DatasetResourceFormat;
 use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
@@ -23,6 +24,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
 
 class DatasetResource extends Resource
 {
@@ -40,6 +42,13 @@ class DatasetResource extends Resource
     {
         return $schema
             ->components([
+                Select::make('rec_code')
+                    ->label('Набір даних із переліку')
+                    ->options(DatasetRecommendation::class)
+                    ->searchable()
+                    ->rule(Rule::enum(DatasetRecommendation::class))
+                    ->unique(ignoreRecord: true)
+                    ->columnSpanFull(),
                 TextInput::make('title')
                     ->label('Назва')
                     ->required()
@@ -100,7 +109,8 @@ class DatasetResource extends Resource
                     ->copyableState(fn (string $state): string => $state),
                 TextColumn::make('title')
                     ->label('Назва')
-                    ->limit(50),
+                    ->limit(50)
+                    ->url(fn (Dataset $record): string => static::getUrl('edit', ['record' => $record])),
                 TextColumn::make('accrual_periodicity')
                     ->label('Частота оновлення')
                     ->formatStateUsing(fn (DatasetUpdateFrequency $state): string => $state->getLabel()),
@@ -119,6 +129,13 @@ class DatasetResource extends Resource
                     ->iconButton()
                     ->url(fn (Dataset $record): string => $record->url)
                     ->openUrlInNewTab(),
+                Action::make('documentationLink')
+                    ->label('Опис набору даних')
+                    ->icon(Heroicon::OutlinedInformationCircle)
+                    ->iconButton()
+                    ->url(fn (Dataset $record): ?string => $record->rec_code?->getExternalLink())
+                    ->openUrlInNewTab()
+                    ->visible(fn (Dataset $record): bool => $record->rec_code !== null),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
