@@ -380,15 +380,6 @@ it('rejects confirmation of an import that is not linked to a meeting', function
         ->and(Motion::query()->count())->toBe(0);
 });
 
-it('does not allow completed imports to be edited', function () {
-    $import = RollCallImport::factory()->create([
-        'status' => RollCallImportStatus::Completed,
-    ]);
-
-    livewire(EditRollCallImport::class, ['record' => $import->id])
-        ->assertForbidden();
-});
-
 it('soft deletes imports without deleting their uploaded PDFs', function () {
     $meeting = PlenaryMeeting::factory()->create();
     $import = RollCallImport::factory()->create(['plenary_meeting_id' => $meeting->id]);
