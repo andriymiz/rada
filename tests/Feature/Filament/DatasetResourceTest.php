@@ -2,6 +2,7 @@
 
 use App\Enums\DatasetRecommendation;
 use App\Enums\DatasetStatus;
+use App\Enums\UserRole;
 use App\Filament\Resources\Datasets\DatasetResource;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
@@ -16,6 +17,7 @@ use Filament\Facades\Filament;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 
@@ -56,6 +58,49 @@ it('sets the portal identifier from the search action without fetching metadata'
 it('hides dataset creation until an organization portal ID is configured', function (): void {
     livewire(ManageDatasets::class)
         ->assertActionHidden(TestAction::make('create'));
+});
+
+it('allows deleting only datasets without a recommendation for each role', function (UserRole $role): void {
+    $user = User::factory()->create(['role' => $role]);
+    $recommendedDataset = Dataset::factory()->make(['rec_code' => DatasetRecommendation::LocalDeputies]);
+    $customDataset = Dataset::factory()->make(['rec_code' => null]);
+
+    expect(Gate::forUser($user)->allows('delete', $recommendedDataset))->toBeFalse()
+        ->and(Gate::forUser($user)->allows('delete', $customDataset))->toBeTrue();
+})->with([UserRole::Admin, UserRole::Employee]);
+
+it('hides and rejects deletion of recommended datasets in the table and edit page', function (): void {
+    $dataset = Dataset::factory()->create(['rec_code' => DatasetRecommendation::LocalDeputies]);
+
+    livewire(ManageDatasets::class)
+        ->assertTableActionHidden('delete', $dataset)
+        ->mountAction(TestAction::make('delete')->table($dataset))
+        ->assertActionNotMounted()
+        ->callMountedAction();
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->assertActionHidden('delete')
+        ->mountAction('delete')
+        ->assertActionNotMounted()
+        ->callMountedAction();
+
+    $this->assertModelExists($dataset);
+});
+
+it('allows deleting custom datasets from the table and edit page', function (): void {
+    $tableDataset = Dataset::factory()->create(['rec_code' => null]);
+    $editDataset = Dataset::factory()->create(['rec_code' => null]);
+
+    livewire(ManageDatasets::class)
+        ->assertTableActionVisible('delete', $tableDataset)
+        ->callAction(TestAction::make('delete')->table($tableDataset));
+
+    livewire(EditDataset::class, ['record' => $editDataset->getKey()])
+        ->assertActionVisible('delete')
+        ->callAction('delete');
+
+    $this->assertModelMissing($tableDataset);
+    $this->assertModelMissing($editDataset);
 });
 
 it('hides the portal metadata section for datasets without a saved portal identifier', function (): void {
