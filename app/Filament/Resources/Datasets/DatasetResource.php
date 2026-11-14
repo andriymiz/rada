@@ -9,6 +9,7 @@ use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
 use App\Models\Dataset;
+use App\Models\DatasetGroup;
 use App\Models\Official;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -22,6 +23,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
@@ -52,8 +54,13 @@ class DatasetResource extends Resource
                 TextInput::make('title')
                     ->label('Назва')
                     ->required()
-                    ->maxLength(500)
-                    ->columnSpanFull(),
+                    ->maxLength(500),
+                Select::make('group_id')
+                    ->label('Група')
+                    ->relationship('group', 'name')
+                    ->preload()
+                    ->createOptionForm(static fn (): array => self::groupOptionForm())
+                    ->editOptionForm(static fn (): array => self::groupOptionForm()),
                 Textarea::make('description')
                     ->label('Опис')
                     ->required()
@@ -97,18 +104,37 @@ class DatasetResource extends Resource
             ]);
     }
 
+    /**
+     * @return array<int, TextInput>
+     */
+    private static function groupOptionForm(): array
+    {
+        return [
+            TextInput::make('name')
+                ->label('Назва групи')
+                ->required()
+                ->maxLength(255)
+                ->unique(ignoreRecord: true),
+            TextInput::make('sort')
+                ->label('Порядок')
+                ->numeric()
+                ->integer()
+                ->minValue(1)
+                ->default(fn (): int => ((int) DatasetGroup::query()->max('sort')) + 1)
+                ->required(),
+        ];
+    }
+
     public static function table(Table $table): Table
     {
         return $table
             ->recordTitleAttribute('title')
             ->columns([
-                TextColumn::make('external_id')
-                    ->label('Ідентифікатор')
-                    ->limit(14)
-                    ->copyable()
-                    ->copyableState(fn (string $state): string => $state),
+                TextColumn::make('sort')
+                    ->label('№'),
                 TextColumn::make('title')
                     ->label('Назва')
+                    ->searchable()
                     ->limit(50)
                     ->url(fn (Dataset $record): string => static::getUrl('edit', ['record' => $record])),
                 TextColumn::make('accrual_periodicity')
@@ -117,18 +143,20 @@ class DatasetResource extends Resource
                 TextColumn::make('publisher.name')
                     ->label('Розпорядник'),
             ])
+            ->defaultGroup(
+                Group::make('group_id')
+                    ->titlePrefixedWithLabel(false)
+                    ->getTitleFromRecordUsing(fn (Dataset $record): string => $record->group->name ?? 'Інше')
+                    ->collapsible(),
+            )
+            ->defaultSort('sort')
+            ->reorderable('sort')
+            ->searchable(true)
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'responsibleOfficial.person',
-                'responsibleOfficial.contactPoints',
                 'publisher',
+                'group',
             ]))
             ->recordActions([
-                Action::make('portalLink')
-                    ->label('Відкрити на порталі')
-                    ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
-                    ->iconButton()
-                    ->url(fn (Dataset $record): string => $record->url)
-                    ->openUrlInNewTab(),
                 Action::make('documentationLink')
                     ->label('Опис набору даних')
                     ->icon(Heroicon::OutlinedInformationCircle)
@@ -136,6 +164,12 @@ class DatasetResource extends Resource
                     ->url(fn (Dataset $record): ?string => $record->rec_code?->getExternalLink())
                     ->openUrlInNewTab()
                     ->visible(fn (Dataset $record): bool => $record->rec_code !== null),
+                Action::make('portalLink')
+                    ->label('Відкрити на порталі')
+                    ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                    ->iconButton()
+                    ->url(fn (Dataset $record): string => $record->url)
+                    ->openUrlInNewTab(),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);

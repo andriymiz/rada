@@ -11,6 +11,7 @@ use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
 use App\Models\CouncilOrganization;
 use App\Models\Dataset;
+use App\Models\DatasetGroup;
 use App\Models\DatasetResource as DatasetResourceModel;
 use App\Models\Official;
 use App\Models\Person;
@@ -138,6 +139,66 @@ it('edits dataset details on its edit page', function () {
     expect($dataset->refresh()->title)->toBe('Оновлений реєстр')
         ->and($dataset->rec_code)->toBe(DatasetRecommendation::LocalDeputies)
         ->and($dataset->keywords)->toBe(['оновлений реєстр']);
+});
+
+it('creates and assigns a group from the dataset form dropdown', function (): void {
+    $dataset = Dataset::factory()->create();
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->callFormComponentAction('group_id', 'createOption', [
+            'name' => 'Звіти та фінанси',
+        ])
+        ->assertHasNoFormErrors()
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $group = DatasetGroup::query()->where('name', 'Звіти та фінанси')->firstOrFail();
+
+    expect($dataset->refresh()->group_id)->toBe($group->getKey())
+        ->and($dataset->group->name)->toBe('Звіти та фінанси')
+        ->and($group->sort)->toBe(1);
+});
+
+it('renames a group from the dataset form dropdown', function (): void {
+    $group = DatasetGroup::factory()->create(['name' => 'Попередня назва']);
+    $dataset = Dataset::factory()->for($group, 'group')->create();
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->callFormComponentAction('group_id', 'editOption', [
+            'name' => 'Оновлена назва',
+            'sort' => 5,
+        ])
+        ->assertHasNoFormErrors();
+
+    expect($group->refresh()->name)->toBe('Оновлена назва')
+        ->and($group->sort)->toBe(5);
+});
+
+it('assigns each new dataset the next order within its group', function (): void {
+    $group = DatasetGroup::factory()->create();
+    $first = Dataset::factory()->for($group, 'group')->create();
+    $second = Dataset::factory()->for($group, 'group')->create();
+
+    expect($first->sort)->toBe(1)
+        ->and($second->sort)->toBe(2);
+});
+
+it('reorders datasets using the manual order field', function (): void {
+    $group = DatasetGroup::factory()->create(['name' => 'Рішення ради']);
+    $first = Dataset::factory()->for($group, 'group')->create(['sort' => 1]);
+    $second = Dataset::factory()->for($group, 'group')->create(['sort' => 2]);
+    $otherGroup = DatasetGroup::factory()->create(['name' => 'Звіти']);
+    $third = Dataset::factory()->for($otherGroup, 'group')->create(['sort' => 1]);
+
+    livewire(ManageDatasets::class)
+        ->assertCanSeeTableRecords([$first, $second, $third])
+        ->assertSee('Рішення ради')
+        ->assertSee('Звіти')
+        ->call('reorderTable', [$second->getKey(), $first->getKey(), $third->getKey()]);
+
+    expect($second->refresh()->sort)->toBe(1)
+        ->and($first->refresh()->sort)->toBe(2)
+        ->and($third->refresh()->sort)->toBe(3);
 });
 
 it('allows a dataset recommendation to remain unchanged or be cleared', function (): void {
@@ -444,7 +505,8 @@ it('renders the datasets page with the responsible person and email', function (
     livewire(ManageDatasets::class)
         ->assertCanSeeTableRecords([$dataset])
         ->assertSee('Набори даних')
-        ->assertTableColumnStateSet('external_id', $dataset->external_id, $dataset);
+        ->assertSee('№')
+        ->assertTableColumnStateSet('sort', $dataset->sort, $dataset);
 
     $this->get(DatasetResource::getUrl())
         ->assertOk()

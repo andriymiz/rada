@@ -16,8 +16,11 @@ use Illuminate\Support\Str;
 /**
  * @property DatasetUpdateFrequency $accrual_periodicity
  * @property DatasetRecommendation|null $rec_code
+ * @property int|null $group_id
+ * @property int $sort
  * @property array<int, string> $keywords
  * @property array<int, string> $distribution_formats
+ * @property-read DatasetGroup|null $group
  */
 #[Fillable([
     'rec_code',
@@ -29,6 +32,7 @@ use Illuminate\Support\Str;
     'distribution_formats',
     'publisher_id',
     'responsible_official_id',
+    'group_id',
 ])]
 class Dataset extends Model
 {
@@ -39,6 +43,9 @@ class Dataset extends Model
     {
         static::creating(function (Dataset $dataset): void {
             $dataset->external_id ??= (string) Str::uuid();
+            $dataset->sort ??= ((int) static::query()
+                ->where('group_id', $dataset->group_id)
+                ->max('sort')) + 1;
         });
     }
 
@@ -68,6 +75,12 @@ class Dataset extends Model
     public function responsibleOfficial(): BelongsTo
     {
         return $this->belongsTo(Official::class, 'responsible_official_id');
+    }
+
+    /** @return BelongsTo<DatasetGroup, $this> */
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(DatasetGroup::class, 'group_id');
     }
 
     /** @return HasMany<DatasetResource, $this> */
