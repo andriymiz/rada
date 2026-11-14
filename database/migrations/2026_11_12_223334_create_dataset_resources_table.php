@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('dataset_resources', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('dataset_id')->constrained()->cascadeOnDelete();
-            $table->uuid('external_id');
-            $table->string('type')->unique();
+            $table->uuid('external_id')->unique();
+            $table->string('name')->unique();
+            $table->string('format')->nullable();
             $table->timestamps();
         });
     }

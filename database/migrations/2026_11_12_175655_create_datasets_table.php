@@ -13,15 +13,10 @@ return new class extends Migration
     {
         Schema::create('datasets', function (Blueprint $table): void {
             $table->id();
-            $table->uuid('external_id')->unique();
+            $table->string('rec_code')->nullable()->unique();
+            $table->uuid('external_id')->nullable();
             $table->string('title');
-            $table->text('description');
-            $table->string('accrual_periodicity');
-            $table->json('keywords');
-            $table->text('purpose');
-            $table->json('distribution_formats');
             $table->foreignId('publisher_id')->constrained('council_organizations')->restrictOnDelete();
-            $table->foreignId('responsible_official_id')->constrained('officials')->restrictOnDelete();
             $table->timestamps();
         });
     }

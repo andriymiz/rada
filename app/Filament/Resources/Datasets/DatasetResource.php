@@ -3,21 +3,19 @@
 namespace App\Filament\Resources\Datasets;
 
 use App\Enums\DatasetRecommendation;
-use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
 use App\Models\Dataset;
 use App\Models\DatasetGroup;
-use App\Models\DatasetMeta;
 use App\Services\OpenDataPortal;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -106,28 +104,12 @@ class DatasetResource extends Resource
                 Section::make('Додаткова інформація з порталу')
                     ->key('portalMetadata')
                     ->schema([
-                        Placeholder::make('portal_metadata_preview')
-                            ->label('Стан метаданих')
-                            ->content(function (Get $get, mixed $record): string {
-                                $selectedPackageId = $get('external_id');
-
-                                if (! is_string($selectedPackageId) || blank($selectedPackageId)) {
-                                    return 'Оберіть набір на порталі, щоб отримати додаткову інформацію.';
-                                }
-
-                                if (! $record instanceof Dataset || $record->external_id !== $selectedPackageId) {
-                                    return 'Збережіть вибір набору на порталі, щоб завантажити додаткову інформацію.';
-                                }
-
-                                $metadata = $record->meta;
-
-                                if ($metadata === null) {
-                                    return 'Натисніть «Оновити» у шапці секції, щоб завантажити додаткову інформацію з порталу.';
-                                }
-
-                                return self::formatPortalMetadata($metadata);
-                            })
-                            ->columnSpanFull(),
+                        TextEntry::make('meta.description')->label('Опис'),
+                        TextEntry::make('meta.accrual_periodicity')->label('Частота оновлення'),
+                        TextEntry::make('meta.keywords')->label('Ключові слова'),
+                        TextEntry::make('meta.purpose')->label('Підстава та призначення'),
+                        TextEntry::make('meta.contact_point_name')->label('Контактна особа'),
+                        TextEntry::make('meta.contact_point_email')->label('Електронна пошта'),
                     ])
                     ->headerActions([
                         fn (): Action => Action::make('syncPortalMetadata')
@@ -204,37 +186,6 @@ class DatasetResource extends Resource
                 ->default(fn (): int => ((int) DatasetGroup::query()->max('sort')) + 1)
                 ->required(),
         ];
-    }
-
-    private static function formatPortalMetadata(DatasetMeta $metadata): string
-    {
-        return collect([
-            'Опис' => $metadata->description,
-            'Частота оновлення' => self::formatUpdateFrequency($metadata->accrual_periodicity),
-            'Ключові слова' => implode(', ', $metadata->keywords),
-            'Підстава та призначення' => $metadata->purpose,
-            'Контактна особа' => $metadata->contact_point_name,
-            'Електронна пошта' => $metadata->contact_point_email,
-        ])
-            ->map(fn (mixed $value, string $label): string => $label.': '.(is_string($value) && filled($value)
-                ? $value
-                : 'не зазначено'))
-            ->implode(' · ');
-    }
-
-    private static function formatUpdateFrequency(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $frequency = collect(DatasetUpdateFrequency::cases())
-            ->first(fn (DatasetUpdateFrequency $case): bool => in_array($value, [
-                $case->value,
-                $case->getLabel(),
-            ], true));
-
-        return $frequency?->getLabel() ?? $value;
     }
 
     public static function table(Table $table): Table

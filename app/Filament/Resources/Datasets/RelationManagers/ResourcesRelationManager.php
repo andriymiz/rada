@@ -32,6 +32,7 @@ class ResourcesRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('external_id')
+            ->paginated(false)
             ->columns([
                 TextColumn::make('name')
                     ->label('Назва')
@@ -66,6 +67,7 @@ class ResourcesRelationManager extends RelationManager
                 Action::make('openPortalResource')
                     ->label('Відкрити на порталі')
                     ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                    ->iconButton()
                     ->url(function (
                         DatasetResource $record,
                         RelationManager $livewire,

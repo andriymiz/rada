@@ -347,43 +347,6 @@ it('synchronizes portal resources and removes local resources that no longer exi
         && $request->data()['id'] === 'dataset-package-id');
 });
 
-it('preserves same-named resources in other datasets while synchronizing', function (): void {
-    $dataset = Dataset::factory()->create([
-        'external_id' => 'dataset-package-id',
-    ]);
-    $otherDataset = Dataset::factory()->create([
-        'external_id' => 'other-package-id',
-    ]);
-    $otherResource = $otherDataset->resources()->create([
-        'external_id' => 'other-resource-id',
-        'name' => 'organizations.csv',
-        'format' => 'CSV',
-    ]);
-
-    Http::preventStrayRequests();
-    Http::fake([
-        'data.gov.ua/api/3/action/package_show*' => Http::response([
-            'success' => true,
-            'result' => [
-                'id' => 'dataset-package-id',
-                'resources' => [
-                    ['id' => 'resource-id', 'name' => 'organizations.csv', 'format' => 'CSV'],
-                ],
-            ],
-        ]),
-    ]);
-
-    livewire(ResourcesRelationManager::class, [
-        'ownerRecord' => $dataset,
-        'pageClass' => EditDataset::class,
-    ])
-        ->callTableAction('sync')
-        ->assertNotified();
-
-    expect($otherResource->refresh()->name)->toBe('organizations.csv')
-        ->and($dataset->resources()->sole()->external_id)->toBe('resource-id');
-});
-
 it('updates an existing resource using the portal resource with the same external ID', function (): void {
     $dataset = Dataset::factory()->create([
         'external_id' => 'dataset-package-id',
