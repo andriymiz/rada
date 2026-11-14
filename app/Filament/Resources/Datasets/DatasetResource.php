@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Datasets;
 
 use App\Enums\DatasetRecommendation;
+use App\Enums\DatasetStatus;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
@@ -24,6 +25,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -56,11 +58,13 @@ class DatasetResource extends Resource
                 TextInput::make('title')
                     ->label('Назва')
                     ->required()
-                    ->maxLength(500),
+                    ->maxLength(500)
+                    ->columnSpan(2),
                 Select::make('group_id')
                     ->label('Група')
                     ->relationship('group', 'name')
                     ->preload()
+                    ->columnSpan(2)
                     ->createOptionForm(static fn (): array => self::groupOptionForm())
                     ->editOptionForm(static fn (): array => self::groupOptionForm()),
                 Select::make('publisher_id')
@@ -68,9 +72,33 @@ class DatasetResource extends Resource
                     ->relationship('publisher', 'name')
                     ->searchable()
                     ->preload()
+                    ->columnSpan(2)
                     ->required(),
+                TextInput::make('info_owner')
+                    ->label('Власники інформації')
+                    ->columnSpan(2)
+                    ->maxLength(255),
+                Select::make('status')
+                    ->label('Статус')
+                    ->options(DatasetStatus::class)
+                    ->default(DatasetStatus::Unknown->value)
+                    ->required()
+                    ->live()
+                    ->rule(Rule::enum(DatasetStatus::class)),
+                TextInput::make('status_note')
+                    ->label('Коментар до статусу')
+                    ->required(fn (Get $get): bool => in_array($get('status'), [
+                        DatasetStatus::NoInformation->value,
+                        DatasetStatus::NotPublished->value,
+                    ], true))
+                    ->requiredIf('status', [
+                        DatasetStatus::NoInformation->value,
+                        DatasetStatus::NotPublished->value,
+                    ])
+                    ->maxLength(255),
                 TextInput::make('external_id')
                     ->label('Ідентифікаційний номер набору даних')
+                    ->columnSpan(2)
                     ->placeholder('Введіть ID або знайдіть за назвою')
                     ->suffixAction(
                         Action::make('searchPortalDataset')
@@ -144,7 +172,7 @@ class DatasetResource extends Resource
                     ])
                     ->visible(fn (mixed $record): bool => $record instanceof Dataset && filled($record->external_id))
                     ->columnSpanFull(),
-            ]);
+            ])->columns(4);
     }
 
     public static function syncPortalMetadata(Dataset $dataset, OpenDataPortal $portal): void
@@ -198,11 +226,30 @@ class DatasetResource extends Resource
                 TextColumn::make('title')
                     ->label('Назва')
                     ->searchable()
-                    ->limit(50)
+                    ->wrap()
+                    ->limit(200)
                     ->url(fn (Dataset $record): string => static::getUrl('edit', ['record' => $record])),
-                TextColumn::make('publisher.name')
-                    ->label('Розпорядник'),
+                TextColumn::make('status')
+                    ->label('Статус')
+                    ->tooltip(fn (Dataset $record): ?string => $record->status_note),
+                TextColumn::make('info_owner')
+                    ->label('Розпорядники')
+                    ->wrap()
+                    ->searchable(),
             ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Статус')
+                    ->options(DatasetStatus::class),
+            ])
+            ->recordClasses(fn (Dataset $record): ?string => match ($record->status) {
+                DatasetStatus::Unknown => 'dataset-status-unknown',
+                DatasetStatus::NoInformation => 'dataset-status-no-information',
+                DatasetStatus::NotPublished => 'dataset-status-not-published',
+                DatasetStatus::Collecting => 'dataset-status-collecting',
+                DatasetStatus::Published => 'dataset-status-published',
+                default => null,
+            })
             ->defaultGroup(
                 Group::make('group_id')
                     ->titlePrefixedWithLabel(false)
@@ -214,7 +261,6 @@ class DatasetResource extends Resource
             ->searchable(true)
             ->paginated(false)
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'publisher',
                 'group',
             ]))
             ->recordActions([

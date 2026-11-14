@@ -129,6 +129,46 @@
     @apply border-danger-600;
 }
 
+.fi-ta-row.dataset-status-unknown {
+    @apply bg-amber-50;
+}
+
+.fi-ta-row.dataset-status-unknown.fi-clickable:hover {
+    @apply bg-amber-100;
+}
+
+.fi-ta-row.dataset-status-no-information {
+    @apply bg-gray-50;
+}
+
+.fi-ta-row.dataset-status-no-information.fi-clickable:hover {
+    @apply bg-gray-100;
+}
+
+.fi-ta-row.dataset-status-not-published {
+    @apply bg-rose-50;
+}
+
+.fi-ta-row.dataset-status-not-published.fi-clickable:hover {
+    @apply bg-rose-100;
+}
+
+.fi-ta-row.dataset-status-collecting {
+    @apply bg-blue-50;
+}
+
+.fi-ta-row.dataset-status-collecting.fi-clickable:hover {
+    @apply bg-blue-100;
+}
+
+.fi-ta-row.dataset-status-published {
+    @apply bg-emerald-50;
+}
+
+.fi-ta-row.dataset-status-published.fi-clickable:hover {
+    @apply bg-emerald-100;
+}
+
 .fi-checkbox-input,
 .fi-radio-input {
     @apply shadow-none border;

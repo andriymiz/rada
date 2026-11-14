@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\DatasetRecommendation;
+use App\Enums\DatasetStatus;
 use Database\Factories\DatasetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -15,6 +16,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * @property string|null $external_id
  * @property DatasetRecommendation|null $rec_code
+ * @property DatasetStatus $status
+ * @property string|null $status_note
+ * @property string|null $info_owner
  * @property int|null $group_id
  * @property int $sort
  * @property-read DatasetGroup|null $group
@@ -26,6 +30,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'title',
     'publisher_id',
     'group_id',
+    'status',
+    'status_note',
+    'info_owner',
 ])]
 class Dataset extends Model
 {
@@ -45,6 +52,7 @@ class Dataset extends Model
     {
         return [
             'rec_code' => DatasetRecommendation::class,
+            'status' => DatasetStatus::class,
         ];
     }
 

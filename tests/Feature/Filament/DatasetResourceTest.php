@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\DatasetRecommendation;
+use App\Enums\DatasetStatus;
 use App\Filament\Resources\Datasets\DatasetResource;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
@@ -81,6 +82,7 @@ it('creates a custom dataset without a recommendation', function (): void {
         'title' => 'Власний набір ради',
         'rec_code' => null,
         'external_id' => null,
+        'status' => DatasetStatus::Unknown->value,
     ]);
     $this->assertDatabaseMissing('dataset_metas', [
         'dataset_id' => Dataset::query()->where('title', 'Власний набір ради')->value('id'),
@@ -128,6 +130,73 @@ it('edits dataset details on its edit page', function () {
         ->and($dataset->meta->keywords)->toBe(['оновлений реєстр']);
 
     Http::assertNothingSent();
+});
+
+it('saves the dataset status and information owner without changing its publisher', function (): void {
+    $publisher = CouncilOrganization::factory()->create();
+    $dataset = Dataset::factory()->for($publisher, 'publisher')->create();
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->fillForm([
+            'status' => DatasetStatus::Collecting->value,
+            'status_note' => null,
+            'info_owner' => 'Відділ цифрового розвитку',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($dataset->refresh()->status)->toBe(DatasetStatus::Collecting)
+        ->and($dataset->status_note)->toBeNull()
+        ->and($dataset->info_owner)->toBe('Відділ цифрового розвитку')
+        ->and($dataset->publisher_id)->toBe($publisher->getKey());
+});
+
+it('requires a comment for statuses that need an explanation', function (DatasetStatus $status): void {
+    $dataset = Dataset::factory()->create();
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->fillForm([
+            'status' => $status->value,
+            'status_note' => null,
+        ])
+        ->call('save')
+        ->assertHasFormErrors(['status_note' => 'required_if']);
+})->with([
+    'no information' => DatasetStatus::NoInformation,
+    'not published' => DatasetStatus::NotPublished,
+]);
+
+it('shows the status, its comment, and information owner in the dataset table', function (): void {
+    $dataset = Dataset::factory()->create([
+        'status' => DatasetStatus::NotPublished,
+        'status_note' => 'Не публікується на період воєнного стану.',
+        'info_owner' => 'Відділ цифрового розвитку',
+    ]);
+
+    livewire(ManageDatasets::class)
+        ->assertCanSeeTableRecords([$dataset])
+        ->assertSee('dataset-status-not-published', false)
+        ->assertSee('Не публікується')
+        ->assertSee('Не публікується на період воєнного стану.')
+        ->assertSee('Відділ цифрового розвитку');
+});
+
+it('highlights unknown datasets and uses a neutral color for datasets without information', function (): void {
+    expect(DatasetStatus::Unknown->getColor())->toBe('warning')
+        ->and(DatasetStatus::NoInformation->getColor())->toBe('gray');
+});
+
+it('filters datasets by status and restores all records when cleared', function (): void {
+    $unknown = Dataset::factory()->create(['status' => DatasetStatus::Unknown]);
+    $published = Dataset::factory()->create(['status' => DatasetStatus::Published]);
+
+    livewire(ManageDatasets::class)
+        ->assertCanSeeTableRecords([$unknown, $published])
+        ->filterTable('status', DatasetStatus::Published->value)
+        ->assertCanSeeTableRecords([$published])
+        ->assertCanNotSeeTableRecords([$unknown])
+        ->removeTableFilter('status')
+        ->assertCanSeeTableRecords([$unknown, $published]);
 });
 
 it('creates and assigns a group from the dataset form dropdown', function (): void {
