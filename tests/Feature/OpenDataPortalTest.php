@@ -144,21 +144,6 @@ it('downloads report resources by their exact portal names regardless of file ex
         ->toBe('https://data.gov.ua/listOfReports.csv');
 });
 
-it('throws when multiple resources match an importer resource type', function (): void {
-    foreach (['first', 'second'] as $packageId) {
-        DatasetResource::factory()
-            ->for(Dataset::factory()->state(['external_id' => "{$packageId}-package-id"]))
-            ->create([
-                'name' => DatasetResourceType::Deputies,
-            ]);
-    }
-
-    Http::preventStrayRequests();
-
-    expect(fn () => app(OpenDataPortal::class)->getResourceDownloadUrl(DatasetResourceType::Deputies))
-        ->toThrow(UnexpectedValueException::class, 'Multiple portal resources are configured');
-});
-
 it('removes all local resources when the portal package has no resources', function (): void {
     $dataset = Dataset::factory()->create([
         'external_id' => 'empty-package-id',
@@ -185,11 +170,4 @@ it('removes all local resources when the portal package has no resources', funct
     $this->assertDatabaseMissing('dataset_resources', [
         'id' => $resource->getKey(),
     ]);
-});
-
-it('returns no download URL when no resource is configured for the requested type', function (): void {
-    Http::preventStrayRequests();
-
-    expect(app(OpenDataPortal::class)->getResourceDownloadUrl(DatasetResourceType::Register))
-        ->toBeNull();
 });

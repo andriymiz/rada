@@ -232,22 +232,15 @@ class OpenDataPortal
 
     public function getResourceDownloadUrl(DatasetResourceType $type): ?string
     {
-        $configuredResources = DatasetResource::query()
+        $configuredResource = DatasetResource::query()
             ->with('dataset')
             ->where('name', $type)
-            ->get();
+            ->first();
 
-        if ($configuredResources->isEmpty()) {
+        if (! $configuredResource) {
             return null;
         }
 
-        if ($configuredResources->count() > 1) {
-            throw new UnexpectedValueException(
-                "Multiple portal resources are configured for [{$type}].",
-            );
-        }
-
-        $configuredResource = $configuredResources->sole();
         $packageId = $configuredResource->dataset->external_id;
 
         if (! is_string($packageId) || blank($packageId)) {
