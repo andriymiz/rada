@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Datasets\Pages;
 use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Resources\Datasets\DatasetResource;
 use App\Models\Dataset;
+use App\Services\OpenDataPortal;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -20,5 +21,16 @@ class EditDataset extends EditRecord
         return [
             DeleteAction::make(),
         ];
+    }
+
+    protected function afterSave(): void
+    {
+        $dataset = $this->getRecord();
+
+        if (! $dataset->wasChanged('external_id') || blank($dataset->external_id)) {
+            return;
+        }
+
+        DatasetResource::syncPortalMetadata($dataset, app(OpenDataPortal::class));
     }
 }

@@ -22,7 +22,7 @@ class DatasetResourceFactory extends Factory
         return [
             'dataset_id' => Dataset::factory(),
             'external_id' => fake()->uuid(),
-            'type' => DatasetResourceType::Register,
+            'name' => DatasetResourceType::Register,
         ];
     }
 }

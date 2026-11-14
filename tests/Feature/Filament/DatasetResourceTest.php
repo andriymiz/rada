@@ -1,10 +1,6 @@
 <?php
 
-use App\Enums\ContactPointType;
 use App\Enums\DatasetRecommendation;
-use App\Enums\DatasetResourceFormat;
-use App\Enums\DatasetResourceType;
-use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Resources\Datasets\DatasetResource;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
@@ -13,8 +9,6 @@ use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Models\DatasetGroup;
 use App\Models\DatasetResource as DatasetResourceModel;
-use App\Models\Official;
-use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -31,53 +25,31 @@ beforeEach(function () {
     $this->actingAs(User::factory()->admin()->create());
 });
 
-it('creates a dataset with an organization and responsible official', function () {
-    $title = 'Довідник підприємств, установ, організацій, що належать до сфери управління розпорядника інформації, та територіальних органів розпорядника інформації, зокрема їх ідентифікаційних кодів юридичної особи в Єдиному державному реєстрі підприємств і організацій України, офіційних веб-сайтів, адрес електронної пошти, номерів телефонів, адрес місцезнаходження';
-    $publisher = CouncilOrganization::factory()->create([
-        'open_data_id' => '11111111-2222-4333-8444-555555555555',
-    ]);
-    $official = Official::factory()
-        ->for($publisher, 'organization')
-        ->create();
-    $official->contactPoints()->create([
-        'type' => ContactPointType::Email,
-        'value' => 'contact@example.gov.ua',
-        'is_public' => true,
+it('sets the portal identifier from the search action without fetching metadata', function (): void {
+    $packageId = 'c65f219b-4f4e-4e51-8dc6-7a1df3001258';
+    $dataset = Dataset::factory()->create([
+        'external_id' => null,
     ]);
 
-    livewire(ManageDatasets::class)
-        ->callAction(TestAction::make('create'), [
-            'rec_code' => DatasetRecommendation::OrganizationsDirectory->value,
-            'title' => $title,
-            'description' => 'Перелік наборів відкритих даних.',
-            'accrual_periodicity' => DatasetUpdateFrequency::Yearly->value,
-            'keywords' => ['реєстр', 'набори даних'],
-            'purpose' => 'Закон України «Про доступ до публічної інформації».',
-            'distribution_formats' => [
-                DatasetResourceFormat::Csv->value,
-                DatasetResourceFormat::Json->value,
-            ],
-            'publisher_id' => $publisher->id,
-            'responsible_official_id' => $official->id,
-        ])
-        ->assertHasNoFormErrors();
+    Http::preventStrayRequests();
 
-    $dataset = Dataset::query()->where('title', $title)->firstOrFail();
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->callAction(
+            TestAction::make('searchPortalDataset')->schemaComponent('external_id'),
+            ['package_id' => $packageId],
+        )
+        ->assertSet('data.external_id', $packageId)
+        ->assertSchemaComponentHidden('portalMetadata');
 
-    expect($dataset->external_id)->toBeUuid()
-        ->and($dataset->rec_code)->toBe(DatasetRecommendation::OrganizationsDirectory)
-        ->and($dataset->accrual_periodicity)->toBe(DatasetUpdateFrequency::Yearly)
-        ->and($dataset->keywords)->toBe(['реєстр', 'набори даних'])
-        ->and($dataset->distribution_formats)->toBe([
-            DatasetResourceFormat::Csv->value,
-            DatasetResourceFormat::Json->value,
-        ])
-        ->and($dataset->publisher->is($publisher))->toBeTrue()
-        ->and($dataset->responsibleOfficial->is($official))->toBeTrue()
-        ->and($dataset->responsibleOfficial->person->full_name)->toBe($official->person->full_name)
-        ->and($dataset->responsibleOfficial->contactPoints->first()->value)->toBe('contact@example.gov.ua');
+    Http::assertNothingSent();
 
-    $this->assertModelExists($dataset);
+    $this->assertDatabaseMissing('dataset_metas', [
+        'dataset_id' => $dataset->getKey(),
+    ]);
+    $this->assertDatabaseHas('datasets', [
+        'id' => $dataset->getKey(),
+        'external_id' => null,
+    ]);
 });
 
 it('hides dataset creation until an organization portal ID is configured', function (): void {
@@ -85,27 +57,33 @@ it('hides dataset creation until an organization portal ID is configured', funct
         ->assertActionHidden(TestAction::make('create'));
 });
 
+it('hides the portal metadata section for datasets without a saved portal identifier', function (): void {
+    $dataset = Dataset::factory()->create([
+        'external_id' => null,
+    ]);
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->assertSchemaComponentHidden('portalMetadata');
+});
+
 it('creates a custom dataset without a recommendation', function (): void {
     $publisher = CouncilOrganization::factory()->create(['open_data_id' => 'portal-id']);
-    $official = Official::factory()->for($publisher, 'organization')->create();
 
     livewire(ManageDatasets::class)
         ->callAction(TestAction::make('create'), [
             'rec_code' => null,
             'title' => 'Власний набір ради',
-            'description' => 'Опис власного набору.',
-            'accrual_periodicity' => DatasetUpdateFrequency::Yearly->value,
-            'keywords' => ['реєстр'],
-            'purpose' => 'Організація роботи ради.',
-            'distribution_formats' => [DatasetResourceFormat::Csv->value],
             'publisher_id' => $publisher->id,
-            'responsible_official_id' => $official->id,
         ])
         ->assertHasNoFormErrors();
 
     $this->assertDatabaseHas('datasets', [
         'title' => 'Власний набір ради',
         'rec_code' => null,
+        'external_id' => null,
+    ]);
+    $this->assertDatabaseMissing('dataset_metas', [
+        'dataset_id' => Dataset::query()->where('title', 'Власний набір ради')->value('id'),
     ]);
 });
 
@@ -121,24 +99,35 @@ it('does not allow non-administrators to create datasets when the portal is conf
 
 it('edits dataset details on its edit page', function () {
     $publisher = CouncilOrganization::factory()->create();
-    $contact = Official::factory()->for($publisher, 'organization')->create();
     $dataset = Dataset::factory()
         ->for($publisher, 'publisher')
-        ->for($contact, 'responsibleOfficial')
-        ->create();
+        ->create([
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001259',
+        ]);
+    $dataset->meta()->create([
+        'description' => 'Опис набору.',
+        'accrual_periodicity' => 'yearly',
+        'keywords' => ['оновлений реєстр'],
+        'purpose' => 'Підстава.',
+        'contact_point_name' => 'Контакт',
+        'contact_point_email' => 'contact@example.gov.ua',
+    ]);
+
+    Http::preventStrayRequests();
 
     livewire(EditDataset::class, ['record' => $dataset->getKey()])
         ->fillForm([
             'title' => 'Оновлений реєстр',
             'rec_code' => DatasetRecommendation::LocalDeputies->value,
-            'keywords' => ['оновлений реєстр'],
         ])
         ->call('save')
         ->assertHasNoFormErrors();
 
     expect($dataset->refresh()->title)->toBe('Оновлений реєстр')
         ->and($dataset->rec_code)->toBe(DatasetRecommendation::LocalDeputies)
-        ->and($dataset->keywords)->toBe(['оновлений реєстр']);
+        ->and($dataset->meta->keywords)->toBe(['оновлений реєстр']);
+
+    Http::assertNothingSent();
 });
 
 it('creates and assigns a group from the dataset form dropdown', function (): void {
@@ -279,15 +268,27 @@ it('opens the dataset edit page from the table action', function (): void {
 });
 
 it('shows portal resource management on the dataset edit page', function (): void {
-    $dataset = Dataset::factory()->create();
+    $dataset = Dataset::factory()->create([
+        'external_id' => 'dataset-package-id',
+    ]);
 
     $this->get(DatasetResource::getUrl('edit', ['record' => $dataset]))
         ->assertOk()
         ->assertSeeLivewire(ResourcesRelationManager::class);
 });
 
-it('hides portal resource management from non-administrators', function (): void {
+it('hides portal resource management when the dataset is not linked to the portal', function (): void {
     $dataset = Dataset::factory()->create();
+
+    $this->get(DatasetResource::getUrl('edit', ['record' => $dataset]))
+        ->assertOk()
+        ->assertDontSeeLivewire(ResourcesRelationManager::class);
+});
+
+it('hides portal resource management from non-administrators', function (): void {
+    $dataset = Dataset::factory()->create([
+        'external_id' => 'dataset-package-id',
+    ]);
     $this->actingAs(User::factory()->create());
 
     $this->get(DatasetResource::getUrl('edit', ['record' => $dataset]))
@@ -295,9 +296,14 @@ it('hides portal resource management from non-administrators', function (): void
         ->assertDontSeeLivewire(ResourcesRelationManager::class);
 });
 
-it('creates a portal resource from the selected dataset in its relation manager', function (): void {
+it('synchronizes portal resources and removes local resources that no longer exist', function (): void {
     $dataset = Dataset::factory()->create([
         'external_id' => 'dataset-package-id',
+    ]);
+    $obsoleteResource = $dataset->resources()->create([
+        'external_id' => 'obsolete-resource-id',
+        'name' => 'obsolete.csv',
+        'format' => 'CSV',
     ]);
 
     Http::preventStrayRequests();
@@ -305,8 +311,10 @@ it('creates a portal resource from the selected dataset in its relation manager'
         'data.gov.ua/api/3/action/package_show*' => Http::response([
             'success' => true,
             'result' => [
+                'id' => 'dataset-package-id',
                 'resources' => [
-                    ['id' => 'register-resource-id', 'name' => 'Реєстр наборів', 'format' => 'CSV'],
+                    ['id' => 'reports-archive-id', 'name' => 'reports.zip', 'format' => 'ZIP'],
+                    ['id' => 'reports-list-id', 'name' => 'listOfReports.csv', 'format' => 'CSV'],
                 ],
             ],
         ]),
@@ -316,30 +324,40 @@ it('creates a portal resource from the selected dataset in its relation manager'
         'ownerRecord' => $dataset,
         'pageClass' => EditDataset::class,
     ])
-        ->callTableAction('create', null, [
-            'type' => DatasetResourceType::Register->value,
-            'external_id' => 'register-resource-id',
-        ])
-        ->assertHasNoFormErrors();
-
-    $resource = $dataset->resources()->firstOrFail();
-
-    expect($resource->type)->toBe(DatasetResourceType::Register)
-        ->and($resource->external_id)->toBe('register-resource-id');
+        ->callTableAction('sync')
+        ->assertNotified();
 
     $this->assertDatabaseHas('dataset_resources', [
         'dataset_id' => $dataset->getKey(),
-        'external_id' => 'register-resource-id',
-        'type' => DatasetResourceType::Register->value,
+        'external_id' => 'reports-archive-id',
+        'name' => 'reports.zip',
+        'format' => 'ZIP',
+    ]);
+    $this->assertDatabaseHas('dataset_resources', [
+        'dataset_id' => $dataset->getKey(),
+        'external_id' => 'reports-list-id',
+        'name' => 'listOfReports.csv',
+        'format' => 'CSV',
+    ]);
+    $this->assertDatabaseMissing('dataset_resources', [
+        'id' => $obsoleteResource->getKey(),
     ]);
 
     Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/package_show')
         && $request->data()['id'] === 'dataset-package-id');
 });
 
-it('rejects a portal resource that does not belong to the selected dataset', function (): void {
+it('preserves same-named resources in other datasets while synchronizing', function (): void {
     $dataset = Dataset::factory()->create([
         'external_id' => 'dataset-package-id',
+    ]);
+    $otherDataset = Dataset::factory()->create([
+        'external_id' => 'other-package-id',
+    ]);
+    $otherResource = $otherDataset->resources()->create([
+        'external_id' => 'other-resource-id',
+        'name' => 'organizations.csv',
+        'format' => 'CSV',
     ]);
 
     Http::preventStrayRequests();
@@ -347,8 +365,9 @@ it('rejects a portal resource that does not belong to the selected dataset', fun
         'data.gov.ua/api/3/action/package_show*' => Http::response([
             'success' => true,
             'result' => [
+                'id' => 'dataset-package-id',
                 'resources' => [
-                    ['id' => 'valid-resource-id', 'name' => 'Реєстр наборів', 'format' => 'CSV'],
+                    ['id' => 'resource-id', 'name' => 'organizations.csv', 'format' => 'CSV'],
                 ],
             ],
         ]),
@@ -358,18 +377,21 @@ it('rejects a portal resource that does not belong to the selected dataset', fun
         'ownerRecord' => $dataset,
         'pageClass' => EditDataset::class,
     ])
-        ->callTableAction('create', null, [
-            'type' => DatasetResourceType::Register->value,
-            'external_id' => 'resource-from-another-dataset',
-        ])
-        ->assertHasFormErrors(['external_id' => 'in']);
+        ->callTableAction('sync')
+        ->assertNotified();
 
-    expect($dataset->resources()->exists())->toBeFalse();
+    expect($otherResource->refresh()->name)->toBe('organizations.csv')
+        ->and($dataset->resources()->sole()->external_id)->toBe('resource-id');
 });
 
-it('rejects a resource type that is not supported', function (): void {
+it('updates an existing resource using the portal resource with the same external ID', function (): void {
     $dataset = Dataset::factory()->create([
         'external_id' => 'dataset-package-id',
+    ]);
+    $resource = $dataset->resources()->create([
+        'external_id' => 'existing-resource-id',
+        'name' => 'old-name.csv',
+        'format' => 'XML',
     ]);
 
     Http::preventStrayRequests();
@@ -377,8 +399,9 @@ it('rejects a resource type that is not supported', function (): void {
         'data.gov.ua/api/3/action/package_show*' => Http::response([
             'success' => true,
             'result' => [
+                'id' => 'dataset-package-id',
                 'resources' => [
-                    ['id' => 'valid-resource-id', 'name' => 'Реєстр наборів', 'format' => 'CSV'],
+                    ['id' => 'existing-resource-id', 'name' => 'posts.csv', 'format' => 'JSON'],
                 ],
             ],
         ]),
@@ -388,58 +411,46 @@ it('rejects a resource type that is not supported', function (): void {
         'ownerRecord' => $dataset,
         'pageClass' => EditDataset::class,
     ])
-        ->callTableAction('create', null, [
-            'type' => 'unsupported',
-            'external_id' => 'valid-resource-id',
-        ])
-        ->assertHasFormErrors(['type']);
+        ->callTableAction('sync')
+        ->assertNotified();
 
-    expect($dataset->resources()->exists())->toBeFalse();
+    expect($resource->refresh()->external_id)->toBe('existing-resource-id')
+        ->and($resource->name)->toBe('posts.csv')
+        ->and($resource->format)->toBe('JSON');
+
+    expect($dataset->resources()->count())->toBe(1);
 });
 
-it('updates a portal resource from the related dataset page', function (): void {
+it('links each resource row to its portal resource page', function (): void {
+    config(['services.open_data.base_url' => 'https://portal.example.test/']);
     $dataset = Dataset::factory()->create([
         'external_id' => 'dataset-package-id',
     ]);
     $resource = DatasetResourceModel::factory()
         ->for($dataset)
         ->create([
-            'external_id' => 'old-resource-id',
-            'type' => DatasetResourceType::Register,
+            'external_id' => 'portal-resource-id',
+            'name' => 'organizations.csv',
         ]);
 
-    Http::preventStrayRequests();
-    Http::fake([
-        'data.gov.ua/api/3/action/package_show*' => Http::response([
-            'success' => true,
-            'result' => [
-                'resources' => [
-                    ['id' => 'old-resource-id', 'name' => 'Старий файл', 'format' => 'CSV'],
-                    ['id' => 'new-resource-id', 'name' => 'Оновлений файл', 'format' => 'CSV'],
-                ],
-            ],
-        ]),
-    ]);
+    $url = 'https://portal.example.test/dataset/dataset-package-id/resource/portal-resource-id';
 
     livewire(ResourcesRelationManager::class, [
         'ownerRecord' => $dataset,
         'pageClass' => EditDataset::class,
     ])
-        ->callTableAction('edit', $resource, [
-            'type' => DatasetResourceType::Register->value,
-            'external_id' => 'new-resource-id',
-        ])
-        ->assertHasNoFormErrors();
-
-    expect($resource->refresh()->external_id)->toBe('new-resource-id');
+        ->assertTableActionExists('openPortalResource', record: $resource)
+        ->assertTableActionHasUrl('openPortalResource', $url, $resource);
 });
 
 it('generates the dataset page link from the configured open data portal URL', function () {
     config(['services.open_data.base_url' => 'https://portal.example.test/']);
 
-    $dataset = Dataset::factory()->create();
+    $dataset = Dataset::factory()->create([
+        'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001252',
+    ]);
 
-    expect($dataset->url)->toBe('https://portal.example.test/dataset/'.$dataset->external_id);
+    expect($dataset->url)->toBe('https://portal.example.test/dataset/c65f219b-4f4e-4e51-8dc6-7a1df3001252');
 
     expect(Schema::hasColumn('datasets', 'url'))->toBeFalse();
 });
@@ -447,13 +458,89 @@ it('generates the dataset page link from the configured open data portal URL', f
 it('renders the dataset portal link as an icon action', function () {
     config(['services.open_data.base_url' => 'https://portal.example.test']);
 
-    $dataset = Dataset::factory()->create();
+    $dataset = Dataset::factory()->create([
+        'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001252',
+    ]);
 
     livewire(ManageDatasets::class)
         ->assertTableActionExists('portalLink', record: $dataset)
         ->assertTableActionHasIcon('portalLink', Heroicon::OutlinedArrowTopRightOnSquare, $dataset)
         ->assertTableActionHasUrl('portalLink', $dataset->url, $dataset)
         ->assertTableActionShouldOpenUrlInNewTab('portalLink', $dataset);
+});
+
+it('does not render a portal link for datasets without an external identifier', function (): void {
+    $dataset = Dataset::factory()->create();
+
+    expect($dataset->url)->toBeNull();
+
+    livewire(ManageDatasets::class)
+        ->assertTableActionHidden('portalLink', $dataset);
+});
+
+it('stores dataset metadata in its own related table', function (): void {
+    $nullableMetadataColumns = collect(Schema::getColumns('dataset_metas'))
+        ->whereIn('name', [
+            'description',
+            'accrual_periodicity',
+            'keywords',
+            'purpose',
+            'contact_point_name',
+            'contact_point_email',
+        ])
+        ->where('nullable', true)
+        ->pluck('name')
+        ->all();
+
+    expect(Schema::hasTable('dataset_metas'))->toBeTrue()
+        ->and(Schema::hasColumn('datasets', 'responsible_official_id'))->toBeFalse()
+        ->and(Schema::hasColumn('dataset_metas', 'official_title'))->toBeFalse()
+        ->and(Schema::hasColumn('dataset_metas', 'description'))->toBeTrue()
+        ->and(Schema::hasColumn('dataset_metas', 'accrual_periodicity'))->toBeTrue()
+        ->and(Schema::hasColumn('dataset_metas', 'keywords'))->toBeTrue()
+        ->and(Schema::hasColumn('dataset_metas', 'purpose'))->toBeTrue()
+        ->and(Schema::hasColumn('dataset_metas', 'distribution_format'))->toBeFalse()
+        ->and(Schema::hasColumn('dataset_metas', 'contact_point_name'))->toBeTrue()
+        ->and(Schema::hasColumn('dataset_metas', 'contact_point_email'))->toBeTrue()
+        ->and(Schema::hasColumn('datasets', 'description'))->toBeFalse()
+        ->and(Schema::hasColumn('datasets', 'accrual_periodicity'))->toBeFalse()
+        ->and(Schema::hasColumn('datasets', 'keywords'))->toBeFalse()
+        ->and(Schema::hasColumn('datasets', 'purpose'))->toBeFalse()
+        ->and(Schema::hasColumn('datasets', 'distribution_formats'))->toBeFalse()
+        ->and($nullableMetadataColumns)->toBe([]);
+});
+
+it('does not display update frequency in the datasets table', function (): void {
+    $dataset = Dataset::factory()->create();
+    $dataset->meta()->create([
+        'description' => 'Опис набору.',
+        'accrual_periodicity' => 'yearly',
+        'keywords' => ['реєстр'],
+        'purpose' => 'Підстава.',
+        'contact_point_name' => 'Контакт',
+        'contact_point_email' => 'contact@example.gov.ua',
+    ]);
+
+    livewire(ManageDatasets::class)
+        ->assertCanSeeTableRecords([$dataset])
+        ->assertDontSee('Щороку');
+});
+
+it('does not display resource formats in dataset metadata', function () {
+    $dataset = Dataset::factory()->create([
+        'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001252',
+    ]);
+    $dataset->meta()->create([
+        'description' => 'Опис набору.',
+        'accrual_periodicity' => 'yearly',
+        'keywords' => ['реєстр'],
+        'purpose' => 'Підстава.',
+        'contact_point_name' => 'Контакт',
+        'contact_point_email' => 'contact@example.gov.ua',
+    ]);
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->assertDontSee('Формати ресурсів');
 });
 
 it('renders a documentation action that opens the recommendation in a new tab', function (): void {
@@ -481,25 +568,10 @@ it('hides the documentation action for custom datasets', function (): void {
         ->assertTableActionHidden('documentationLink', $dataset);
 });
 
-it('renders the datasets page with the responsible person and email', function () {
-    $person = Person::factory()->create([
-        'last_name' => 'Петренко',
-        'first_name' => 'Олена',
-        'middle_name' => 'Іванівна',
-    ]);
+it('renders the datasets page with its order column', function () {
     $publisher = CouncilOrganization::factory()->create();
-    $official = Official::factory()
-        ->for($person)
-        ->for($publisher, 'organization')
-        ->create();
-    $official->contactPoints()->create([
-        'type' => ContactPointType::Email,
-        'value' => 'olena@example.gov.ua',
-        'is_public' => true,
-    ]);
     $dataset = Dataset::factory()
         ->for($publisher, 'publisher')
-        ->for($official, 'responsibleOfficial')
         ->create(['title' => 'Набір для перевірки']);
 
     livewire(ManageDatasets::class)

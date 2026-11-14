@@ -1,19 +1,14 @@
 <?php
 
-use App\Enums\ContactPointType;
-use App\Enums\DatasetResourceFormat;
+use App\Enums\DatasetRecommendation;
 use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Imports\DatasetImporter;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
-use App\Models\ContactPoint;
 use App\Models\CouncilOrganization;
 use App\Models\Dataset;
-use App\Models\Official;
-use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Imports\Models\Import;
 use Filament\Facades\Filament;
-use Illuminate\Validation\Rules\Enum as EnumRule;
 
 use function Pest\Livewire\livewire;
 
@@ -44,26 +39,17 @@ it('imports and updates a dataset from a register row', function (): void {
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
-    $person = Person::factory()->create([
-        'last_name' => 'Симоненко',
-        'first_name' => 'Олена',
-        'middle_name' => 'Петрівна',
-    ]);
-    $official = Official::factory()
-        ->for($person)
-        ->for($organization, 'organization')
-        ->create();
+    $externalId = 'c65f219b-4f4e-4e51-8dc6-7a1df3001252';
     $row = [
-        'external_id' => 'register-dataset-1',
+        'external_id' => $externalId,
         'title' => $title,
         'description' => 'Опис першої версії.',
         'accrual_periodicity' => 'Щороку',
         'keywords' => 'реєстр,набори даних',
         'purpose' => 'Підстава для збору даних.',
         'source_url' => 'https://data.gov.ua/dataset/register-dataset-1',
-        'distribution_formats' => 'CSV,JSON',
-        'publisher_id' => '04058410',
-        'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'publisher_id' => ' null ',
+        'publisher' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
         'contact_point_name' => 'Симоненко Олена Петрівна',
         'contact_point_email' => 'not-an-email',
     ];
@@ -76,21 +62,18 @@ it('imports and updates a dataset from a register row', function (): void {
     $externalId = $dataset->external_id;
 
     expect($dataset->title)->toBe($title)
-        ->and($dataset->description)->toBe('Опис першої версії.')
-        ->and($dataset->accrual_periodicity)->toBe(DatasetUpdateFrequency::Yearly)
-        ->and($dataset->keywords)->toBe(['реєстр', 'набори даних'])
-        ->and($dataset->distribution_formats)->toBe([
-            DatasetResourceFormat::Csv->value,
-            DatasetResourceFormat::Json->value,
+        ->and($dataset->meta->toArray())->toMatchArray([
+            'description' => 'Опис першої версії.',
+            'accrual_periodicity' => DatasetUpdateFrequency::Yearly->value,
+            'keywords' => ['реєстр', 'набори даних'],
+            'purpose' => 'Підстава для збору даних.',
+            'contact_point_name' => 'Симоненко Олена Петрівна',
+            'contact_point_email' => 'not-an-email',
         ])
         ->and($dataset->publisher->is($organization))->toBeTrue()
-        ->and($dataset->responsibleOfficial->is($official))->toBeTrue();
+        ->and($dataset->meta->contact_point_name)->toBe('Симоненко Олена Петрівна');
 
-    $this->assertDatabaseHas(Dataset::class, [
-        'id' => $dataset->id,
-        'accrual_periodicity' => 'yearly',
-    ]);
-
+    $row['title'] = 'Оновлена офіційна назва.';
     $row['description'] = 'Оновлений опис.';
     $row['publisher_id'] = ' null ';
 
@@ -99,21 +82,15 @@ it('imports and updates a dataset from a register row', function (): void {
         ->assertImported();
 
     expect(Dataset::query()->count())->toBe(1)
-        ->and($dataset->refresh()->description)->toBe('Оновлений опис.')
+        ->and($dataset->refresh()->title)->toBe($title)
+        ->and($dataset->refresh()->meta->description)->toBe('Оновлений опис.')
         ->and($dataset->external_id)->toBe($externalId);
-
-    $this->assertDatabaseMissing(ContactPoint::class, [
-        'contactable_type' => $official->getMorphClass(),
-        'contactable_id' => $official->id,
-        'type' => ContactPointType::Email->value,
-        'value' => 'not-an-email',
-    ]);
 });
 
 it('rejects a dataset row when its publisher is unknown', function (): void {
     DatasetImporter::test()
         ->import([
-            'external_id' => 'unknown-dataset',
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001253',
             'title' => 'Невідомий набір',
             'description' => 'Опис',
             'accrual_periodicity' => 'Щороку',
@@ -122,12 +99,44 @@ it('rejects a dataset row when its publisher is unknown', function (): void {
             'source_url' => 'https://data.gov.ua/dataset/unknown-dataset',
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher_name' => 'Невідома рада',
+            'publisher' => 'Невідома рада',
             'contact_point_name' => 'Невідома Особа',
+            'contact_point_email' => 'contact@example.gov.ua',
+        ])
+        ->assertHasErrors(['publisher']);
+
+    expect(Dataset::query()->exists())->toBeFalse();
+});
+
+it('rejects a dataset update when the publisher does not match', function (): void {
+    $currentPublisher = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $importedPublisher = CouncilOrganization::factory()->create(['edrpou' => '04058411']);
+    $externalId = 'c65f219b-4f4e-4e51-8dc6-7a1df3001260';
+    $dataset = Dataset::factory()
+        ->for($currentPublisher, 'publisher')
+        ->create([
+            'external_id' => $externalId,
+            'title' => 'Початкова назва',
+        ]);
+
+    DatasetImporter::test()
+        ->import([
+            'external_id' => $externalId,
+            'title' => 'Оновлена назва',
+            'description' => 'Опис',
+            'accrual_periodicity' => 'Щороку',
+            'keywords' => 'реєстр',
+            'purpose' => 'Мета',
+            'distribution_formats' => 'CSV',
+            'publisher_id' => '04058411',
+            'publisher' => $importedPublisher->name,
+            'contact_point_name' => 'Контактна особа',
+            'contact_point_email' => 'contact@example.gov.ua',
         ])
         ->assertHasRowFailure();
 
-    expect(Dataset::query()->exists())->toBeFalse();
+    expect($dataset->refresh()->publisher_id)->toBe($currentPublisher->getKey())
+        ->and($dataset->title)->toBe('Початкова назва');
 });
 
 it('preserves a UUID supplied as the register identifier', function (): void {
@@ -135,7 +144,6 @@ it('preserves a UUID supplied as the register identifier', function (): void {
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
-    $official = Official::factory()->for($organization, 'organization')->create();
     $externalId = 'c65f219b-4f4e-4e51-8dc6-7a1df3001252';
 
     DatasetImporter::test()
@@ -149,36 +157,151 @@ it('preserves a UUID supplied as the register identifier', function (): void {
             'source_url' => 'https://data.gov.ua/dataset/'.$externalId,
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
-            'contact_point_name' => $official->person->full_name,
+            'publisher' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+            'contact_point_name' => 'Контактна особа',
+            'contact_point_email' => 'contact@example.gov.ua',
         ])
         ->assertImported();
 
-    expect(Dataset::query()->sole()->external_id)->toBe($externalId);
+    expect(Dataset::query()->sole()->external_id)->toBe($externalId)
+        ->and(Dataset::query()->sole()->publisher_id)->toBe($organization->getKey());
 });
 
-it('rejects a dataset row when its responsible official is not found in its organization', function (): void {
+it('matches imported datasets by recommendation when the external identifier is new', function (): void {
+    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $dataset = Dataset::factory()
+        ->for($organization, 'publisher')
+        ->create([
+            'title' => 'Коротка назва',
+            'rec_code' => DatasetRecommendation::OrganizationsDirectory,
+        ]);
+    $dataset->meta()->create([
+        'description' => 'Старий опис',
+        'accrual_periodicity' => DatasetUpdateFrequency::Yearly->value,
+        'keywords' => ['реєстр'],
+        'purpose' => 'Стара підстава',
+        'contact_point_name' => 'Контактна особа',
+        'contact_point_email' => 'contact@example.gov.ua',
+    ]);
+
+    DatasetImporter::test()
+        ->import([
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001257',
+            'title' => DatasetRecommendation::OrganizationsDirectory->getLabel(),
+            'description' => 'Оновлений опис',
+            'accrual_periodicity' => 'Щороку',
+            'keywords' => 'реєстр',
+            'purpose' => 'Мета',
+            'distribution_formats' => 'CSV',
+            'publisher_id' => '04058410',
+            'publisher' => $organization->name,
+            'contact_point_name' => 'Контактна особа',
+            'contact_point_email' => 'contact@example.gov.ua',
+        ])
+        ->assertImported();
+
+    expect(Dataset::query()->count())->toBe(1)
+        ->and($dataset->refresh()->title)->toBe('Коротка назва')
+        ->and($dataset->external_id)->toBe('c65f219b-4f4e-4e51-8dc6-7a1df3001257')
+        ->and($dataset->refresh()->meta->description)->toBe('Оновлений опис');
+});
+
+it('fills an empty title on an existing dataset', function (): void {
+    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $dataset = Dataset::factory()
+        ->for($organization, 'publisher')
+        ->create([
+            'title' => '',
+            'rec_code' => DatasetRecommendation::OrganizationsDirectory,
+        ]);
+    $title = DatasetRecommendation::OrganizationsDirectory->getLabel();
+
+    DatasetImporter::test()
+        ->import([
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001259',
+            'title' => $title,
+            'description' => 'Опис',
+            'accrual_periodicity' => 'Щороку',
+            'keywords' => 'реєстр',
+            'purpose' => 'Мета',
+            'distribution_formats' => 'CSV',
+            'publisher_id' => '04058410',
+            'publisher' => $organization->name,
+            'contact_point_name' => 'Контактна особа',
+            'contact_point_email' => 'contact@example.gov.ua',
+        ])
+        ->assertImported();
+
+    expect($dataset->refresh()->title)->toBe($title);
+});
+
+it('falls back to dataset title when no recommendation matches the imported title', function (): void {
+    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $dataset = Dataset::factory()
+        ->for($organization, 'publisher')
+        ->create(['title' => 'Набір за назвою']);
+    $dataset->meta()->create([
+        'description' => 'Старий опис',
+        'accrual_periodicity' => DatasetUpdateFrequency::Yearly->value,
+        'keywords' => ['реєстр'],
+        'purpose' => 'Стара підстава',
+        'contact_point_name' => 'Контактна особа',
+        'contact_point_email' => 'contact@example.gov.ua',
+    ]);
+
+    DatasetImporter::test()
+        ->import([
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001258',
+            'title' => 'Набір за назвою',
+            'description' => 'Оновлений опис',
+            'accrual_periodicity' => 'Щороку',
+            'keywords' => 'реєстр',
+            'purpose' => 'Мета',
+            'distribution_formats' => 'CSV',
+            'publisher_id' => '04058410',
+            'publisher' => $organization->name,
+            'contact_point_name' => 'Контактна особа',
+            'contact_point_email' => 'contact@example.gov.ua',
+        ])
+        ->assertImported();
+
+    expect(Dataset::query()->count())->toBe(1)
+        ->and($dataset->refresh()->title)->toBe('Набір за назвою')
+        ->and($dataset->refresh()->external_id)->toBe('c65f219b-4f4e-4e51-8dc6-7a1df3001258')
+        ->and($dataset->refresh()->meta->description)->toBe('Оновлений опис');
+});
+
+it('rejects a dataset row without an external identifier', function (): void {
+    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+
+    DatasetImporter::test()
+        ->import([
+            'external_id' => 'null',
+            'title' => 'Набір без зовнішнього ID',
+            'description' => 'Опис',
+            'accrual_periodicity' => 'Щороку',
+            'keywords' => 'реєстр',
+            'purpose' => 'Мета',
+            'distribution_formats' => 'CSV',
+            'publisher_id' => '04058410',
+            'publisher' => $organization->name,
+            'contact_point_name' => 'Контактна особа',
+            'contact_point_email' => 'contact@example.gov.ua',
+        ])
+        ->assertHasErrors(['external_id' => 'uuid']);
+
+    expect(Dataset::query()->exists())->toBeFalse();
+});
+
+it('imports contact metadata without resolving an official', function (): void {
     CouncilOrganization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
-    $otherOrganization = CouncilOrganization::factory()->create([
-        'edrpou' => '04058411',
-        'name' => 'ІНША МІСЬКА РАДА',
-    ]);
-    $person = Person::factory()->create([
-        'last_name' => 'Симоненко',
-        'first_name' => 'Олена',
-        'middle_name' => 'Петрівна',
-    ]);
-    Official::factory()
-        ->for($person)
-        ->for($otherOrganization, 'organization')
-        ->create();
 
     DatasetImporter::test()
         ->import([
-            'external_id' => 'unknown-contact-dataset',
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001254',
             'title' => 'Набір без відповідальної особи',
             'description' => 'Опис',
             'accrual_periodicity' => 'Щороку',
@@ -187,12 +310,14 @@ it('rejects a dataset row when its responsible official is not found in its orga
             'source_url' => 'https://data.gov.ua/dataset/unknown-contact-dataset',
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+            'publisher' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
             'contact_point_name' => 'Симоненко Олена Петрівна',
+            'contact_point_email' => 'contact@example.gov.ua',
         ])
-        ->assertHasRowFailure();
+        ->assertImported();
 
-    expect(Dataset::query()->exists())->toBeFalse();
+    expect(Dataset::query()->sole()->meta->contact_point_name)
+        ->toBe('Симоненко Олена Петрівна');
 });
 
 it('rejects dataset update frequencies that are not labels', function (string $frequency): void {
@@ -200,11 +325,9 @@ it('rejects dataset update frequencies that are not labels', function (string $f
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
-    $official = Official::factory()->for($organization, 'organization')->create();
-
     DatasetImporter::test()
         ->import([
-            'external_id' => 'invalid-periodicity',
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001255',
             'title' => 'Набір із невідомою частотою',
             'description' => 'Опис',
             'accrual_periodicity' => $frequency,
@@ -213,8 +336,8 @@ it('rejects dataset update frequencies that are not labels', function (string $f
             'source_url' => 'https://data.gov.ua/dataset/invalid-periodicity',
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
-            'contact_point_name' => $official->person->full_name,
+            'publisher' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+            'contact_point_name' => 'Контактна особа',
             'contact_point_email' => 'contact@example.gov.ua',
         ])
         ->assertHasErrors(['accrual_periodicity' => 'in']);
@@ -225,16 +348,14 @@ it('rejects dataset update frequencies that are not labels', function (string $f
     'enum code' => 'yearly',
 ]);
 
-it('rejects unsupported resource formats', function (): void {
+it('ignores resource formats during dataset import', function (): void {
     $organization = CouncilOrganization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
-    $official = Official::factory()->for($organization, 'organization')->create();
-
     DatasetImporter::test()
         ->import([
-            'external_id' => 'invalid-format',
+            'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001256',
             'title' => 'Набір із невідомим форматом',
             'description' => 'Опис',
             'accrual_periodicity' => 'Щороку',
@@ -243,13 +364,14 @@ it('rejects unsupported resource formats', function (): void {
             'source_url' => 'https://data.gov.ua/dataset/invalid-format',
             'distribution_formats' => 'CSV,UNSUPPORTED',
             'publisher_id' => '04058410',
-            'publisher_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
-            'contact_point_name' => $official->person->full_name,
+            'publisher' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+            'contact_point_name' => 'Контактна особа',
             'contact_point_email' => 'contact@example.gov.ua',
         ])
-        ->assertHasErrors(['distribution_formats.1' => EnumRule::class]);
+        ->assertImported();
 
-    expect(Dataset::query()->exists())->toBeFalse();
+    expect(Dataset::query()->exists())->toBeTrue()
+        ->and(Dataset::query()->sole()->resources()->exists())->toBeFalse();
 });
 
 it('renders the dataset csv import action', function (): void {

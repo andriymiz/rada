@@ -2,11 +2,12 @@
 
 namespace App\Filament\Exports;
 
-use App\Enums\ContactPointType;
+use App\Enums\DatasetUpdateFrequency;
 use App\Models\Dataset;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
+use Illuminate\Database\Eloquent\Builder;
 
 class DatasetExporter extends Exporter
 {
@@ -23,42 +24,53 @@ class DatasetExporter extends Exporter
                 ->state(fn (Dataset $record): string => $record->external_id),
             ExportColumn::make('title')
                 ->label('title')
-                ->formatStateUsing(fn (?string $state): string => self::formatCsvText($state)),
+                ->state(fn (Dataset $record): string => $record->rec_code?->getLabel() ?? $record->title),
             ExportColumn::make('description')
                 ->label('description')
-                ->formatStateUsing(fn (?string $state): string => self::formatCsvText($state)),
+                ->state(fn (Dataset $record): string => $record->meta->description),
             ExportColumn::make('accrualPeriodicity')
                 ->label('accrualPeriodicity')
-                ->state(fn (Dataset $record): string => $record->accrual_periodicity->getLabel()),
+                ->state(fn (Dataset $record): string => self::formatUpdateFrequency(
+                    $record->meta->accrual_periodicity,
+                )),
             ExportColumn::make('keywords')
                 ->label('keywords')
-                ->state(fn (Dataset $record): string => implode(', ', $record->keywords))
-                ->formatStateUsing(fn (?string $state): string => self::formatCsvText($state)),
+                ->state(fn (Dataset $record): string => implode(', ', $record->meta->keywords)),
             ExportColumn::make('purpose')
                 ->label('purpose')
-                ->formatStateUsing(fn (?string $state): string => self::formatCsvText($state)),
+                ->state(fn (Dataset $record): string => $record->meta->purpose),
             ExportColumn::make('url')
                 ->label('url')
                 ->state(fn (Dataset $record): string => $record->url),
             ExportColumn::make('distributionFormat')
                 ->label('distributionFormat')
-                ->state(fn (Dataset $record): string => implode(', ', $record->distribution_formats)),
+                ->state(fn (Dataset $record): string => $record->resources
+                    ->pluck('format')
+                    ->filter(fn (mixed $format): bool => is_string($format) && filled($format))
+                    ->unique()
+                    ->implode(', ')),
             ExportColumn::make('publisherName')
                 ->label('publisherName')
                 ->state(fn (Dataset $record): string => $record->publisher->name),
             ExportColumn::make('publisherId')
                 ->label('publisherId')
-                ->state(fn (Dataset $record): string => $record->publisher->edrpou ?? 'null')
-                ->formatStateUsing(fn (?string $state): string => self::formatCsvText($state)),
+                ->state(fn (Dataset $record): string => $record->publisher->edrpou ?? 'null'),
             ExportColumn::make('contactPointName')
                 ->label('contactPointName')
-                ->state(fn (Dataset $record): string => $record->responsibleOfficial->person->full_name),
+                ->state(fn (Dataset $record): string => $record->meta->contact_point_name),
             ExportColumn::make('contactPointEmail')
                 ->label('contactPointEmail')
-                ->state(fn (Dataset $record): string => $record->responsibleOfficial->contactPoints
-                    ->firstWhere('type', ContactPointType::Email)
-                    ->value ?? 'null'),
+                ->state(fn (Dataset $record): string => $record->meta->contact_point_email),
         ];
+    }
+
+    /**
+     * @param  Builder<Dataset>  $query
+     * @return Builder<Dataset>
+     */
+    public static function modifyQuery(Builder $query): Builder
+    {
+        return $query->with(['meta', 'publisher', 'resources']);
     }
 
     public static function getCompletedNotificationBody(Export $export): string
@@ -66,12 +78,14 @@ class DatasetExporter extends Exporter
         return ExportHelper::getCompletedNotificationBody($export);
     }
 
-    private static function formatCsvText(?string $value): string
+    private static function formatUpdateFrequency(string $value): string
     {
-        if (filled($value) && in_array($value[0], ['=', '+', '-', '@'], true)) {
-            return "'{$value}";
-        }
+        $frequency = collect(DatasetUpdateFrequency::cases())
+            ->first(fn (DatasetUpdateFrequency $case): bool => in_array($value, [
+                $case->value,
+                $case->getLabel(),
+            ], true));
 
-        return $value ?? '';
+        return $frequency?->getLabel() ?? $value;
     }
 }

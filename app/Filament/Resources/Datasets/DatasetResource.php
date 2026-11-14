@@ -3,23 +3,26 @@
 namespace App\Filament\Resources\Datasets;
 
 use App\Enums\DatasetRecommendation;
-use App\Enums\DatasetResourceFormat;
 use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
 use App\Models\Dataset;
 use App\Models\DatasetGroup;
-use App\Models\Official;
+use App\Models\DatasetMeta;
+use App\Services\OpenDataPortal;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -27,6 +30,7 @@ use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
+use UnexpectedValueException;
 
 class DatasetResource extends Resource
 {
@@ -61,47 +65,124 @@ class DatasetResource extends Resource
                     ->preload()
                     ->createOptionForm(static fn (): array => self::groupOptionForm())
                     ->editOptionForm(static fn (): array => self::groupOptionForm()),
-                Textarea::make('description')
-                    ->label('Опис')
-                    ->required()
-                    ->columnSpanFull(),
-                Select::make('accrual_periodicity')
-                    ->label('Частота оновлення')
-                    ->options(DatasetUpdateFrequency::class)
-                    ->required(),
-                Select::make('distribution_formats')
-                    ->label('Формати ресурсів')
-                    ->options(DatasetResourceFormat::class)
-                    ->multiple()
-                    ->searchable()
-                    ->required(),
-                TagsInput::make('keywords')
-                    ->label('Ключові слова')
-                    ->placeholder('Введіть слово та натисніть Enter')
-                    ->required()
-                    ->columnSpanFull(),
-                Textarea::make('purpose')
-                    ->label('Підстава та призначення збору інформації')
-                    ->required()
-                    ->columnSpanFull(),
                 Select::make('publisher_id')
                     ->label('Розпорядник')
                     ->relationship('publisher', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
-                Select::make('responsible_official_id')
-                    ->label('Відповідальна особа')
-                    ->relationship(
-                        'responsibleOfficial',
-                        'position',
-                        modifyQueryUsing: fn (Builder $query): Builder => $query->with(['person', 'contactPoints']),
+                TextInput::make('external_id')
+                    ->label('Ідентифікаційний номер набору даних')
+                    ->placeholder('Введіть ID або знайдіть за назвою')
+                    ->suffixAction(
+                        Action::make('searchPortalDataset')
+                            ->label('Пошук набору на порталі за назвою')
+                            ->icon(Heroicon::MagnifyingGlass)
+                            ->modalHeading('Пошук набору даних на порталі')
+                            ->modalSubmitActionLabel('Вибрати')
+                            ->schema([
+                                Select::make('package_id')
+                                    ->label('Набір даних')
+                                    ->searchable()
+                                    ->getSearchResultsUsing(
+                                        fn (string $search, OpenDataPortal $portal): array => $portal->searchPackages($search),
+                                    )
+                                    ->getOptionLabelUsing(fn (?string $value): ?string => $value)
+                                    ->required(),
+                            ])
+                            ->action(function (array $data, Set $schemaSet): void {
+                                $packageId = $data['package_id'] ?? null;
+
+                                if (! is_string($packageId) || blank($packageId)) {
+                                    throw new UnexpectedValueException('Choose a dataset from the open data portal.');
+                                }
+
+                                $schemaSet('external_id', $packageId);
+                            }),
                     )
-                    ->getOptionLabelFromRecordUsing(fn (Official $record): string => $record->person->short_name)
-                    ->searchable()
-                    ->preload()
-                    ->required(),
+                    ->live(onBlur: true)
+                    ->rules(['nullable', 'uuid'])
+                    ->unique(ignoreRecord: true),
+                Section::make('Додаткова інформація з порталу')
+                    ->key('portalMetadata')
+                    ->schema([
+                        Placeholder::make('portal_metadata_preview')
+                            ->label('Стан метаданих')
+                            ->content(function (Get $get, mixed $record): string {
+                                $selectedPackageId = $get('external_id');
+
+                                if (! is_string($selectedPackageId) || blank($selectedPackageId)) {
+                                    return 'Оберіть набір на порталі, щоб отримати додаткову інформацію.';
+                                }
+
+                                if (! $record instanceof Dataset || $record->external_id !== $selectedPackageId) {
+                                    return 'Збережіть вибір набору на порталі, щоб завантажити додаткову інформацію.';
+                                }
+
+                                $metadata = $record->meta;
+
+                                if ($metadata === null) {
+                                    return 'Натисніть «Оновити» у шапці секції, щоб завантажити додаткову інформацію з порталу.';
+                                }
+
+                                return self::formatPortalMetadata($metadata);
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->headerActions([
+                        fn (): Action => Action::make('syncPortalMetadata')
+                            ->label('Оновити')
+                            ->icon(Heroicon::ArrowPath)
+                            ->disabled(function (Get $schemaGet, mixed $record): bool {
+                                return $schemaGet('external_id') !== $record->external_id;
+                            })
+                            ->action(function (
+                                Get $schemaGet,
+                                EditDataset $livewire,
+                                OpenDataPortal $portal,
+                            ): void {
+                                $dataset = $livewire->getRecord();
+                                $selectedPackageId = $schemaGet('external_id');
+
+                                if (
+                                    ! is_string($selectedPackageId)
+                                    || blank($selectedPackageId)
+                                    || $dataset->external_id !== $selectedPackageId
+                                ) {
+                                    Notification::make()
+                                        ->title('Спочатку збережіть вибір набору на порталі.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                self::syncPortalMetadata($dataset, $portal);
+                            }),
+                    ])
+                    ->visible(fn (mixed $record): bool => $record instanceof Dataset && filled($record->external_id))
+                    ->columnSpanFull(),
             ]);
+    }
+
+    public static function syncPortalMetadata(Dataset $dataset, OpenDataPortal $portal): void
+    {
+        try {
+            $portal->syncDatasetMetadata($dataset);
+        } catch (UnexpectedValueException $exception) {
+            Notification::make()
+                ->title('Не вдалося завантажити додаткову інформацію')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Додаткову інформацію з порталу оновлено')
+            ->success()
+            ->send();
     }
 
     /**
@@ -125,6 +206,37 @@ class DatasetResource extends Resource
         ];
     }
 
+    private static function formatPortalMetadata(DatasetMeta $metadata): string
+    {
+        return collect([
+            'Опис' => $metadata->description,
+            'Частота оновлення' => self::formatUpdateFrequency($metadata->accrual_periodicity),
+            'Ключові слова' => implode(', ', $metadata->keywords),
+            'Підстава та призначення' => $metadata->purpose,
+            'Контактна особа' => $metadata->contact_point_name,
+            'Електронна пошта' => $metadata->contact_point_email,
+        ])
+            ->map(fn (mixed $value, string $label): string => $label.': '.(is_string($value) && filled($value)
+                ? $value
+                : 'не зазначено'))
+            ->implode(' · ');
+    }
+
+    private static function formatUpdateFrequency(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $frequency = collect(DatasetUpdateFrequency::cases())
+            ->first(fn (DatasetUpdateFrequency $case): bool => in_array($value, [
+                $case->value,
+                $case->getLabel(),
+            ], true));
+
+        return $frequency?->getLabel() ?? $value;
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -137,9 +249,6 @@ class DatasetResource extends Resource
                     ->searchable()
                     ->limit(50)
                     ->url(fn (Dataset $record): string => static::getUrl('edit', ['record' => $record])),
-                TextColumn::make('accrual_periodicity')
-                    ->label('Частота оновлення')
-                    ->formatStateUsing(fn (DatasetUpdateFrequency $state): string => $state->getLabel()),
                 TextColumn::make('publisher.name')
                     ->label('Розпорядник'),
             ])
@@ -168,8 +277,9 @@ class DatasetResource extends Resource
                     ->label('Відкрити на порталі')
                     ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                     ->iconButton()
-                    ->url(fn (Dataset $record): string => $record->url)
-                    ->openUrlInNewTab(),
+                    ->url(fn (Dataset $record): ?string => $record->url)
+                    ->openUrlInNewTab()
+                    ->visible(fn (Dataset $record): bool => filled($record->external_id)),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);

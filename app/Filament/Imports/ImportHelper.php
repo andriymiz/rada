@@ -30,7 +30,7 @@ class ImportHelper
             }
 
             return Action::make('downloadExample')
-                ->label('Завантажити актуальний CSV з порталу відкритих даних')
+                ->label('Завантажити актуальний ресурс з порталу відкритих даних')
                 ->link()
                 ->url($downloadUrl, true);
         };

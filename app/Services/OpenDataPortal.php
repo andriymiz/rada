@@ -4,9 +4,13 @@ namespace App\Services;
 
 use App\Enums\DatasetResourceType;
 use App\Models\CouncilOrganization;
+use App\Models\Dataset;
+use App\Models\DatasetMeta;
 use App\Models\DatasetResource;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use UnexpectedValueException;
 
 class OpenDataPortal
 {
@@ -25,7 +29,9 @@ class OpenDataPortal
      */
     public function searchPackages(string $search): array
     {
-        $organizationId = CouncilOrganization::query()->value('open_data_id');
+        $organizationId = CouncilOrganization::query()
+            ->whereNotNull('open_data_id')
+            ->value('open_data_id');
 
         return Http::acceptJson()
             ->baseUrl(config('services.open_data.base_url'))
@@ -44,13 +50,139 @@ class OpenDataPortal
 
     public function getPackageLabel(string $packageId): string
     {
-        $result = Http::acceptJson()
-            ->baseUrl(config('services.open_data.base_url'))
-            ->get('/api/3/action/package_show', ['id' => $packageId])
-            ->throw()
-            ->collect('result');
+        $package = $this->getPackage($packageId);
+        $label = $package['title'] ?? $package['name'] ?? null;
 
-        return $result->get('title') ?? $result->get('name');
+        if (! is_string($label) || blank($label)) {
+            throw new UnexpectedValueException("The open data package [{$packageId}] has no label.");
+        }
+
+        return $label;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getPackageMetadata(string $packageId): array
+    {
+        $package = $this->getPackage($packageId);
+
+        return [
+            'description' => $package['notes'] ?? '',
+            'accrual_periodicity' => $package['update_frequency'],
+            'keywords' => collect(is_array($package['tags'] ?? null) ? $package['tags'] : [])
+                ->map(fn (mixed $tag): mixed => is_array($tag) ? ($tag['name'] ?? null) : $tag)
+                ->filter(fn (mixed $keyword): bool => is_string($keyword) && filled($keyword))
+                ->values()
+                ->all(),
+            'purpose' => $package['purpose_of_collecting_information'],
+            'contact_point_name' => $package['maintainer'],
+            'contact_point_email' => $package['maintainer_email'],
+        ];
+    }
+
+    public function syncDatasetMetadata(Dataset $dataset): DatasetMeta
+    {
+        $packageId = $dataset->external_id;
+
+        if (! is_string($packageId) || blank($packageId)) {
+            throw new UnexpectedValueException('The dataset must be linked to the open data portal.');
+        }
+
+        $metadata = $this->getPackageMetadata($packageId);
+
+        $savedMetadata = $dataset->meta()->updateOrCreate([], $metadata);
+        $dataset->setRelation('meta', $savedMetadata);
+
+        return $savedMetadata;
+    }
+
+    /**
+     * @param  array<int, string>  $resourceIds
+     * @return array<int, string>
+     */
+    public function getPackageResourceFormats(string $packageId, array $resourceIds): array
+    {
+        if ($resourceIds === []) {
+            return [];
+        }
+
+        return $this->getPackageResources($packageId)
+            ->filter(fn (mixed $resource): bool => is_array($resource)
+                && is_string($resource['id'] ?? null)
+                && in_array($resource['id'], $resourceIds, true))
+            ->map(fn (array $resource): mixed => $resource['format'] ?? null)
+            ->filter(fn (mixed $format): bool => is_string($format) && filled($format))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function syncDatasetResources(Dataset $dataset): int
+    {
+        $packageId = $dataset->external_id;
+
+        if (! is_string($packageId) || blank($packageId)) {
+            throw new UnexpectedValueException('The dataset must be linked to the open data portal.');
+        }
+
+        $package = $this->getPackage($packageId);
+        $portalResources = $package['resources'] ?? null;
+
+        if (! is_array($portalResources)) {
+            throw new UnexpectedValueException("The open data package [{$packageId}] has no resource list.");
+        }
+
+        $resourcesById = [];
+
+        foreach ($portalResources as $resource) {
+            if (
+                ! is_array($resource)
+                || ! is_string($resource['id'] ?? null)
+                || blank($resource['id'])
+                || ! is_string($resource['name'] ?? null)
+                || blank($resource['name'])
+            ) {
+                throw new UnexpectedValueException("The open data package [{$packageId}] contains an invalid resource.");
+            }
+
+            $resourceId = $resource['id'];
+            $format = $resource['format'] ?? null;
+
+            if (array_key_exists($resourceId, $resourcesById)) {
+                throw new UnexpectedValueException("The open data package [{$packageId}] contains a duplicate resource ID.");
+            }
+
+            if ($format !== null && ! is_string($format)) {
+                throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid format.");
+            }
+
+            $resourcesById[$resourceId] = [
+                'name' => $resource['name'],
+                'format' => is_string($format) && filled($format) ? $format : null,
+            ];
+        }
+
+        DB::transaction(function () use ($dataset, $resourcesById): void {
+            foreach ($resourcesById as $resourceId => $data) {
+                $dataset->resources()->updateOrCreate(
+                    ['external_id' => $resourceId],
+                    $data,
+                );
+            }
+
+            if ($resourcesById === []) {
+                $dataset->resources()->delete();
+
+                return;
+            }
+
+            $dataset->resources()
+                ->whereNotIn('external_id', array_keys($resourcesById))
+                ->delete();
+        });
+
+        return count($resourcesById);
     }
 
     /**
@@ -91,18 +223,38 @@ class OpenDataPortal
         return $this->searchResources($packageId, '')[$resourceId] ?? $resourceId;
     }
 
+    public function getResourcePageUrl(string $packageId, string $resourceId): string
+    {
+        return rtrim(config('services.open_data.base_url'), '/')
+            .'/dataset/'.rawurlencode($packageId)
+            .'/resource/'.rawurlencode($resourceId);
+    }
+
     public function getResourceDownloadUrl(DatasetResourceType $type): ?string
     {
-        $configuredResource = DatasetResource::query()
+        $configuredResources = DatasetResource::query()
             ->with('dataset')
-            ->where('type', $type->value)
-            ->first();
+            ->where('name', $type)
+            ->get();
 
-        if ($configuredResource === null) {
+        if ($configuredResources->isEmpty()) {
             return null;
         }
 
-        $resource = $this->getPackageResources($configuredResource->dataset->external_id)
+        if ($configuredResources->count() > 1) {
+            throw new UnexpectedValueException(
+                "Multiple portal resources are configured for [{$type}].",
+            );
+        }
+
+        $configuredResource = $configuredResources->sole();
+        $packageId = $configuredResource->dataset->external_id;
+
+        if (! is_string($packageId) || blank($packageId)) {
+            return null;
+        }
+
+        $resource = $this->getPackageResources($packageId)
             ->first(fn (mixed $resource): bool => is_array($resource)
                 && ($resource['id'] ?? null) === $configuredResource->external_id);
         $url = is_array($resource) ? ($resource['url'] ?? null) : null;
@@ -121,20 +273,23 @@ class OpenDataPortal
      */
     private function getPackageResources(string $packageId): Collection
     {
-        $payload = Http::acceptJson()
+        $resources = $this->getPackage($packageId)['resources'] ?? [];
+
+        return collect(is_array($resources) ? $resources : []);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getPackage(string $packageId): array
+    {
+        return Http::acceptJson()
+            ->connectTimeout(3)
+            ->timeout(10)
             ->baseUrl(config('services.open_data.base_url'))
             ->get('/api/3/action/package_show', ['id' => $packageId])
             ->throw()
-            ->collect();
-
-        if ($payload->get('success') !== true) {
-            return collect();
-        }
-
-        $result = $payload->get('result');
-        $resources = is_array($result) ? ($result['resources'] ?? []) : [];
-
-        return is_array($resources) ? collect($resources) : collect();
+            ->json('result');
     }
 
     /**

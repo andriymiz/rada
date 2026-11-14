@@ -7,6 +7,7 @@ use App\Filament\Exports\DatasetExporter;
 use App\Filament\Imports\DatasetImporter;
 use App\Filament\Imports\ImportHelper;
 use App\Filament\Resources\Datasets\DatasetResource;
+use App\Models\Dataset;
 use Filament\Actions\CreateAction;
 use Filament\Actions\ExportAction;
 use Filament\Actions\Exports\Enums\ExportFormat;
@@ -28,11 +29,13 @@ class ManageDatasets extends ManageRecords
                 ->fileName('register')
                 ->columnMapping(false)
                 ->formats([ExportFormat::Csv])
-                ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                    'publisher',
-                    'responsibleOfficial.person',
-                    'responsibleOfficial.contactPoints',
-                ])),
+                ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                    ->whereNotNull((new Dataset)->qualifyColumn('external_id'))
+                    ->whereHas('meta')
+                    ->with([
+                        'meta',
+                        'publisher',
+                    ])),
             ImportAction::make()
                 ->pluralModelLabel('наборів даних')
                 ->importer(DatasetImporter::class)

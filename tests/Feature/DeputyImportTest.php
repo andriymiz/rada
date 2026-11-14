@@ -160,7 +160,7 @@ it('links the deputy importer to the configured open data resource', function ()
         ->for(Dataset::factory()->state(['external_id' => 'deputies-package-id']))
         ->create([
             'external_id' => 'deputies-resource-id',
-            'type' => DatasetResourceType::Deputies,
+            'name' => DatasetResourceType::Deputies,
         ]);
 
     $downloadUrl = 'https://data.gov.ua/dataset/deputies/resource/deputies.csv';
@@ -170,6 +170,7 @@ it('links the deputy importer to the configured open data resource', function ()
         'data.gov.ua/api/3/action/package_show*' => Http::response([
             'success' => true,
             'result' => [
+                'id' => 'deputies-package-id',
                 'resources' => [
                     [
                         'id' => 'deputies-resource-id',
@@ -190,7 +191,7 @@ it('links the deputy importer to the configured open data resource', function ()
             function (Action $action) use ($downloadUrl): bool {
                 $downloadAction = $action->getModalAction('downloadExample');
 
-                return $downloadAction?->getLabel() === 'Завантажити актуальний CSV з порталу відкритих даних'
+                return $downloadAction?->getLabel() === 'Завантажити актуальний ресурс з порталу відкритих даних'
                     && $downloadAction->isLink()
                     && $downloadAction->getUrl() === $downloadUrl
                     && $downloadAction->shouldOpenUrlInNewTab();

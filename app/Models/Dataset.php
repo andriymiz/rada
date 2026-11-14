@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\DatasetRecommendation;
-use App\Enums\DatasetUpdateFrequency;
 use Database\Factories\DatasetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -11,27 +10,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * @property DatasetUpdateFrequency $accrual_periodicity
+ * @property string|null $external_id
  * @property DatasetRecommendation|null $rec_code
  * @property int|null $group_id
  * @property int $sort
- * @property array<int, string> $keywords
- * @property array<int, string> $distribution_formats
  * @property-read DatasetGroup|null $group
+ * @property-read DatasetMeta|null $meta
  */
 #[Fillable([
     'rec_code',
+    'external_id',
     'title',
-    'description',
-    'accrual_periodicity',
-    'keywords',
-    'purpose',
-    'distribution_formats',
     'publisher_id',
-    'responsible_official_id',
     'group_id',
 ])]
 class Dataset extends Model
@@ -42,7 +35,6 @@ class Dataset extends Model
     protected static function booted(): void
     {
         static::creating(function (Dataset $dataset): void {
-            $dataset->external_id ??= (string) Str::uuid();
             $dataset->sort ??= ((int) static::query()
                 ->where('group_id', $dataset->group_id)
                 ->max('sort')) + 1;
@@ -53,16 +45,15 @@ class Dataset extends Model
     {
         return [
             'rec_code' => DatasetRecommendation::class,
-            'accrual_periodicity' => DatasetUpdateFrequency::class,
-            'keywords' => 'array',
-            'distribution_formats' => 'array',
         ];
     }
 
-    /** @return Attribute<non-falsy-string, never> */
+    /** @return Attribute<?non-falsy-string, never> */
     protected function url(): Attribute
     {
-        return Attribute::get(fn (): string => rtrim(config('services.open_data.base_url'), '/').'/dataset/'.$this->external_id);
+        return Attribute::get(fn (): ?string => filled($this->external_id)
+            ? rtrim(config('services.open_data.base_url'), '/').'/dataset/'.$this->external_id
+            : null);
     }
 
     /** @return BelongsTo<CouncilOrganization, $this> */
@@ -71,16 +62,16 @@ class Dataset extends Model
         return $this->belongsTo(CouncilOrganization::class, 'publisher_id');
     }
 
-    /** @return BelongsTo<Official, $this> */
-    public function responsibleOfficial(): BelongsTo
-    {
-        return $this->belongsTo(Official::class, 'responsible_official_id');
-    }
-
     /** @return BelongsTo<DatasetGroup, $this> */
     public function group(): BelongsTo
     {
         return $this->belongsTo(DatasetGroup::class, 'group_id');
+    }
+
+    /** @return HasOne<DatasetMeta, $this> */
+    public function meta(): HasOne
+    {
+        return $this->hasOne(DatasetMeta::class);
     }
 
     /** @return HasMany<DatasetResource, $this> */
