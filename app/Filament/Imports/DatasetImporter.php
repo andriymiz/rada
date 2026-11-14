@@ -8,17 +8,11 @@ use App\Enums\DatasetUpdateFrequency;
 use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Services\OpenDataPortal;
-use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use LogicException;
-use RuntimeException;
-use UnexpectedValueException;
 
 class DatasetImporter extends Importer
 {
@@ -94,26 +88,11 @@ class DatasetImporter extends Importer
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
                 ->relationship(resolveUsing: function (string $state, array $data, Dataset $record): ?CouncilOrganization {
-                    $organizationId = $data['publisher_id'] ?? null;
-                    $organization = is_string($organizationId) && filled($organizationId)
-                        ? CouncilOrganization::query()->where('edrpou', $organizationId)->first()
-                        : CouncilOrganization::query()->where('name', $state)->first();
-
-                    if (
-                        $organization instanceof CouncilOrganization
-                        && $record->exists
-                        && $record->publisher_id !== $organization->getKey()
-                    ) {
-                        $identifier = filled($record->external_id)
-                            ? "з ідентифікатором [{$record->external_id}]"
-                            : "з офіційною назвою [{$record->title}]";
-
-                        throw new RowImportFailedException(
-                            "Набір даних {$identifier} уже належить іншому розпоряднику.",
-                        );
-                    }
-
-                    return $organization;
+                    return CouncilOrganization::query()
+                        ->where('name', $state)
+                        ->when($data['publisher_id'] ?? null,
+                            fn ($query, $organizationId) => $query->where('edrpou', $organizationId))
+                        ->first();
                 }),
 
             ImportColumn::make('contact_point_name')
@@ -136,44 +115,39 @@ class DatasetImporter extends Importer
 
     public function resolveRecord(): Dataset
     {
-        $externalId = $this->data['external_id'] ?? null;
-
-        if (is_string($externalId) && Str::isUuid($externalId)) {
-            $dataset = Dataset::query()->where('external_id', $externalId)->first();
-
-            if ($dataset instanceof Dataset) {
-                return $dataset;
-            }
+        // Find by external ID first
+        $dataset = Dataset::query()->where('external_id', $this->data['external_id'])->first();
+        if ($dataset instanceof Dataset) {
+            return $dataset;
         }
 
-        $officialTitle = $this->data['title'] ?? null;
-        $recommendation = is_string($officialTitle)
-            ? collect(DatasetRecommendation::cases())
-                ->first(fn (DatasetRecommendation $case): bool => $case->getLabel() === $officialTitle)
-            : null;
-        $dataset = $recommendation instanceof DatasetRecommendation
-            ? Dataset::query()->where('rec_code', $recommendation->value)->first()
-            : null;
-
-        if (
-            ! $dataset instanceof Dataset
-            && is_string($officialTitle)
-            && filled($officialTitle)
-        ) {
-            $dataset = Dataset::query()->where('title', $officialTitle)->first();
+        // If not found by external ID, try finding by recommendation code
+        $title = $this->data['title'] ?? null;
+        $recommendation = collect(DatasetRecommendation::cases())
+            ->first(fn (DatasetRecommendation $case): bool => $case->getLabel() === $title);
+        $dataset = Dataset::query()->where('rec_code', $recommendation)->first();
+        if ($recommendation instanceof DatasetRecommendation && $dataset instanceof Dataset) {
+            return $dataset;
         }
 
-        return $dataset ?? new Dataset;
+        // If not found by external ID or recommendation code, try finding by title
+        return Dataset::query()->where('title', $title)->first() ?? new Dataset;
     }
 
     protected function beforeSave(): void
     {
-        $this->getDatasetRecord()->status = DatasetStatus::Published;
+        /** @var Dataset $dataset */
+        $dataset = $this->record;
+
+        $dataset->status = DatasetStatus::Published;
     }
 
     protected function afterSave(): void
     {
-        $this->record->meta()
+        /** @var Dataset $dataset */
+        $dataset = $this->record;
+
+        $dataset->meta()
             ->updateOrCreate([], [
                 'description' => $this->data['description'],
                 'accrual_periodicity' => $this->data['accrual_periodicity'],
@@ -183,20 +157,15 @@ class DatasetImporter extends Importer
                 'contact_point_email' => $this->data['contact_point_email'],
             ]);
 
-        app(OpenDataPortal::class)->syncDatasetResources($this->record);
+        try {
+            app(OpenDataPortal::class)->syncDatasetResources($dataset);
+        } catch (RequestException $exception) {
+            report($exception);
+        }
     }
 
     public static function getCompletedNotificationBody(Import $import): string
     {
         return ImportHelper::getCompletedNotificationBody($import);
-    }
-
-    private function getDatasetRecord(): Dataset
-    {
-        if (! $this->record instanceof Dataset) {
-            throw new LogicException('Імпортер має працювати із записом набору даних.');
-        }
-
-        return $this->record;
     }
 }

@@ -245,13 +245,12 @@ class DatasetResource extends Resource
                     ->label('Статус')
                     ->options(DatasetStatus::class),
             ])
-            ->recordClasses(fn (Dataset $record): ?string => match ($record->status) {
+            ->recordClasses(fn (Dataset $record): string => match ($record->status) {
                 DatasetStatus::Unknown => 'dataset-status-unknown',
                 DatasetStatus::NoInformation => 'dataset-status-no-information',
                 DatasetStatus::NotPublished => 'dataset-status-not-published',
                 DatasetStatus::Collecting => 'dataset-status-collecting',
                 DatasetStatus::Published => 'dataset-status-published',
-                default => null,
             })
             ->defaultGroup(
                 Group::make('group_id')

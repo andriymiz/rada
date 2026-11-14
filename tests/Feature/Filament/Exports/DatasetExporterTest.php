@@ -136,7 +136,7 @@ it('exports dataset metadata stored in its related record', function (): void {
     ]);
     $dataset->meta()->create(exporterMetadata([
         'description' => 'Опис із порталу',
-        'accrual_periodicity' => 'yearly',
+        'accrual_periodicity' => 'once a year',
         'keywords' => ['реєстр', 'дані'],
         'purpose' => 'Підстава.',
     ]));

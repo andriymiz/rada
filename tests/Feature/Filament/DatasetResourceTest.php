@@ -128,7 +128,7 @@ it('edits dataset details on its edit page', function () {
         ]);
     $dataset->meta()->create([
         'description' => 'Опис набору.',
-        'accrual_periodicity' => 'yearly',
+        'accrual_periodicity' => 'once a year',
         'keywords' => ['оновлений реєстр'],
         'purpose' => 'Підстава.',
         'contact_point_name' => 'Контакт',
@@ -594,7 +594,7 @@ it('does not display update frequency in the datasets table', function (): void 
     $dataset = Dataset::factory()->create();
     $dataset->meta()->create([
         'description' => 'Опис набору.',
-        'accrual_periodicity' => 'yearly',
+        'accrual_periodicity' => 'once a year',
         'keywords' => ['реєстр'],
         'purpose' => 'Підстава.',
         'contact_point_name' => 'Контакт',
@@ -612,7 +612,7 @@ it('does not display resource formats in dataset metadata', function () {
     ]);
     $dataset->meta()->create([
         'description' => 'Опис набору.',
-        'accrual_periodicity' => 'yearly',
+        'accrual_periodicity' => 'once a year',
         'keywords' => ['реєстр'],
         'purpose' => 'Підстава.',
         'contact_point_name' => 'Контакт',
