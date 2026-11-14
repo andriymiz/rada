@@ -261,6 +261,7 @@ class DatasetResource extends Resource
             ->defaultSort('sort')
             ->reorderable('sort')
             ->searchable(true)
+            ->paginated(false)
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                 'publisher',
                 'group',
