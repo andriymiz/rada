@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Datasets;
 
 use App\Enums\DatasetRecommendation;
 use App\Enums\DatasetStatus;
+use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
@@ -133,7 +134,9 @@ class DatasetResource extends Resource
                     ->key('portalMetadata')
                     ->schema([
                         TextEntry::make('meta.description')->label('Опис'),
-                        TextEntry::make('meta.accrual_periodicity')->label('Частота оновлення'),
+                        TextEntry::make('meta.accrual_periodicity')
+                            ->label('Частота оновлення')
+                            ->formatStateUsing(fn (string $state): string => DatasetUpdateFrequency::tryFrom($state)?->getLabel() ?? $state),
                         TextEntry::make('meta.keywords')->label('Ключові слова'),
                         TextEntry::make('meta.purpose')->label('Підстава та призначення'),
                         TextEntry::make('meta.contact_point_name')->label('Контактна особа'),
@@ -264,23 +267,31 @@ class DatasetResource extends Resource
                 'group',
             ]))
             ->recordActions([
-                Action::make('documentationLink')
-                    ->label('Опис набору даних')
-                    ->icon(Heroicon::OutlinedInformationCircle)
-                    ->iconButton()
-                    ->url(fn (Dataset $record): ?string => $record->rec_code?->getExternalLink())
-                    ->openUrlInNewTab()
-                    ->visible(fn (Dataset $record): bool => $record->rec_code !== null),
-                Action::make('portalLink')
-                    ->label('Відкрити на порталі')
-                    ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
-                    ->iconButton()
-                    ->url(fn (Dataset $record): ?string => $record->url)
-                    ->openUrlInNewTab()
-                    ->visible(fn (Dataset $record): bool => filled($record->external_id)),
+                self::documentationLinkAction()->iconButton(),
+                self::portalLinkAction()->iconButton(),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
+    }
+
+    public static function documentationLinkAction(): Action
+    {
+        return Action::make('documentationLink')
+            ->label('Про набір')
+            ->icon(Heroicon::OutlinedInformationCircle)
+            ->url(fn (Dataset $record): ?string => $record->rec_code?->getExternalLink())
+            ->openUrlInNewTab()
+            ->visible(fn (Dataset $record): bool => $record->rec_code !== null);
+    }
+
+    public static function portalLinkAction(): Action
+    {
+        return Action::make('portalLink')
+            ->label('На портал')
+            ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+            ->url(fn (Dataset $record): ?string => $record->url)
+            ->openUrlInNewTab()
+            ->visible(fn (Dataset $record): bool => filled($record->external_id));
     }
 
     public static function getRelations(): array

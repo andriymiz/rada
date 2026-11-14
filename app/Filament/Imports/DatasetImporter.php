@@ -3,16 +3,22 @@
 namespace App\Filament\Imports;
 
 use App\Enums\DatasetRecommendation;
+use App\Enums\DatasetStatus;
 use App\Enums\DatasetUpdateFrequency;
 use App\Models\CouncilOrganization;
 use App\Models\Dataset;
+use App\Services\OpenDataPortal;
 use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use LogicException;
+use RuntimeException;
+use UnexpectedValueException;
 
 class DatasetImporter extends Importer
 {
@@ -53,7 +59,13 @@ class DatasetImporter extends Importer
                 ->guesses(['accrualPeriodicity'])
                 ->requiredMapping()
                 ->rules(['required', Rule::in($frequencyCases->map->getLabel()->all())])
-                ->fillRecordUsing(fn (): null => null),
+                ->fillRecordUsing(function (DatasetImporter $importer, string $state): void {
+                    $importer->data['accrual_periodicity'] = collect(DatasetUpdateFrequency::cases())
+                        ->mapWithKeys(fn (DatasetUpdateFrequency $frequency): array => [
+                            $frequency->getLabel() => $frequency->value,
+                        ])
+                        ->get($state);
+                }),
 
             ImportColumn::make('keywords')
                 ->label('Ключові слова')
@@ -154,10 +166,14 @@ class DatasetImporter extends Importer
         return $dataset ?? new Dataset;
     }
 
+    protected function beforeSave(): void
+    {
+        $this->getDatasetRecord()->status = DatasetStatus::Published;
+    }
+
     protected function afterSave(): void
     {
-        $this->getDatasetRecord()
-            ->meta()
+        $this->record->meta()
             ->updateOrCreate([], [
                 'description' => $this->data['description'],
                 'accrual_periodicity' => $this->data['accrual_periodicity'],
@@ -166,16 +182,8 @@ class DatasetImporter extends Importer
                 'contact_point_name' => $this->data['contact_point_name'],
                 'contact_point_email' => $this->data['contact_point_email'],
             ]);
-    }
 
-    protected function afterValidate(): void
-    {
-        $frequencyLabel = $this->data['accrual_periodicity'];
-        $this->data['accrual_periodicity'] = collect(DatasetUpdateFrequency::cases())
-            ->mapWithKeys(fn (DatasetUpdateFrequency $frequency): array => [
-                $frequency->getLabel() => $frequency->value,
-            ])
-            ->get($frequencyLabel);
+        app(OpenDataPortal::class)->syncDatasetResources($this->record);
     }
 
     public static function getCompletedNotificationBody(Import $import): string

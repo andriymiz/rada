@@ -67,6 +67,26 @@ it('hides the portal metadata section for datasets without a saved portal identi
         ->assertSchemaComponentHidden('portalMetadata');
 });
 
+it('displays the update frequency as a label without hiding unrecognized portal values', function (string $frequency, string $display): void {
+    $dataset = Dataset::factory()->create([
+        'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001259',
+    ]);
+    $dataset->meta()->create([
+        'description' => 'Опис набору.',
+        'accrual_periodicity' => $frequency,
+        'keywords' => ['реєстр'],
+        'purpose' => 'Підстава.',
+        'contact_point_name' => 'Контакт',
+        'contact_point_email' => 'contact@example.gov.ua',
+    ]);
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->assertSee($display);
+})->with([
+    'known portal code' => ['once a year', 'Щороку'],
+    'unknown portal value' => ['special schedule', 'special schedule'],
+]);
+
 it('creates a custom dataset without a recommendation', function (): void {
     $publisher = CouncilOrganization::factory()->create(['open_data_id' => 'portal-id']);
 
@@ -334,6 +354,34 @@ it('opens the dataset edit page from the table action', function (): void {
             $dataset,
         )
         ->assertSee('href="'.$editUrl.'"', false);
+});
+
+it('shows external links on the dataset edit page', function (): void {
+    config(['services.open_data.base_url' => 'https://portal.example.test']);
+
+    $dataset = Dataset::factory()->create([
+        'rec_code' => DatasetRecommendation::LocalDeputies,
+        'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001252',
+    ]);
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->assertActionVisible('documentationLink')
+        ->assertActionHasUrl('documentationLink', 'https://data.gov.ua/pages/835-recm-local-government-deputies')
+        ->assertActionShouldOpenUrlInNewTab('documentationLink')
+        ->assertActionVisible('portalLink')
+        ->assertActionHasUrl('portalLink', 'https://portal.example.test/dataset/c65f219b-4f4e-4e51-8dc6-7a1df3001252')
+        ->assertActionShouldOpenUrlInNewTab('portalLink');
+});
+
+it('hides unavailable external links on the dataset edit page', function (): void {
+    $dataset = Dataset::factory()->create([
+        'rec_code' => null,
+        'external_id' => null,
+    ]);
+
+    livewire(EditDataset::class, ['record' => $dataset->getKey()])
+        ->assertActionHidden('documentationLink')
+        ->assertActionHidden('portalLink');
 });
 
 it('shows portal resource management on the dataset edit page', function (): void {

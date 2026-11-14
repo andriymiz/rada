@@ -8,6 +8,7 @@ use App\Models\Dataset;
 use App\Services\OpenDataPortal;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Icons\Heroicon;
 
 /** @extends EditRecord<Dataset> */
 class EditDataset extends EditRecord
@@ -19,7 +20,9 @@ class EditDataset extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DatasetResource::documentationLinkAction()->iconButton(),
+            DatasetResource::portalLinkAction()->iconButton(),
+            DeleteAction::make()->iconButton()->icon(Heroicon::OutlinedTrash),
         ];
     }
 

@@ -6,13 +6,14 @@ use Filament\Support\Contracts\HasLabel;
 
 enum DatasetUpdateFrequency: string implements HasLabel
 {
-    case MoreThanOncePerDay = 'more_than_once_per_day';
-    case Daily = 'daily';
-    case Weekly = 'weekly';
-    case Monthly = 'monthly';
-    case Quarterly = 'quarterly';
-    case EverySixMonths = 'every_six_months';
-    case Yearly = 'yearly';
+    case MoreThanOncePerDay = 'more than once a day';
+    case Daily = 'once a day';
+    case Weekly = 'once a week';
+    case Monthly = 'once a month';
+    case Quarterly = 'once a quarter';
+    case EverySixMonths = 'once a half year';
+    case Yearly = 'once a year';
+    case NoLongerUpdated = 'no longer updated';
 
     public function getLabel(): string
     {
@@ -24,6 +25,7 @@ enum DatasetUpdateFrequency: string implements HasLabel
             self::Quarterly => 'Щокварталу',
             self::EverySixMonths => 'Кожного півріччя',
             self::Yearly => 'Щороку',
+            self::NoLongerUpdated => 'Більше не оновлюється',
         };
     }
 }
