@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Listeners\PrepareDatasetRegister;
 use Carbon\CarbonImmutable;
+use Filament\Actions\Exports\Models\Export;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        Export::creating([PrepareDatasetRegister::class, 'onCreating']);
+        Export::updated([PrepareDatasetRegister::class, 'onUpdated']);
     }
 
     /**

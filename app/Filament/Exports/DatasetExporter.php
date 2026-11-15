@@ -7,11 +7,20 @@ use App\Models\Dataset;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
+use Filament\Forms\Components\Checkbox;
 use Illuminate\Database\Eloquent\Builder;
 
 class DatasetExporter extends Exporter
 {
     protected static ?string $model = Dataset::class;
+
+    public static function getOptionsFormComponents(): array
+    {
+        return [
+            Checkbox::make('upload_to_portal')
+                ->label('Автоматично завантажити register.csv на портал відкритих даних'),
+        ];
+    }
 
     /**
      * @return array<ExportColumn>

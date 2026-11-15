@@ -10,10 +10,31 @@ use App\Models\DatasetResource;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Psr\Http\Message\StreamInterface;
 use UnexpectedValueException;
 
 class OpenDataPortal
 {
+    /**
+     * @param  resource|StreamInterface  $stream
+     * @param  DatasetResource  $resource
+     * @return array<string, mixed>
+     */
+    public function uploadResource($stream, DatasetResource $resource): array
+    {
+        return Http::acceptJson()
+            ->baseUrl(config('services.open_data.base_url'))
+            ->connectTimeout(5)
+            ->timeout(60)
+            ->withoutRedirecting()
+            ->withOptions(['expect' => false])
+            ->withHeaders(['Authorization' => config('services.open_data.api_token')])
+            ->attach('upload', $stream, $resource->name, ['Content-Type' => 'text/csv'])
+            ->post('/api/3/action/resource_patch', ['id' => $resource->external_id])
+            ->throw()
+            ->json();
+    }
+
     public function getOrganizationUrl(): string
     {
         $baseUrl = rtrim(config('services.open_data.base_url'), '/');
