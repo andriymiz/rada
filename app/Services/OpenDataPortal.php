@@ -7,6 +7,8 @@ use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Models\DatasetMeta;
 use App\Models\DatasetResource;
+use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -17,7 +19,6 @@ class OpenDataPortal
 {
     /**
      * @param  resource|StreamInterface  $stream
-     * @param  DatasetResource  $resource
      * @return array<string, mixed>
      */
     public function uploadResource($stream, DatasetResource $resource): array
@@ -33,6 +34,21 @@ class OpenDataPortal
             ->post('/api/3/action/resource_patch', ['id' => $resource->external_id])
             ->throw()
             ->json();
+    }
+
+    public function submitResourceToArchive(DatasetResource $resource): bool
+    {
+        return Http::acceptJson()
+            ->baseUrl(config('services.open_data.base_url'))
+            ->connectTimeout(5)
+            ->timeout(60)
+            ->withHeaders(['Authorization' => config('services.open_data.api_token')])
+            ->post('/api/3/action/datapusher_submit', [
+                'resource_id' => $resource->external_id,
+                'ignore_hash' => true,
+            ])
+            ->throw()
+            ->json('result');
     }
 
     public function getOrganizationUrl(): string
@@ -169,6 +185,8 @@ class OpenDataPortal
 
             $resourceId = $resource['id'];
             $format = $resource['format'] ?? null;
+            $description = $resource['description'] ?? null;
+            $size = $resource['size'] ?? null;
 
             if (array_key_exists($resourceId, $resourcesById)) {
                 throw new UnexpectedValueException("The open data package [{$packageId}] contains a duplicate resource ID.");
@@ -178,19 +196,37 @@ class OpenDataPortal
                 throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid format.");
             }
 
+            if ($description !== null && ! is_string($description)) {
+                throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid description.");
+            }
+
+            if ($size !== null && $size !== '' && (
+                (! is_int($size) && ! is_string($size))
+                || filter_var($size, FILTER_VALIDATE_INT) === false
+                || (int) $size < 0
+            )) {
+                throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid size.");
+            }
+
             $resourcesById[$resourceId] = [
                 'name' => $resource['name'],
                 'format' => is_string($format) && filled($format) ? $format : null,
+                'description' => $description,
+                'size' => $size === null || $size === '' ? 0 : (int) $size,
+                'created_at' => $this->getResourceDate($resource, 'created', $resourceId),
+                'updated_at' => $this->getResourceDate($resource, 'last_modified', $resourceId),
             ];
         }
 
         DB::transaction(function () use ($dataset, $resourcesById): void {
-            foreach ($resourcesById as $resourceId => $data) {
-                $dataset->resources()->updateOrCreate(
-                    ['external_id' => $resourceId],
-                    $data,
-                );
-            }
+            DatasetResource::withoutTimestamps(function () use ($dataset, $resourcesById): void {
+                foreach ($resourcesById as $resourceId => $data) {
+                    $dataset->resources()->updateOrCreate(
+                        ['external_id' => $resourceId],
+                        $data,
+                    );
+                }
+            });
 
             if ($resourcesById === []) {
                 $dataset->resources()->delete();
@@ -249,6 +285,113 @@ class OpenDataPortal
         return rtrim(config('services.open_data.base_url'), '/')
             .'/dataset/'.rawurlencode($packageId)
             .'/resource/'.rawurlencode($resourceId);
+    }
+
+    public function getResourceFileUrl(string $packageId, string $resourceId, string $name): string
+    {
+        return $this->getResourcePageUrl($packageId, $resourceId).'/download/'.rawurlencode($name);
+    }
+
+    public function getResourceViewUrl(string $packageId, string $resourceId, string $viewId): string
+    {
+        return $this->getResourcePageUrl($packageId, $resourceId).'/view/'.rawurlencode($viewId);
+    }
+
+    /**
+     * @return array{datastore_status: string, total: int|null, fields: array<int, array<string, mixed>>, view_count: int, views: array<int, array<string, mixed>>}
+     */
+    public function getResourceDetails(string $resourceId): array
+    {
+        $resource = $this->getResourceActionResult('resource_show', ['id' => $resourceId]);
+        $views = $this->getResourceActionResult('resource_view_list', ['id' => $resourceId]);
+
+        if (! is_bool($resource['datastore_active'] ?? null) || ! array_is_list($views)) {
+            throw new UnexpectedValueException("The open data resource [{$resourceId}] has invalid details.");
+        }
+
+        $fields = [];
+        $total = null;
+
+        if ($resource['datastore_active']) {
+            $datastore = $this->getResourceActionResult('datastore_search', ['resource_id' => $resourceId, 'limit' => 0]);
+
+            if (! is_array($datastore['fields'] ?? null)
+                || ! array_is_list($datastore['fields'])
+                || ! is_int($datastore['total'] ?? null)
+                || $datastore['total'] < 0) {
+                throw new UnexpectedValueException("The open data resource [{$resourceId}] has invalid datastore information.");
+            }
+
+            $fields = $datastore['fields'];
+            $total = $datastore['total'];
+        }
+
+        foreach ($fields as $field) {
+            if (! is_array($field) || ! is_string($field['id'] ?? null) || ! is_string($field['type'] ?? null)) {
+                throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid datastore field.");
+            }
+        }
+
+        foreach ($views as $view) {
+            if (! is_array($view)
+                || ! is_string($view['id'] ?? null)
+                || blank($view['id'])
+                || ! is_string($view['title'] ?? null)
+                || ! is_string($view['view_type'] ?? null)) {
+                throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid view.");
+            }
+        }
+
+        return [
+            'datastore_status' => $resource['datastore_active'] ? 'Дані завантажено' : 'Дані не завантажено',
+            'total' => $total,
+            'fields' => $fields,
+            'view_count' => count($views),
+            'views' => $views,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>|array<int, mixed>
+     */
+    private function getResourceActionResult(string $action, array $parameters): array
+    {
+        $response = Http::acceptJson()
+            ->connectTimeout(3)
+            ->timeout(10)
+            ->baseUrl(config('services.open_data.base_url'))
+            ->get('/api/3/action/'.$action, $parameters)
+            ->throw();
+        $result = $response->json('result');
+
+        if ($response->json('success') !== true || ! is_array($result)) {
+            throw new UnexpectedValueException("The open data portal returned invalid data for [{$action}].");
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, mixed>  $resource
+     */
+    private function getResourceDate(array $resource, string $key, string $resourceId): ?CarbonImmutable
+    {
+        $date = $resource[$key] ?? null;
+
+        if ($date === null || $date === '') {
+            return null;
+        }
+
+        if (! is_string($date)) {
+            throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid {$key} date.");
+        }
+
+        try {
+            return CarbonImmutable::parse($date);
+        } catch (InvalidFormatException $exception) {
+            throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid {$key} date.", previous: $exception);
+        }
     }
 
     public function getResourceDownloadUrl(DatasetResourceType $type): ?string

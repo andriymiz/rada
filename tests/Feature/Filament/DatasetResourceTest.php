@@ -12,6 +12,7 @@ use App\Models\Dataset;
 use App\Models\DatasetGroup;
 use App\Models\DatasetResource as DatasetResourceModel;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Support\Icons\Heroicon;
@@ -475,7 +476,15 @@ it('synchronizes portal resources and removes local resources that no longer exi
             'result' => [
                 'id' => 'dataset-package-id',
                 'resources' => [
-                    ['id' => 'reports-archive-id', 'name' => 'reports.zip', 'format' => 'ZIP'],
+                    [
+                        'id' => 'reports-archive-id',
+                        'name' => 'reports.zip',
+                        'format' => 'ZIP',
+                        'size' => 2048,
+                        'description' => 'Архів звітів',
+                        'created' => '2024-01-02T03:04:05',
+                        'last_modified' => '2024-06-07T08:09:10',
+                    ],
                     ['id' => 'reports-list-id', 'name' => 'listOfReports.csv', 'format' => 'CSV'],
                 ],
             ],
@@ -494,6 +503,10 @@ it('synchronizes portal resources and removes local resources that no longer exi
         'external_id' => 'reports-archive-id',
         'name' => 'reports.zip',
         'format' => 'ZIP',
+        'size' => 2048,
+        'description' => 'Архів звітів',
+        'created_at' => '2024-01-02 03:04:05',
+        'updated_at' => '2024-06-07 08:09:10',
     ]);
     $this->assertDatabaseHas('dataset_resources', [
         'dataset_id' => $dataset->getKey(),
@@ -526,7 +539,15 @@ it('updates an existing resource using the portal resource with the same externa
             'result' => [
                 'id' => 'dataset-package-id',
                 'resources' => [
-                    ['id' => 'existing-resource-id', 'name' => 'posts.csv', 'format' => 'JSON'],
+                    [
+                        'id' => 'existing-resource-id',
+                        'name' => 'posts.csv',
+                        'format' => 'JSON',
+                        'size' => 1536,
+                        'description' => 'Опис ресурсу',
+                        'created' => '2025-01-02T03:04:05',
+                        'last_modified' => '2025-06-07T08:09:10',
+                    ],
                 ],
             ],
         ]),
@@ -541,7 +562,11 @@ it('updates an existing resource using the portal resource with the same externa
 
     expect($resource->refresh()->external_id)->toBe('existing-resource-id')
         ->and($resource->name)->toBe('posts.csv')
-        ->and($resource->format)->toBe('JSON');
+        ->and($resource->format)->toBe('JSON')
+        ->and($resource->size)->toBe(1536)
+        ->and($resource->description)->toBe('Опис ресурсу')
+        ->and($resource->created_at->format('Y-m-d H:i:s'))->toBe('2025-01-02 03:04:05')
+        ->and($resource->updated_at->format('Y-m-d H:i:s'))->toBe('2025-06-07 08:09:10');
 
     expect($dataset->resources()->count())->toBe(1);
 });
@@ -566,6 +591,135 @@ it('links each resource row to its portal resource page', function (): void {
     ])
         ->assertTableActionExists('openPortalResource', record: $resource)
         ->assertTableActionHasUrl('openPortalResource', $url, $resource);
+});
+
+it('provides a portal download link with an encoded resource name', function (): void {
+    config(['services.open_data.base_url' => 'https://portal.example.test/']);
+    $dataset = Dataset::factory()->create(['external_id' => 'dataset-package-id']);
+    $resource = DatasetResourceModel::factory()->for($dataset)->create([
+        'external_id' => 'portal-resource-id',
+        'name' => 'дані за рік.csv',
+    ]);
+
+    livewire(ResourcesRelationManager::class, [
+        'ownerRecord' => $dataset,
+        'pageClass' => EditDataset::class,
+    ])
+        ->assertTableActionHasUrl(
+            'downloadResource',
+            'https://portal.example.test/dataset/dataset-package-id/resource/portal-resource-id/download/%D0%B4%D0%B0%D0%BD%D1%96%20%D0%B7%D0%B0%20%D1%80%D1%96%D0%BA.csv',
+            $resource,
+        );
+});
+
+it('starts a data archive import from the resource row', function (): void {
+    config([
+        'services.open_data.base_url' => 'https://data.gov.ua',
+        'services.open_data.api_token' => 'test-token',
+    ]);
+    $dataset = Dataset::factory()->create(['external_id' => 'dataset-package-id']);
+    $resource = DatasetResourceModel::factory()->for($dataset)->create([
+        'external_id' => 'portal-resource-id',
+        'name' => 'register.csv',
+    ]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'data.gov.ua/api/3/action/datapusher_submit' => Http::response([
+            'success' => true,
+            'result' => true,
+        ]),
+    ]);
+
+    livewire(ResourcesRelationManager::class, [
+        'ownerRecord' => $dataset,
+        'pageClass' => EditDataset::class,
+    ])
+        ->assertTableActionExists('uploadToArchive', fn (Action $action): bool => $action->isConfirmationRequired(), $resource)
+        ->mountTableAction('uploadToArchive', $resource)
+        ->callMountedTableAction()
+        ->assertNotified('Завантаження в архів даних розпочато');
+
+    Http::assertSentCount(1);
+});
+
+it('notifies when the portal does not accept a data archive import', function (): void {
+    config([
+        'services.open_data.base_url' => 'https://data.gov.ua',
+        'services.open_data.api_token' => 'test-token',
+    ]);
+    $dataset = Dataset::factory()->create(['external_id' => 'dataset-package-id']);
+    $resource = DatasetResourceModel::factory()->for($dataset)->create([
+        'external_id' => 'portal-resource-id',
+    ]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'data.gov.ua/api/3/action/datapusher_submit' => Http::response([
+            'success' => true,
+            'result' => false,
+        ]),
+    ]);
+
+    livewire(ResourcesRelationManager::class, [
+        'ownerRecord' => $dataset,
+        'pageClass' => EditDataset::class,
+    ])
+        ->mountTableAction('uploadToArchive', $resource)
+        ->callMountedTableAction()
+        ->assertNotified('Портал не запустив завантаження');
+
+    Http::assertSentCount(1);
+});
+
+it('shows resource size and description instead of the identifier', function (): void {
+    $dataset = Dataset::factory()->create(['external_id' => 'dataset-package-id']);
+    DatasetResourceModel::factory()->for($dataset)->create([
+        'name' => 'register.csv',
+        'size' => 1536,
+        'description' => 'Опис реєстру',
+    ]);
+
+    livewire(ResourcesRelationManager::class, [
+        'ownerRecord' => $dataset,
+        'pageClass' => EditDataset::class,
+    ])
+        ->assertTableColumnExists('size')
+        ->assertTableColumnExists('description')
+        ->assertTableColumnDoesNotExist('external_id')
+        ->assertSee('Опис реєстру')
+        ->assertSee('1.5 KB');
+});
+
+it('shows an empty description and inactive datastore in the resource view', function (): void {
+    $dataset = Dataset::factory()->create(['external_id' => 'dataset-package-id']);
+    $resource = DatasetResourceModel::factory()->for($dataset)->create([
+        'external_id' => 'portal-resource-id',
+        'description' => null,
+    ]);
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'data.gov.ua/api/3/action/resource_show*' => Http::response(['success' => true, 'result' => ['datastore_active' => false]]),
+        'data.gov.ua/api/3/action/resource_view_list*' => Http::response(['success' => true, 'result' => []]),
+    ]);
+
+    $component = livewire(ResourcesRelationManager::class, [
+        'ownerRecord' => $dataset,
+        'pageClass' => EditDataset::class,
+    ])->mountTableAction('view', $resource)
+        ->assertSchemaStateSet([
+            'description' => null,
+            'datastore_status' => 'Дані не завантажено',
+            'total' => null,
+            'view_count' => 0,
+        ]);
+
+    $livewire = $component->instance();
+    $html = $livewire->getSchema($livewire->getMountedActionSchemaName())->toHtml();
+    expect($html)->toContain('Опис')
+        ->toContain('—')
+        ->toContain('Дані не завантажено');
+
+    Http::assertSentCount(2);
 });
 
 it('generates the dataset page link from the configured open data portal URL', function () {

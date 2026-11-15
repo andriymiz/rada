@@ -2,17 +2,12 @@
 
 namespace App\Filament\Resources\Datasets\RelationManagers;
 
-use App\Models\Dataset;
-use App\Models\DatasetResource;
-use App\Services\OpenDataPortal;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
+use App\Filament\Resources\DatasetResources\Schemas\DatasetResourceInfolist;
+use App\Filament\Resources\DatasetResources\Tables\DatasetResourcesTable;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use UnexpectedValueException;
 
 class ResourcesRelationManager extends RelationManager
 {
@@ -20,7 +15,7 @@ class ResourcesRelationManager extends RelationManager
 
     protected static ?string $title = 'Ресурси набору даних';
 
-    protected static ?string $recordTitleAttribute = 'external_id';
+    protected static ?string $recordTitleAttribute = 'name';
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
@@ -28,60 +23,13 @@ class ResourcesRelationManager extends RelationManager
             && parent::canViewForRecord($ownerRecord, $pageClass);
     }
 
+    public function infolist(Schema $schema): Schema
+    {
+        return DatasetResourceInfolist::configure($schema);
+    }
+
     public function table(Table $table): Table
     {
-        return $table
-            ->recordTitleAttribute('external_id')
-            ->paginated(false)
-            ->columns([
-                TextColumn::make('name')
-                    ->label('Назва')
-                    ->searchable(),
-                TextColumn::make('external_id')
-                    ->label('Ідентифікатор')
-                    ->searchable(),
-                TextColumn::make('format')
-                    ->label('Формат'),
-            ])
-            ->headerActions([
-                Action::make('sync')
-                    ->label('Оновити')
-                    ->icon(Heroicon::ArrowPath)
-                    ->action(function (RelationManager $livewire, OpenDataPortal $portal): void {
-                        $dataset = $livewire->getOwnerRecord();
-
-                        if (! $dataset instanceof Dataset) {
-                            throw new UnexpectedValueException('Resources can only be synchronized for datasets.');
-                        }
-
-                        $resourceCount = $portal->syncDatasetResources($dataset);
-
-                        Notification::make()
-                            ->title('Ресурси набору оновлено')
-                            ->body("Синхронізовано ресурсів: {$resourceCount}.")
-                            ->success()
-                            ->send();
-                    }),
-            ])
-            ->recordActions([
-                Action::make('openPortalResource')
-                    ->label('Відкрити на порталі')
-                    ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
-                    ->iconButton()
-                    ->url(function (
-                        DatasetResource $record,
-                        RelationManager $livewire,
-                        OpenDataPortal $portal,
-                    ): ?string {
-                        $packageId = $livewire->getOwnerRecord()->getAttribute('external_id');
-
-                        if (! is_string($packageId) || blank($packageId)) {
-                            return null;
-                        }
-
-                        return $portal->getResourcePageUrl($packageId, $record->external_id);
-                    })
-                    ->openUrlInNewTab(),
-            ]);
+        return DatasetResourcesTable::configure($table);
     }
 }
