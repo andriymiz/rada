@@ -7,6 +7,7 @@ use App\Filament\Exports\DatasetExporter;
 use App\Filament\Imports\DatasetImporter;
 use App\Filament\Imports\ImportHelper;
 use App\Filament\Resources\Datasets\DatasetResource;
+use App\Filament\Resources\Datasets\Widgets\DatasetStatsOverview;
 use App\Models\Dataset;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -23,6 +24,13 @@ class ManageDatasets extends ManageRecords
     protected static string $resource = DatasetResource::class;
 
     public const PUBLICATION_RECOMMENDATIONS_URL = 'https://data.gov.ua/pages/835-rec-index';
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            DatasetStatsOverview::class,
+        ];
+    }
 
     protected function getHeaderActions(): array
     {

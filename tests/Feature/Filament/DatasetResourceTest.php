@@ -847,6 +847,43 @@ it('hides the documentation action for custom datasets', function (): void {
         ->assertTableActionHidden('documentationLink', $dataset);
 });
 
+it('shows dataset totals and publication progress above the table', function (): void {
+    Dataset::factory()->count(2)->create(['status' => DatasetStatus::Published]);
+    Dataset::factory()->create(['status' => DatasetStatus::Collecting]);
+    Dataset::factory()->create(['status' => DatasetStatus::Unknown]);
+    Dataset::factory()->create(['status' => DatasetStatus::NotPublished]);
+    Dataset::factory()->create(['status' => DatasetStatus::NoInformation]);
+
+    livewire(ManageDatasets::class)
+        ->assertSeeInOrder([
+            'Огляд наборів даних',
+            'Усього наборів',
+            '6',
+            'Опубліковано',
+            '2',
+            '33% від усіх наборів',
+            'Збирається інформація',
+            '1',
+            'Інші статуси',
+            '3',
+        ]);
+});
+
+it('shows zero publication progress when the register is empty', function (): void {
+    livewire(ManageDatasets::class)
+        ->assertSeeInOrder([
+            'Усього наборів',
+            '0',
+            'Опубліковано',
+            '0',
+            '0% від усіх наборів',
+            'Збирається інформація',
+            '0',
+            'Інші статуси',
+            '0',
+        ]);
+});
+
 it('renders the datasets page with its order column', function () {
     $publisher = CouncilOrganization::factory()->create();
     $dataset = Dataset::factory()
