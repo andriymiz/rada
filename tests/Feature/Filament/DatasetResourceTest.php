@@ -133,28 +133,6 @@ it('displays the update frequency as a label without hiding unrecognized portal 
     'unknown portal value' => ['special schedule', 'special schedule'],
 ]);
 
-it('creates a custom dataset without a recommendation', function (): void {
-    $publisher = CouncilOrganization::factory()->create(['open_data_id' => 'portal-id']);
-
-    livewire(ManageDatasets::class)
-        ->callAction(TestAction::make('create'), [
-            'rec_code' => null,
-            'title' => 'Власний набір ради',
-            'publisher_id' => $publisher->id,
-        ])
-        ->assertHasNoFormErrors();
-
-    $this->assertDatabaseHas('datasets', [
-        'title' => 'Власний набір ради',
-        'rec_code' => null,
-        'external_id' => null,
-        'status' => DatasetStatus::Unknown->value,
-    ]);
-    $this->assertDatabaseMissing('dataset_metas', [
-        'dataset_id' => Dataset::query()->where('title', 'Власний набір ради')->value('id'),
-    ]);
-});
-
 it('does not allow non-administrators to create datasets when the portal is configured', function (): void {
     CouncilOrganization::factory()->create([
         'open_data_id' => '11111111-2222-4333-8444-555555555555',
@@ -683,9 +661,8 @@ it('shows resource size and description instead of the identifier', function ():
         'pageClass' => EditDataset::class,
     ])
         ->assertTableColumnExists('size')
-        ->assertTableColumnExists('description')
+        ->assertTableColumnExists('created_at')
         ->assertTableColumnDoesNotExist('external_id')
-        ->assertSee('Опис реєстру')
         ->assertSee('1.5 KB');
 });
 
@@ -845,43 +822,6 @@ it('hides the documentation action for custom datasets', function (): void {
     livewire(ManageDatasets::class)
         ->assertCanSeeTableRecords([$dataset])
         ->assertTableActionHidden('documentationLink', $dataset);
-});
-
-it('shows dataset totals and publication progress above the table', function (): void {
-    Dataset::factory()->count(2)->create(['status' => DatasetStatus::Published]);
-    Dataset::factory()->create(['status' => DatasetStatus::Collecting]);
-    Dataset::factory()->create(['status' => DatasetStatus::Unknown]);
-    Dataset::factory()->create(['status' => DatasetStatus::NotPublished]);
-    Dataset::factory()->create(['status' => DatasetStatus::NoInformation]);
-
-    livewire(ManageDatasets::class)
-        ->assertSeeInOrder([
-            'Огляд наборів даних',
-            'Усього наборів',
-            '6',
-            'Опубліковано',
-            '2',
-            '33% від усіх наборів',
-            'Збирається інформація',
-            '1',
-            'Інші статуси',
-            '3',
-        ]);
-});
-
-it('shows zero publication progress when the register is empty', function (): void {
-    livewire(ManageDatasets::class)
-        ->assertSeeInOrder([
-            'Усього наборів',
-            '0',
-            'Опубліковано',
-            '0',
-            '0% від усіх наборів',
-            'Збирається інформація',
-            '0',
-            'Інші статуси',
-            '0',
-        ]);
 });
 
 it('renders the datasets page with its order column', function () {

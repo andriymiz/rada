@@ -14,6 +14,7 @@ enum DatasetUpdateFrequency: string implements HasLabel
     case EverySixMonths = 'once a half year';
     case Yearly = 'once a year';
     case NoLongerUpdated = 'no longer updated';
+    case Immediately = 'immediately after making changes';
 
     public function getLabel(): string
     {
@@ -26,6 +27,7 @@ enum DatasetUpdateFrequency: string implements HasLabel
             self::EverySixMonths => 'Кожного півріччя',
             self::Yearly => 'Щороку',
             self::NoLongerUpdated => 'Більше не оновлюється',
+            self::Immediately => 'Відразу після внесення змін',
         };
     }
 }
