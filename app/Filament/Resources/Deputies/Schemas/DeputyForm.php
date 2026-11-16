@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Deputies\Schemas;
 
-use App\Enums\ContactPointType;
 use App\Enums\DeputyStatus;
 use App\Filament\Resources\People\Schemas\PersonForm;
 use App\Models\Convocation;
@@ -11,15 +10,12 @@ use App\Models\Faction;
 use App\Models\PermanentCommission;
 use App\Models\Person;
 use App\Models\PoliticalParty;
-use App\Rules\ContactPointValue;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Flex;
@@ -235,7 +231,7 @@ class DeputyForm
                         ->visible(fn (Get $get): bool => filled($get('permanent_commission_id'))),
                 ])
                 ->columnSpanFull(),
-            Section::make('Місце та графік прийому')
+            Section::make('Місце прийому')
                 ->relationship(
                     'reception',
                     fn (?Deputy $record): bool => $record?->reception()->exists() ?? false,
@@ -243,47 +239,24 @@ class DeputyForm
                 ->visible(fn (?Deputy $record): bool => $record?->reception()->exists() ?? false)
                 ->columns(2)
                 ->schema(self::receptionFields()),
-            Section::make('Місце та графік прийому')
+            Section::make('Місце прийому')
                 ->key('reception-add-section')
-                ->description('За потреби додайте адресу та графік прийому депутата.')
+                ->description('За потреби додайте адресу прийому депутата.')
                 ->footerActions([
                     Action::make('addReception')
-                        ->label('Додати місце та графік прийому')
+                        ->label('Додати місце прийому')
                         ->schema(self::receptionFields())
                         ->action(fn (array $data, Deputy $record) => $record->reception()->create($data)),
                 ])
                 ->visible(fn (?Deputy $record): bool => $record !== null && ! $record->reception()->exists()),
-            Repeater::make('contactPoints')
-                ->label('Контактні дані')
-                ->relationship()
+            Repeater::make('social_accounts')
+                ->label('Соціальні мережі')
                 ->defaultItems(0)
-                ->table([
-                    TableColumn::make('Тип контакту'),
-                    TableColumn::make('Значення'),
-                    TableColumn::make('Публічний'),
-                    TableColumn::make('Примітка'),
-                ])
-                ->compact()
-                ->schema([
-                    Select::make('type')
-                        ->label('Тип контакту')
-                        ->options(ContactPointType::class)
-                        ->required()
-                        ->searchable()
-                        ->native(false),
-                    TextInput::make('value')
-                        ->label('Значення')
-                        ->required()
-                        ->maxLength(2048)
-                        ->rule(new ContactPointValue),
-                    Toggle::make('is_public')
-                        ->label('Публічний')
-                        ->default(false),
-                    TextInput::make('note')
-                        ->label('Примітка')
-                        ->maxLength(2048),
-                ])
-                ->addActionLabel('Додати контакт'),
+                ->simple(TextInput::make('url')->url()->rule('url:http,https')->maxLength(2048)->required()),
+            TextInput::make('email')->label('Електронна пошта')->email()->maxLength(255),
+            TextInput::make('phone')->label('Телефон')->tel()->maxLength(255)->rule('not_regex:/,/'),
+            Textarea::make('opening_hours')->label('Графік прийому')->maxLength(2048),
+            Textarea::make('availability_restriction')->label('Обмеження доступності')->maxLength(2048),
         ];
     }
 
@@ -368,15 +341,6 @@ class DeputyForm
             TextInput::make('address_locator_name')
                 ->label('Назва будівлі чи приміщення')
                 ->maxLength(255),
-            TextInput::make('opening_hours')
-                ->label('Графік прийому')
-                ->required()
-                ->maxLength(2048)
-                ->columnSpanFull(),
-            TextInput::make('availability_restriction')
-                ->label('Уточнення графіка')
-                ->maxLength(2048)
-                ->columnSpanFull(),
         ];
     }
 }

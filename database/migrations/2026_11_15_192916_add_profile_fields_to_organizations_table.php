@@ -13,6 +13,11 @@ return new class extends Migration
             $table->text('constituent_doc')->nullable();
             $table->text('homepage')->nullable();
             $table->json('social_accounts')->nullable();
+            $table->string('contact_point')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->text('opening_hours')->nullable();
+            $table->text('availability_restriction')->nullable();
             $table->text('logo')->nullable();
             $table->foreignId('parent_org_id')->nullable()->constrained('organizations')->nullOnDelete();
         });
@@ -27,6 +32,11 @@ return new class extends Migration
                 'constituent_doc',
                 'homepage',
                 'social_accounts',
+                'contact_point',
+                'email',
+                'phone',
+                'opening_hours',
+                'availability_restriction',
                 'logo',
             ]);
         });

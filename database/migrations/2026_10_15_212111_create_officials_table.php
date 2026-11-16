@@ -19,6 +19,11 @@ return new class extends Migration
             $table->boolean('is_head')->default(false);
             $table->text('image')->nullable();
             $table->text('homepage')->nullable();
+            $table->json('social_accounts')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->text('opening_hours')->nullable();
+            $table->text('availability_restriction')->nullable();
             $table->timestamps();
         });
     }

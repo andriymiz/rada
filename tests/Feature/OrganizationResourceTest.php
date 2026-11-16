@@ -45,6 +45,11 @@ it('lists organizations and creates and edits their profile details', function (
             'constituent_doc' => 'https://example.com/statut',
             'homepage' => 'https://example.com',
             'social_accounts' => [['url' => 'https://social.example.com/org']],
+            'contact_point' => 'Приймальня',
+            'email' => 'rada@example.com',
+            'phone' => '+380501234567',
+            'opening_hours' => 'Пн 09:00-18:00',
+            'availability_restriction' => 'За записом',
             'logo' => 'https://example.com/logo.png',
         ])
         ->call('create')
@@ -65,7 +70,12 @@ it('lists organizations and creates and edits their profile details', function (
 
     expect($createdOrganization->refresh()->name)->toBe('Оновлена повна назва')
         ->and($createdOrganization->short_name)->toBe('Оновлена коротка назва')
-        ->and($createdOrganization->social_accounts)->toBe(['https://social.example.com/org']);
+        ->and($createdOrganization->social_accounts)->toBe(['https://social.example.com/org'])
+        ->and($createdOrganization->contact_point)->toBe('Приймальня')
+        ->and($createdOrganization->email)->toBe('rada@example.com')
+        ->and($createdOrganization->phone)->toBe('+380501234567')
+        ->and($createdOrganization->opening_hours)->toBe('Пн 09:00-18:00')
+        ->and($createdOrganization->availability_restriction)->toBe('За записом');
 
     $this->assertDatabaseHas(Organization::class, [
         'id' => $createdOrganization->getKey(),
@@ -134,6 +144,31 @@ it('creates officials from the organization edit page relation manager', functio
         ->assertSeeLivewire(OfficialsRelationManager::class);
 });
 
+it('saves official contact details without requiring an address', function (): void {
+    $official = Official::factory()->create();
+
+    livewire(OfficialsRelationManager::class, [
+        'ownerRecord' => $official->organization,
+        'pageClass' => EditOrganization::class,
+    ])
+        ->callTableAction('edit', $official, [
+            'email' => 'official@example.com',
+            'phone' => '+380501234567',
+            'social_accounts' => [['url' => 'https://facebook.com/official']],
+            'opening_hours' => 'Пн 09:00-12:00',
+            'availability_restriction' => 'За записом',
+        ])
+        ->assertHasNoTableActionErrors();
+
+    $official->refresh();
+    expect($official->email)->toBe('official@example.com')
+        ->and($official->phone)->toBe('+380501234567')
+        ->and($official->social_accounts)->toBe(['https://facebook.com/official'])
+        ->and($official->opening_hours)->toBe('Пн 09:00-12:00')
+        ->and($official->availability_restriction)->toBe('За записом')
+        ->and($official->reception)->toBeNull();
+});
+
 it('stores the head flag on officials instead of an organization foreign key', function (): void {
     expect(Schema::hasColumn('officials', 'is_head'))->toBeTrue()
         ->and(Schema::hasColumn('organizations', 'head_id'))->toBeFalse();
@@ -153,6 +188,11 @@ it('imports organizations and resolves their official head and parent', function
         'constituent_doc' => 'constituentDocUrl',
         'homepage' => 'homepage',
         'social_accounts' => 'socialAccount',
+        'contact_point' => 'contactPointName',
+        'email' => 'contactPointEmail',
+        'phone' => 'contactPointTelephone',
+        'opening_hours' => 'openingHours',
+        'availability_restriction' => 'availabilityRestriction',
         'logo' => 'logo',
         'headName' => 'headName',
         'headPost' => 'headPost',
@@ -167,6 +207,11 @@ it('imports organizations and resolves their official head and parent', function
             'constituentDocUrl' => 'null',
             'homepage' => 'https://example.com',
             'socialAccount' => 'https://social.example.com/one, https://social.example.com/two',
+            'contactPointName' => 'Приймальня',
+            'contactPointEmail' => 'rada@example.com',
+            'contactPointTelephone' => '+380501234567',
+            'openingHours' => 'Пн 09:00-18:00',
+            'availabilityRestriction' => 'За записом',
             'logo' => 'null',
             'headName' => 'Коваль Олена Вікторівна',
             'headPost' => 'Директор',
@@ -183,6 +228,11 @@ it('imports organizations and resolves their official head and parent', function
             'https://social.example.com/one',
             'https://social.example.com/two',
         ])
+        ->and($organization->contact_point)->toBe('Приймальня')
+        ->and($organization->email)->toBe('rada@example.com')
+        ->and($organization->phone)->toBe('+380501234567')
+        ->and($organization->opening_hours)->toBe('Пн 09:00-18:00')
+        ->and($organization->availability_restriction)->toBe('За записом')
         ->and($organization->parentOrganization->is($parent))->toBeTrue()
         ->and($organization->head->position)->toBe('Директор')
         ->and($organization->head->is_head)->toBeTrue()
@@ -202,6 +252,11 @@ it('exports organization rows using the structure csv columns', function (): voi
         'constituent_doc' => 'https://example.com/statut',
         'homepage' => 'https://example.com',
         'social_accounts' => ['https://social.example.com/org'],
+        'contact_point' => 'Приймальня',
+        'email' => 'rada@example.com',
+        'phone' => '+380501234567',
+        'opening_hours' => 'Пн 09:00-18:00',
+        'availability_restriction' => 'За записом',
         'logo' => 'https://example.com/logo.png',
     ]);
     $person = Person::factory()->create([
@@ -228,6 +283,11 @@ it('exports organization rows using the structure csv columns', function (): voi
         'https://example.com/statut',
         'https://example.com',
         'https://social.example.com/org',
+        'Приймальня',
+        'rada@example.com',
+        '+380501234567',
+        'Пн 09:00-18:00',
+        'За записом',
         'https://example.com/logo.png',
         'Коваль Олена Вікторівна',
         'Директор',

@@ -2,17 +2,16 @@
 
 namespace App\Models;
 
-use App\Contracts\ContactPointable;
 use Database\Factories\OfficialFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
  * @property bool $is_head
+ * @property array<int, string>|null $social_accounts
  * @property-read Reception|null $reception
  */
 #[Fillable([
@@ -22,8 +21,13 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
     'is_head',
     'image',
     'homepage',
+    'social_accounts',
+    'email',
+    'phone',
+    'opening_hours',
+    'availability_restriction',
 ])]
-class Official extends Model implements ContactPointable
+class Official extends Model
 {
     /** @use HasFactory<OfficialFactory> */
     use HasFactory;
@@ -32,6 +36,7 @@ class Official extends Model implements ContactPointable
     {
         return [
             'is_head' => 'boolean',
+            'social_accounts' => 'array',
         ];
     }
 
@@ -45,12 +50,6 @@ class Official extends Model implements ContactPointable
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
-    }
-
-    /** @return MorphMany<ContactPoint, $this> */
-    public function contactPoints(): MorphMany
-    {
-        return $this->morphMany(ContactPoint::class, 'contactable');
     }
 
     /** @return MorphOne<Reception, $this> */

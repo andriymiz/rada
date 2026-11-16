@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Convocations\RelationManagers;
 
 use App\Enums\DatasetResourceType;
+use App\Filament\Exports\DeputyExporter;
 use App\Filament\Imports\DeputyImporter;
 use App\Filament\Imports\ImportHelper;
 use App\Filament\Resources\Deputies\Schemas\DeputyForm;
@@ -10,6 +11,8 @@ use App\Filament\Resources\Deputies\Tables\DeputiesTable;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ExportAction;
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\ImportAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
@@ -38,6 +41,11 @@ class DeputiesRelationManager extends RelationManager
                         'convocationId' => $this->getOwnerRecord()->getKey(),
                         'convocation' => $this->getOwnerRecord(),
                     ]),
+                ExportAction::make()
+                    ->exporter(DeputyExporter::class)
+                    ->fileName('deputies')
+                    ->columnMapping(false)
+                    ->formats([ExportFormat::Csv]),
             ])
             ->recordActions([
                 EditAction::make()->schema(DeputyForm::components()),

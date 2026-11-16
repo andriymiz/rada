@@ -2,7 +2,6 @@
 
 namespace App\Filament\Imports;
 
-use App\Actions\StoreImportedContactPoints;
 use App\Enums\Gender;
 use App\Models\Deputy;
 use App\Models\Faction;
@@ -17,15 +16,6 @@ use LogicException;
 class DeputyImporter extends Importer
 {
     protected static ?string $model = Deputy::class;
-
-    public function __construct(
-        Import $import,
-        array $columnMap,
-        array $options,
-        private readonly StoreImportedContactPoints $storeImportedContactPoints,
-    ) {
-        parent::__construct($import, $columnMap, $options);
-    }
 
     /**
      * @return array<ImportColumn>
@@ -106,18 +96,13 @@ class DeputyImporter extends Importer
             ImportColumn::make('email')
                 ->label('Електронна пошта')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->multiple(',')
-                ->rules(['nullable', 'array'])
-                ->nestedRecursiveRules(['email'])
-                ->fillRecordUsing(fn (): null => null),
+                ->rules(['nullable', 'email', 'max:255']),
 
             ImportColumn::make('telephone')
                 ->label('Номер телефону')
-                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->multiple(',')
-                ->rules(['nullable', 'array'])
-                ->nestedRecursiveRules(['string'])
-                ->fillRecordUsing(fn (): null => null),
+                ->castStateUsing(ImportHelper::normalizePhoneCastState(...))
+                ->rules(['nullable', 'string', 'max:255', 'not_regex:/,/'])
+                ->fillRecordUsing(fn (Deputy $record, mixed $state) => $record->phone = $state),
 
             ImportColumn::make('homepage')
                 ->label('Веб-сторінка')
@@ -130,7 +115,19 @@ class DeputyImporter extends Importer
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['url'])
-                ->fillRecordUsing(fn (): null => null),
+                ->fillRecordUsing(fn (Deputy $record, mixed $state) => $record->social_accounts = $state),
+
+            ImportColumn::make('openingHours')
+                ->label('Графік прийому')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
+                ->rules(['nullable', 'string', 'max:2048'])
+                ->fillRecordUsing(fn (Deputy $record, mixed $state) => $record->opening_hours = $state),
+
+            ImportColumn::make('availabilityRestriction')
+                ->label('Обмеження доступності')
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
+                ->rules(['nullable', 'string', 'max:2048'])
+                ->fillRecordUsing(fn (Deputy $record, mixed $state) => $record->availability_restriction = $state),
 
             ImportColumn::make('factionName')
                 ->label('Назва фракції')
@@ -176,7 +173,7 @@ class DeputyImporter extends Importer
 
         // Place and reception schedule (CATUTTC, addressPostCode, addressAdminUnitL1, addressAdminUnitL2,
         // addressAdminUnitL3, addressAdminUnitL4, addressPostName, addressThoroughfare, addressLocatorDesignator,
-        // addressLocatorBuilding, addressLocatorName, openingHours, availabilityRestriction)
+        // addressLocatorBuilding, addressLocatorName)
         // are intentionally not implemented yet.
     }
 
@@ -238,16 +235,6 @@ class DeputyImporter extends Importer
         $this->savePoliticalParty();
         $this->saveFaction($convocationId);
         $this->savePermanentCommission($convocationId);
-    }
-
-    protected function afterSave(): void
-    {
-        $this->storeImportedContactPoints->handle(
-            contactable: $this->getDeputyRecord(),
-            emails: $this->data['email'] ?? [],
-            telephones: $this->data['telephone'] ?? [],
-            socialAccounts: $this->data['account'] ?? [],
-        );
     }
 
     protected function savePerson(): void

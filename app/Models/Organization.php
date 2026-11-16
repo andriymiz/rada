@@ -36,6 +36,11 @@ use LogicException;
     'constituent_doc',
     'homepage',
     'social_accounts',
+    'contact_point',
+    'email',
+    'phone',
+    'opening_hours',
+    'availability_restriction',
     'logo',
     'parent_org_id',
 ])]

@@ -35,6 +35,11 @@ return new class extends Migration
             $table->string('commission_position')->nullable();
             $table->unsignedInteger('area_id')->nullable();
             $table->text('homepage')->nullable();
+            $table->json('social_accounts')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->text('opening_hours')->nullable();
+            $table->text('availability_restriction')->nullable();
             $table->text('image')->nullable();
             $table->text('biography')->nullable();
             $table->timestamps();

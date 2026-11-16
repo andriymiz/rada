@@ -2,7 +2,6 @@
 
 namespace App\Filament\Imports;
 
-use App\Actions\StoreImportedContactPoints;
 use App\Enums\Gender;
 use App\Models\Official;
 use App\Models\Organization;
@@ -15,15 +14,6 @@ use LogicException;
 class OfficialImporter extends Importer
 {
     protected static ?string $model = Official::class;
-
-    public function __construct(
-        Import $import,
-        array $columnMap,
-        array $options,
-        private readonly StoreImportedContactPoints $storeImportedContactPoints,
-    ) {
-        parent::__construct($import, $columnMap, $options);
-    }
 
     /**
      * @return array<ImportColumn>
@@ -81,23 +71,18 @@ class OfficialImporter extends Importer
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['url:http,https', 'max:2048'])
-                ->fillRecordUsing(fn (): null => null),
+                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->social_accounts = $state),
 
             ImportColumn::make('telephone')
                 ->label('Телефон')
-                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->multiple(',')
-                ->rules(['nullable', 'array'])
-                ->nestedRecursiveRules(['string', 'max:255'])
-                ->fillRecordUsing(fn (): null => null),
+                ->castStateUsing(ImportHelper::normalizePhoneCastState(...))
+                ->rules(['nullable', 'string', 'max:255', 'not_regex:/,/'])
+                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->phone = $state),
 
             ImportColumn::make('email')
                 ->label('Електронна пошта')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->multiple(',')
-                ->rules(['nullable', 'array'])
-                ->nestedRecursiveRules(['email'])
-                ->fillRecordUsing(fn (): null => null),
+                ->rules(['nullable', 'email', 'max:255']),
 
             ImportColumn::make('unitId')
                 ->label('Код підрозділу')
@@ -112,12 +97,14 @@ class OfficialImporter extends Importer
             ImportColumn::make('openingHours')
                 ->label('Графік прийому')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->fillRecordUsing(fn (): null => null),
+                ->rules(['nullable', 'string', 'max:2048'])
+                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->opening_hours = $state),
 
             ImportColumn::make('availabilityRestriction')
                 ->label('Обмеження доступності')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->fillRecordUsing(fn (): null => null),
+                ->rules(['nullable', 'string', 'max:2048'])
+                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->availability_restriction = $state),
         ];
     }
 
@@ -151,16 +138,6 @@ class OfficialImporter extends Importer
         $official->person()->associate($person);
         $official->organization()->associate($this->resolveOrganization());
         $official->position = $this->data['positionName'] ?? '';
-    }
-
-    protected function afterSave(): void
-    {
-        $this->storeImportedContactPoints->handle(
-            contactable: $this->getOfficialRecord(),
-            emails: $this->data['email'] ?? [],
-            telephones: $this->data['telephone'] ?? [],
-            socialAccounts: $this->data['socialAccount'] ?? [],
-        );
     }
 
     public static function getCompletedNotificationBody(Import $import): string

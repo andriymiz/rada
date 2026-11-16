@@ -22,8 +22,6 @@ return new class extends Migration
             $table->string('address_locator_designator')->nullable();
             $table->string('address_locator_building')->nullable();
             $table->string('address_locator_name')->nullable();
-            $table->text('opening_hours')->nullable();
-            $table->text('availability_restriction')->nullable();
             $table->timestamps();
         });
     }

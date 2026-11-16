@@ -58,6 +58,7 @@ class OrganizationForm
                     ->rule('url:http,https')
                     ->maxLength(2048),
                 Repeater::make('social_accounts')
+                    ->label('Соціальні мережі')
                     ->simple(
                         TextInput::make('url')
                             ->url()
@@ -65,6 +66,24 @@ class OrganizationForm
                             ->required(),
                     )
                     ->columnSpanFull(),
+                TextInput::make('contact_point')
+                    ->label('Контактна особа')
+                    ->maxLength(255),
+                TextInput::make('email')
+                    ->label('Електронна пошта')
+                    ->email()
+                    ->maxLength(255),
+                TextInput::make('phone')
+                    ->label('Телефон')
+                    ->tel()
+                    ->maxLength(255)
+                    ->rule('not_regex:/,/'),
+                Textarea::make('opening_hours')
+                    ->label('Графік роботи')
+                    ->maxLength(2048),
+                Textarea::make('availability_restriction')
+                    ->label('Обмеження доступності')
+                    ->maxLength(2048),
                 TextInput::make('logo')
                     ->label('Логотип')
                     ->url()

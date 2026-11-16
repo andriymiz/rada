@@ -20,8 +20,6 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
     'address_locator_designator',
     'address_locator_building',
     'address_locator_name',
-    'opening_hours',
-    'availability_restriction',
 ])]
 class Reception extends Model
 {

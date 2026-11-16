@@ -36,9 +36,30 @@ class OrganizationExporter extends Exporter
                 ->state(fn (Organization $record): string => $record->homepage ?? 'null')
                 ->preventFormulaInjection(),
             ExportColumn::make('socialAccount')
+                ->label('socialAccount')
                 ->state(fn (Organization $record): string => $record->social_accounts === null
                     ? 'null'
                     : implode(', ', $record->social_accounts))
+                ->preventFormulaInjection(),
+            ExportColumn::make('contactPointName')
+                ->label('contactPointName')
+                ->state(fn (Organization $record): string => $record->contact_point ?? 'null')
+                ->preventFormulaInjection(),
+            ExportColumn::make('contactPointEmail')
+                ->label('contactPointEmail')
+                ->state(fn (Organization $record): string => $record->email ?? 'null')
+                ->preventFormulaInjection(),
+            ExportColumn::make('contactPointTelephone')
+                ->label('contactPointTelephone')
+                ->state(fn (Organization $record): string => $record->phone ?? 'null')
+                ->preventFormulaInjection(),
+            ExportColumn::make('openingHours')
+                ->label('openingHours')
+                ->state(fn (Organization $record): string => $record->opening_hours ?? 'null')
+                ->preventFormulaInjection(),
+            ExportColumn::make('availabilityRestriction')
+                ->label('availabilityRestriction')
+                ->state(fn (Organization $record): string => $record->availability_restriction ?? 'null')
                 ->preventFormulaInjection(),
             ExportColumn::make('logo')
                 ->state(fn (Organization $record): string => $record->logo ?? 'null')

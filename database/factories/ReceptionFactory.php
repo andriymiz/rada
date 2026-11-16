@@ -32,8 +32,6 @@ class ReceptionFactory extends Factory
             'address_locator_designator' => '1',
             'address_locator_building' => null,
             'address_locator_name' => null,
-            'opening_hours' => 'Пн 09:00–18:00',
-            'availability_restriction' => null,
         ];
     }
 }

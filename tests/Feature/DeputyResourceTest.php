@@ -1,11 +1,9 @@
 <?php
 
-use App\Enums\ContactPointType;
 use App\Enums\DeputyStatus;
 use App\Enums\Gender;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
-use App\Models\ContactPoint;
 use App\Models\Convocation;
 use App\Models\Deputy;
 use App\Models\Faction;
@@ -94,7 +92,8 @@ it('creates a deputy profile without requiring reception details', function () {
     expect(Schema::hasColumn('deputies', 'homepage'))->toBeTrue()
         ->and(Schema::hasColumn('people', 'homepage'))->toBeFalse();
 
-    expect($deputy->contactPoints)->toBeEmpty();
+    expect($deputy->email)->toBeNull()
+        ->and($deputy->phone)->toBeNull();
 });
 
 it('saves each selected deputy status', function (DeputyStatus $status) {
@@ -410,7 +409,6 @@ it('adds reception details only when requested', function () {
             'address_post_name' => 'Тестове',
             'address_thoroughfare' => 'Тестова',
             'address_locator_designator' => '1',
-            'opening_hours' => 'Пн 09:00–18:00',
         ], formName: 'mountedActionSchema0')
         ->assertHasNoTableActionErrors();
 
@@ -419,11 +417,10 @@ it('adds reception details only when requested', function () {
         'receptionable_id' => $deputy->id,
         'katoottg' => 'UA12345678901234567',
         'address_post_name' => 'Тестове',
-        'opening_hours' => 'Пн 09:00–18:00',
     ]);
 });
 
-it('creates public and private contact points in the deputy edit form', function () {
+it('saves contact details directly in the deputy edit form', function () {
     $deputy = Deputy::factory()->create();
     $party = PoliticalParty::factory()->create();
 
@@ -432,61 +429,22 @@ it('creates public and private contact points in the deputy edit form', function
         'pageClass' => EditConvocation::class,
     ])->callTableAction('edit', $deputy, [
         'political_party_id' => $party->id,
-        'contactPoints' => [
-            [
-                'type' => ContactPointType::Email->value,
-                'value' => 'deputy@example.gov.ua',
-                'is_public' => true,
-                'note' => 'Робоча адреса',
-            ],
-            [
-                'type' => ContactPointType::Phone->value,
-                'value' => '+380123456789',
-                'is_public' => false,
-                'note' => 'Для внутрішнього зв’язку',
-            ],
-            [
-                'type' => ContactPointType::Website->value,
-                'value' => 'https://council.example.gov.ua',
-                'is_public' => true,
-            ],
-        ],
+        'email' => 'deputy@example.gov.ua',
+        'phone' => '+380123456789',
+        'social_accounts' => [['url' => 'https://council.example.gov.ua']],
+        'opening_hours' => 'Пн 09:00–18:00',
+        'availability_restriction' => 'За записом',
     ])->assertHasNoTableActionErrors();
 
-    $contacts = $deputy->contactPoints()->orderBy('id')->get();
-
-    expect($contacts)->toHaveCount(3)
-        ->and($contacts[0]->type)->toBe(ContactPointType::Email)
-        ->and($contacts[0]->value)->toBe('deputy@example.gov.ua')
-        ->and($contacts[0]->is_public)->toBeTrue()
-        ->and($contacts[0]->note)->toBe('Робоча адреса')
-        ->and($contacts[1]->type)->toBe(ContactPointType::Phone)
-        ->and($contacts[1]->is_public)->toBeFalse()
-        ->and($contacts[1]->note)->toBe('Для внутрішнього зв’язку')
-        ->and($contacts[2]->type)->toBe(ContactPointType::Website)
-        ->and($contacts[2]->value)->toBe('https://council.example.gov.ua')
-        ->and($contacts[0]->contactable)->toBeInstanceOf(Deputy::class)
-        ->and($contacts[0]->contactable->is($deputy))->toBeTrue();
-
-    $this->assertDatabaseHas('contact_points', [
-        'id' => $contacts[0]->id,
-        'contactable_id' => $deputy->id,
-        'contactable_type' => $deputy->getMorphClass(),
-    ]);
+    $deputy->refresh();
+    expect($deputy->email)->toBe('deputy@example.gov.ua')
+        ->and($deputy->phone)->toBe('+380123456789')
+        ->and($deputy->social_accounts)->toBe(['https://council.example.gov.ua'])
+        ->and($deputy->opening_hours)->toBe('Пн 09:00–18:00')
+        ->and($deputy->availability_restriction)->toBe('За записом');
 });
 
-it('associates contact points with other model types', function () {
-    $party = PoliticalParty::factory()->create();
-
-    $contactPoint = ContactPoint::factory()
-        ->for($party, 'contactable')
-        ->create();
-
-    expect($contactPoint->contactable)->toBeInstanceOf(PoliticalParty::class)
-        ->and($contactPoint->contactable->is($party))->toBeTrue();
-});
-
-it('validates values according to the selected contact type', function () {
+it('validates email in the deputy edit form', function () {
     $deputy = Deputy::factory()->create();
 
     livewire(DeputiesRelationManager::class, [
@@ -495,17 +453,11 @@ it('validates values according to the selected contact type', function () {
     ])
         ->callTableAction('edit', $deputy, [
             'political_party_id' => $deputy->political_party_id,
-            'contactPoints' => [
-                [
-                    'type' => ContactPointType::Email->value,
-                    'value' => 'not-an-email',
-                    'is_public' => false,
-                ],
-            ],
+            'email' => 'not-an-email',
         ])
         ->assertHasTableActionErrors();
 
-    expect($deputy->contactPoints()->count())->toBe(0);
+    expect($deputy->refresh()->email)->toBeNull();
 });
 
 it('updates deputy details without changing its linked person or reception', function () {

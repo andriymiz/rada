@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ContactPointType;
 use App\Enums\Gender;
 use App\Filament\Exports\OfficialExporter;
 use App\Filament\Resources\Organizations\Pages\ListOrganizations;
@@ -14,7 +13,6 @@ use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Models\Export;
 use Filament\Facades\Filament;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
 use League\Csv\Reader;
 
@@ -43,26 +41,13 @@ it('exports officials using the posts csv schema', function (): void {
             'position' => 'Міський голова',
             'image' => 'https://example.com/photo.jpg',
             'homepage' => 'https://example.com/official',
+            'email' => 'public@example.gov.ua',
+            'phone' => '+380501234567',
+            'social_accounts' => ['https://facebook.com/koval', 'https://instagram.com/koval'],
+            'opening_hours' => 'Пн 09:00-12:00',
+            'availability_restriction' => 'За попереднім записом',
         ]);
-    $official->contactPoints()->createMany([
-        ['type' => ContactPointType::Email, 'value' => 'public@example.gov.ua', 'is_public' => true],
-        ['type' => ContactPointType::Email, 'value' => 'private@example.gov.ua', 'is_public' => false],
-        ['type' => ContactPointType::Phone, 'value' => '+380501234567', 'is_public' => true],
-        ['type' => ContactPointType::Phone, 'value' => '+380671234567', 'is_public' => true],
-        ['type' => ContactPointType::Facebook, 'value' => 'https://facebook.com/koval', 'is_public' => true],
-        ['type' => ContactPointType::Instagram, 'value' => 'https://instagram.com/koval', 'is_public' => true],
-        ['type' => ContactPointType::Telegram, 'value' => 'https://t.me/koval', 'is_public' => false],
-    ]);
-    $official->reception()->create([
-        'opening_hours' => 'Пн 09:00-12:00',
-        'availability_restriction' => 'За попереднім записом',
-    ]);
-    $official->load([
-        'person',
-        'organization',
-        'reception',
-        'contactPoints' => fn (MorphMany $contactPoints): MorphMany => $contactPoints->orderBy('id'),
-    ]);
+    $official->load(['person', 'organization']);
 
     expect(OfficialExporter::test()->export($official))->toBe([
         'Коваль Олена Вікторівна',
@@ -73,7 +58,7 @@ it('exports officials using the posts csv schema', function (): void {
         'https://example.com/photo.jpg',
         'https://example.com/official',
         'https://facebook.com/koval, https://instagram.com/koval',
-        "'+380501234567, +380671234567",
+        '+380501234567',
         'public@example.gov.ua',
         'null',
         'null',
@@ -120,7 +105,7 @@ it('exports null optional values and unknown gender when the official has no add
             'image' => null,
             'homepage' => null,
         ]);
-    $official->load(['person', 'organization', 'reception', 'contactPoints']);
+    $official->load(['person', 'organization']);
 
     expect(OfficialExporter::test()->export($official))->toBe([
         'Коваль Олена',
@@ -181,7 +166,16 @@ it('exports officials from all organizations through the organizations page', fu
 it('continues to export organizations from the same page', function (): void {
     config(['queue.default' => 'sync']);
     Storage::fake('local');
-    Organization::factory()->create(['name' => 'Перша організація', 'edrpou' => '12345678']);
+    Organization::factory()->create([
+        'name' => 'Перша організація',
+        'edrpou' => '12345678',
+        'social_accounts' => ['https://example.com/one', 'https://example.com/two'],
+        'contact_point' => 'Приймальня',
+        'email' => 'office@example.com',
+        'phone' => '+380501234567',
+        'opening_hours' => 'Пн 09:00-12:00',
+        'availability_restriction' => 'За записом',
+    ]);
 
     livewire(ListOrganizations::class)
         ->callAction('export')
@@ -199,5 +193,11 @@ it('continues to export organizations from the same page', function (): void {
 
     expect($rows)->toHaveCount(1)
         ->and($rows[0]['Id'])->toBe('12345678')
-        ->and($rows[0]['Name'])->toBe('Перша організація');
+        ->and($rows[0]['Name'])->toBe('Перша організація')
+        ->and($rows[0]['socialAccount'])->toBe('https://example.com/one, https://example.com/two')
+        ->and($rows[0]['contactPointName'])->toBe('Приймальня')
+        ->and($rows[0]['contactPointEmail'])->toBe('office@example.com')
+        ->and($rows[0]['contactPointTelephone'])->toBe('+380501234567')
+        ->and($rows[0]['openingHours'])->toBe('Пн 09:00-12:00')
+        ->and($rows[0]['availabilityRestriction'])->toBe('За записом');
 });

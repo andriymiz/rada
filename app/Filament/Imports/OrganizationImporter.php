@@ -55,6 +55,31 @@ class OrganizationImporter extends Importer
                 ->castStateUsing(self::normalizeSocialAccounts(...))
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['url:http,https']),
+            ImportColumn::make('contact_point')
+                ->label('Контактна особа')
+                ->guesses(['contactPointName'])
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
+                ->rules(['nullable', 'string', 'max:255']),
+            ImportColumn::make('email')
+                ->label('Електронна пошта')
+                ->guesses(['contactPointEmail'])
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
+                ->rules(['nullable', 'email', 'max:255']),
+            ImportColumn::make('phone')
+                ->label('Телефон')
+                ->guesses(['contactPointTelephone'])
+                ->castStateUsing(ImportHelper::normalizePhoneCastState(...))
+                ->rules(['nullable', 'string', 'max:255', 'not_regex:/,/']),
+            ImportColumn::make('opening_hours')
+                ->label('Графік роботи')
+                ->guesses(['openingHours'])
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
+                ->rules(['nullable', 'string', 'max:2048']),
+            ImportColumn::make('availability_restriction')
+                ->label('Обмеження доступності')
+                ->guesses(['availabilityRestriction'])
+                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
+                ->rules(['nullable', 'string', 'max:2048']),
             ImportColumn::make('logo')
                 ->label('Логотип')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))

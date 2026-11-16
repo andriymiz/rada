@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Contracts\ContactPointable;
 use App\Enums\DeputyStatus;
 use Database\Factories\DeputyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,8 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -21,6 +20,8 @@ use Illuminate\Validation\ValidationException;
  * @property-read string $short_name
  * @property int|null $number
  * @property DeputyStatus $status
+ * @property array<int, string>|null $social_accounts
+ * @property Carbon|null $start_date
  */
 #[Fillable([
     'person_id',
@@ -39,8 +40,13 @@ use Illuminate\Validation\ValidationException;
     'homepage',
     'image',
     'biography',
+    'social_accounts',
+    'email',
+    'phone',
+    'opening_hours',
+    'availability_restriction',
 ])]
-class Deputy extends Model implements ContactPointable
+class Deputy extends Model
 {
     /** @use HasFactory<DeputyFactory> */
     use HasFactory;
@@ -78,6 +84,7 @@ class Deputy extends Model implements ContactPointable
             'status' => DeputyStatus::class,
             'start_date' => 'date',
             'end_date' => 'date',
+            'social_accounts' => 'array',
         ];
     }
 
@@ -127,12 +134,6 @@ class Deputy extends Model implements ContactPointable
     public function votes(): HasMany
     {
         return $this->hasMany(Vote::class);
-    }
-
-    /** @return MorphMany<ContactPoint, $this> */
-    public function contactPoints(): MorphMany
-    {
-        return $this->morphMany(ContactPoint::class, 'contactable');
     }
 
     /** @return MorphOne<Reception, $this> */

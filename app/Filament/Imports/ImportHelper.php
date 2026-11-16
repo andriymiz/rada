@@ -43,6 +43,19 @@ class ImportHelper
             : $state;
     }
 
+    public static function normalizePhoneCastState(mixed $state, mixed $originalState): mixed
+    {
+        $state = self::normalizeNullCastState($state, $originalState);
+
+        if (! is_string($state)) {
+            return $state;
+        }
+
+        $phone = ltrim($state, "'+‘’ \t\n\r\0\x0B");
+
+        return str_starts_with($phone, '380') ? '+'.$phone : trim($state);
+    }
+
     /**
      * @return array<int, string|null>
      */

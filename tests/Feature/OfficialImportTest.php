@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ContactPointType;
 use App\Enums\Gender;
 use App\Filament\Imports\OfficialImporter;
 use App\Models\Official;
@@ -55,11 +54,10 @@ it('imports an official from the posts csv row', function (): void {
         ->and($official->image)->toBe('https://example.com/photo.jpg')
         ->and($official->homepage)->toBe('https://example.com/official');
 
-    expect($official->contactPoints)->toHaveCount(2);
-    expect($official->contactPoints->firstWhere('type', ContactPointType::Email)->value)
-        ->toBe('rada@example.com');
-    expect($official->contactPoints->firstWhere('type', ContactPointType::Phone)->value)
-        ->toBe('+380354021743');
+    expect($official->email)->toBe('rada@example.com')
+        ->and($official->phone)->toBe('+380354021743')
+        ->and($official->opening_hours)->toBe('Пн 09:00-12:00')
+        ->and($official->availability_restriction)->toBeNull();
 });
 
 it('treats string null values as absent without changing other strings', function (string $nullValue): void {
@@ -84,7 +82,9 @@ it('treats string null values as absent without changing other strings', functio
 
     expect($official->image)->toBeNull()
         ->and($official->homepage)->toBe('https://example.com/null')
-        ->and($official->contactPoints)->toBeEmpty();
+        ->and($official->social_accounts)->toBeEmpty()
+        ->and($official->phone)->toBeNull()
+        ->and($official->email)->toBeNull();
 })->with([
     'lowercase' => ['null'],
     'mixed case with whitespace' => [" \tNuLl \n"],
@@ -107,7 +107,7 @@ it('treats a null homepage as absent', function (): void {
     expect(Official::query()->sole()->homepage)->toBeNull();
 });
 
-it('imports multiple contact values without changing them during normalization', function (): void {
+it('rejects multiple email addresses and telephone numbers', function (): void {
     Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
@@ -120,16 +120,9 @@ it('imports multiple contact values without changing them during normalization',
             'email' => 'first@example.com,second@example.com',
             'telephone' => '380501234567,380501234568',
         ])
-        ->assertImported();
+        ->assertHasErrors(['email' => 'email', 'telephone' => 'not_regex']);
 
-    $contacts = Official::query()->sole()->contactPoints;
-
-    expect($contacts->pluck('value')->sort()->values()->all())->toBe([
-        '+380501234567',
-        '+380501234568',
-        'first@example.com',
-        'second@example.com',
-    ]);
+    expect(Official::query()->count())->toBe(0);
 });
 
 it('imports multiple social accounts from an officials csv row', function (): void {
@@ -146,7 +139,7 @@ it('imports multiple social accounts from an officials csv row', function (): vo
         ])
         ->assertImported();
 
-    expect(Official::query()->sole()->contactPoints->pluck('value')->all())->toBe([
+    expect(Official::query()->sole()->social_accounts)->toBe([
         'https://facebook.com/koval',
         'https://instagram.com/koval',
     ]);
@@ -164,7 +157,7 @@ it('rejects a null string inside a list of email addresses', function (): void {
             'orgName' => 'Міська рада',
             'email' => 'first@example.com,null',
         ])
-        ->assertHasErrors(['email.1' => 'email']);
+        ->assertHasErrors(['email' => 'email']);
 
     expect(Official::query()->count())->toBe(0);
 });
@@ -202,7 +195,14 @@ it('updates the matching official in the requested organization', function (): v
     Person::factory()->create();
     $person = Person::factory()->create($name);
     $otherOfficial = Official::factory()->for($otherPerson)->for($otherOrganization, 'organization')->create(['position' => 'Інша посада']);
-    $official = Official::factory()->for($person)->for($organization, 'organization')->create(['position' => 'Попередня посада']);
+    $official = Official::factory()->for($person)->for($organization, 'organization')->create([
+        'position' => 'Попередня посада',
+        'email' => 'old@example.com',
+        'phone' => '+380501112233',
+        'social_accounts' => ['https://example.com/old'],
+        'opening_hours' => 'Старий графік',
+        'availability_restriction' => 'Старі обмеження',
+    ]);
 
     OfficialImporter::test()
         ->import([
@@ -211,11 +211,21 @@ it('updates the matching official in the requested organization', function (): v
             'positionName' => 'Нова посада',
             'orgId' => '04058410',
             'orgName' => 'Міська рада',
+            'email' => 'new@example.com',
+            'telephone' => '380674445566',
+            'socialAccount' => 'https://example.com/new',
+            'openingHours' => 'Новий графік',
+            'availabilityRestriction' => 'Нові обмеження',
         ])
         ->assertImported();
 
     expect(Official::query()->count())->toBe(2)
         ->and($official->refresh()->position)->toBe('Нова посада')
+        ->and($official->email)->toBe('new@example.com')
+        ->and($official->phone)->toBe('+380674445566')
+        ->and($official->social_accounts)->toBe(['https://example.com/new'])
+        ->and($official->opening_hours)->toBe('Новий графік')
+        ->and($official->availability_restriction)->toBe('Нові обмеження')
         ->and($official->person_id)->toBe($person->id)
         ->and($otherOfficial->refresh()->position)->toBe('Інша посада');
 });

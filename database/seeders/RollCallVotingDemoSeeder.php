@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ContactPointType;
 use App\Enums\DeputyStatus;
 use App\Enums\Gender;
 use App\Enums\MotionResult;
@@ -101,16 +100,9 @@ class RollCallVotingDemoSeeder extends Seeder
                     'status' => DeputyStatus::Active,
                     'voting_identifier' => $votingIdentifier,
                     'start_date' => '2020-11-01',
+                    'email' => 'demo@example.test',
+                    'phone' => '+380000000000',
                 ],
-            );
-
-            $deputy->contactPoints()->firstOrCreate(
-                ['type' => ContactPointType::Email],
-                ['value' => 'demo@example.test', 'is_public' => true],
-            );
-            $deputy->contactPoints()->firstOrCreate(
-                ['type' => ContactPointType::Phone],
-                ['value' => '+380000000000', 'is_public' => true],
             );
 
             Vote::query()->firstOrCreate(
