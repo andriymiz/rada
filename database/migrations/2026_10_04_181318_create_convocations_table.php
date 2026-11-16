@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')
                 ->nullable()
-                ->constrained('council_organizations')
+                ->constrained('organizations')
                 ->restrictOnDelete();
             $table->string('label');
             $table->date('date_from')->nullable();

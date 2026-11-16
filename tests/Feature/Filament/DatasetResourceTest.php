@@ -7,10 +7,10 @@ use App\Filament\Resources\Datasets\DatasetResource;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Models\DatasetGroup;
 use App\Models\DatasetResource as DatasetResourceModel;
+use App\Models\Organization;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\Testing\TestAction;
@@ -57,6 +57,8 @@ it('sets the portal identifier from the search action without fetching metadata'
 });
 
 it('hides dataset creation until an organization portal ID is configured', function (): void {
+    config(['services.open_data.organization_id' => null]);
+
     livewire(ManageDatasets::class)
         ->assertActionHidden(TestAction::make('create'));
 });
@@ -134,9 +136,7 @@ it('displays the update frequency as a label without hiding unrecognized portal 
 ]);
 
 it('does not allow non-administrators to create datasets when the portal is configured', function (): void {
-    CouncilOrganization::factory()->create([
-        'open_data_id' => '11111111-2222-4333-8444-555555555555',
-    ]);
+    config(['services.open_data.organization_id' => '11111111-2222-4333-8444-555555555555']);
     $this->actingAs(User::factory()->create());
 
     livewire(ManageDatasets::class)
@@ -144,7 +144,7 @@ it('does not allow non-administrators to create datasets when the portal is conf
 });
 
 it('edits dataset details on its edit page', function () {
-    $publisher = CouncilOrganization::factory()->create();
+    $publisher = Organization::factory()->create();
     $dataset = Dataset::factory()
         ->for($publisher, 'publisher')
         ->create([
@@ -177,7 +177,7 @@ it('edits dataset details on its edit page', function () {
 });
 
 it('saves the dataset status and information owner without changing its publisher', function (): void {
-    $publisher = CouncilOrganization::factory()->create();
+    $publisher = Organization::factory()->create();
     $dataset = Dataset::factory()->for($publisher, 'publisher')->create();
 
     livewire(EditDataset::class, ['record' => $dataset->getKey()])
@@ -825,7 +825,7 @@ it('hides the documentation action for custom datasets', function (): void {
 });
 
 it('renders the datasets page with its order column', function () {
-    $publisher = CouncilOrganization::factory()->create();
+    $publisher = Organization::factory()->create();
     $dataset = Dataset::factory()
         ->for($publisher, 'publisher')
         ->create(['title' => 'Набір для перевірки']);

@@ -64,10 +64,10 @@ class Dataset extends Model
             : null);
     }
 
-    /** @return BelongsTo<CouncilOrganization, $this> */
+    /** @return BelongsTo<Organization, $this> */
     public function publisher(): BelongsTo
     {
-        return $this->belongsTo(CouncilOrganization::class, 'publisher_id');
+        return $this->belongsTo(Organization::class, 'publisher_id');
     }
 
     /** @return BelongsTo<DatasetGroup, $this> */

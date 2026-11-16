@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Officials\Tables;
 use App\Models\Person;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -43,6 +44,9 @@ class OfficialsTable
                                 ->select('middle_name')
                                 ->whereColumn('people.id', 'officials.person_id'), $sortDirection);
                     }),
+                IconColumn::make('is_head')
+                    ->label('Керівник')
+                    ->boolean(),
                 TextColumn::make('position')
                     ->label('Посада')
                     ->searchable()

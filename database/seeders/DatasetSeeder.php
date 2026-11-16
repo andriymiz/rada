@@ -3,9 +3,9 @@
 namespace Database\Seeders;
 
 use App\Enums\DatasetRecommendation;
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Models\DatasetGroup;
+use App\Models\Organization;
 use Illuminate\Database\Seeder;
 
 class DatasetSeeder extends Seeder
@@ -120,7 +120,7 @@ class DatasetSeeder extends Seeder
      */
     public function run(): void
     {
-        $publisher = CouncilOrganization::query()->firstOrFail();
+        $publisher = Organization::query()->firstOrFail();
 
         foreach (self::RECOMMENDATIONS_BY_GROUP as $groupName => $recommendations) {
             $group = DatasetGroup::query()->where('name', $groupName)->firstOrFail();

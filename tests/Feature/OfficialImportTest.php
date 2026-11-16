@@ -1,22 +1,13 @@
 <?php
 
 use App\Enums\ContactPointType;
-use App\Enums\DatasetResourceType;
 use App\Enums\Gender;
 use App\Filament\Imports\OfficialImporter;
-use App\Filament\Resources\Officials\Pages\ListOfficials;
-use App\Models\CouncilOrganization;
-use App\Models\Dataset;
-use App\Models\DatasetResource;
 use App\Models\Official;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
-use Filament\Actions\Action;
 use Filament\Facades\Filament;
-use Illuminate\Http\Client\Request;
-use Illuminate\Support\Facades\Http;
-
-use function Pest\Livewire\livewire;
 
 beforeEach(function (): void {
     Filament::setCurrentPanel('rada');
@@ -24,7 +15,7 @@ beforeEach(function (): void {
 });
 
 it('imports an official from the posts csv row', function (): void {
-    $organization = CouncilOrganization::factory()->create([
+    $organization = Organization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА ТЕРНОПІЛЬСЬКОГО РАЙОНУ ТЕРНОПІЛЬСЬКОЇ ОБЛАСТІ',
     ]);
@@ -72,7 +63,7 @@ it('imports an official from the posts csv row', function (): void {
 });
 
 it('treats string null values as absent without changing other strings', function (string $nullValue): void {
-    CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
         ->import([
@@ -100,7 +91,7 @@ it('treats string null values as absent without changing other strings', functio
 ]);
 
 it('treats a null homepage as absent', function (): void {
-    CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
         ->import([
@@ -117,7 +108,7 @@ it('treats a null homepage as absent', function (): void {
 });
 
 it('imports multiple contact values without changing them during normalization', function (): void {
-    CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
         ->import([
@@ -142,7 +133,7 @@ it('imports multiple contact values without changing them during normalization',
 });
 
 it('rejects a null string inside a list of email addresses', function (): void {
-    CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
         ->import([
@@ -159,7 +150,7 @@ it('rejects a null string inside a list of email addresses', function (): void {
 });
 
 it('imports names with missing or additional parts', function (string $name, string $lastName, ?string $firstName, ?string $middleName): void {
-    CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
         ->import([
@@ -184,8 +175,8 @@ it('imports names with missing or additional parts', function (string $name, str
 ]);
 
 it('updates the matching official in the requested organization', function (): void {
-    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
-    $otherOrganization = CouncilOrganization::factory()->create();
+    $organization = Organization::factory()->create(['edrpou' => '04058410']);
+    $otherOrganization = Organization::factory()->create();
     $name = ['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null];
     $otherPerson = Person::factory()->create($name);
     Person::factory()->create();
@@ -207,68 +198,4 @@ it('updates the matching official in the requested organization', function (): v
         ->and($official->refresh()->position)->toBe('Нова посада')
         ->and($official->person_id)->toBe($person->id)
         ->and($otherOfficial->refresh()->position)->toBe('Інша посада');
-});
-
-it('renders the csv import action on the officials list', function (): void {
-    livewire(ListOfficials::class)
-        ->assertActionExists('import');
-});
-
-it('links the officials importer to the configured open data resource', function (): void {
-    DatasetResource::factory()
-        ->for(Dataset::factory()->state(['external_id' => 'officials-package-id']))
-        ->create([
-            'external_id' => 'officials-resource-id',
-            'name' => DatasetResourceType::Posts,
-        ]);
-
-    $downloadUrl = 'https://data.gov.ua/dataset/officials/resource/officials.csv';
-
-    Http::preventStrayRequests();
-    Http::fake([
-        'data.gov.ua/api/3/action/package_show*' => Http::response([
-            'success' => true,
-            'result' => [
-                'id' => 'officials-package-id',
-                'resources' => [
-                    [
-                        'id' => 'officials-resource-id',
-                        'name' => 'Посадовці',
-                        'url' => $downloadUrl,
-                    ],
-                ],
-            ],
-        ]),
-    ]);
-
-    livewire(ListOfficials::class)
-        ->assertActionExists(
-            'import',
-            function (Action $action) use ($downloadUrl): bool {
-                $downloadAction = $action->getModalAction('downloadExample');
-
-                return $downloadAction?->getLabel() === 'Завантажити актуальний ресурс з порталу відкритих даних'
-                    && $downloadAction->isLink()
-                    && $downloadAction->getUrl() === $downloadUrl
-                    && $downloadAction->shouldOpenUrlInNewTab();
-            },
-        );
-
-    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/package_show')
-        && $request->data()['id'] === 'officials-package-id');
-});
-
-it('keeps the built-in example download when no officials resource is configured', function (): void {
-    Http::preventStrayRequests();
-
-    livewire(ListOfficials::class)
-        ->assertActionExists(
-            'import',
-            function (Action $action): bool {
-                $downloadAction = $action->getModalAction('downloadExample');
-
-                return $downloadAction?->hasAction() === true
-                    && $downloadAction->getUrl() === null;
-            },
-        );
 });

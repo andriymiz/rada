@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(CouncilOrganizationSeeder::class);
+        $this->call(OrganizationSeeder::class);
         $this->call(DatasetGroupSeeder::class);
         $this->call(DatasetSeeder::class);
         $this->call(ConvocationSeeder::class);

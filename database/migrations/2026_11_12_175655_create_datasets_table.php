@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('rec_code')->nullable()->unique();
             $table->uuid('external_id')->nullable();
             $table->string('title');
-            $table->foreignId('publisher_id')->constrained('council_organizations')->restrictOnDelete();
+            $table->foreignId('publisher_id')->constrained('organizations')->restrictOnDelete();
             $table->timestamps();
         });
     }

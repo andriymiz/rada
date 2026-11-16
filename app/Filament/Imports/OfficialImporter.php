@@ -4,8 +4,8 @@ namespace App\Filament\Imports;
 
 use App\Actions\StoreImportedContactPoints;
 use App\Enums\Gender;
-use App\Models\CouncilOrganization;
 use App\Models\Official;
+use App\Models\Organization;
 use App\Models\Person;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
@@ -166,7 +166,7 @@ class OfficialImporter extends Importer
         return ImportHelper::getCompletedNotificationBody($import);
     }
 
-    private function resolveOrganization(): CouncilOrganization
+    private function resolveOrganization(): Organization
     {
         $organizationId = $this->data['orgId'] ?? null;
         $organizationName = $this->data['orgName'] ?? null;
@@ -175,11 +175,11 @@ class OfficialImporter extends Importer
             throw new LogicException('Ідентифікатор і назва організації є обов’язковими для імпорту посадовця.');
         }
 
-        $organization = CouncilOrganization::query()
+        $organization = Organization::query()
             ->where('edrpou', $organizationId)
             ->first();
 
-        if (! $organization instanceof CouncilOrganization) {
+        if (! $organization instanceof Organization) {
             throw new LogicException("Організацію з кодом [{$organizationId}] не знайдено. Створіть її перед імпортом.");
         }
 

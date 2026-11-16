@@ -8,10 +8,10 @@ use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager
 use App\Filament\Resources\Convocations\RelationManagers\FactionsRelationManager;
 use App\Filament\Resources\Convocations\RelationManagers\PermanentCommissionsRelationManager;
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
 use App\Models\Faction;
+use App\Models\Organization;
 use App\Models\PermanentCommission;
 use App\Models\Person;
 use App\Models\PoliticalParty;
@@ -27,8 +27,8 @@ beforeEach(function () {
 });
 
 it('creates a council convocation through its resource', function () {
-    $firstOrganization = CouncilOrganization::factory()->create();
-    CouncilOrganization::factory()->create();
+    $firstOrganization = Organization::factory()->create();
+    Organization::factory()->create();
     $previousConvocation = Convocation::factory()
         ->for($firstOrganization, 'organization')
         ->create(['label' => 'Восьме скликання']);
@@ -51,7 +51,7 @@ it('creates a council convocation through its resource', function () {
 });
 
 it('updates a convocation date range from its edit page', function () {
-    $organization = CouncilOrganization::factory()->create();
+    $organization = Organization::factory()->create();
     $previousConvocation = Convocation::factory()
         ->for($organization, 'organization')
         ->create(['label' => 'Восьме скликання']);

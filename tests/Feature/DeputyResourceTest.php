@@ -7,9 +7,9 @@ use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Models\ContactPoint;
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
 use App\Models\Deputy;
 use App\Models\Faction;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PoliticalParty;
 use App\Models\Reception;
@@ -533,7 +533,7 @@ it('updates deputy details without changing its linked person or reception', fun
 });
 
 it('stores the voting identifier and party on each convocation-specific deputy', function () {
-    $organization = CouncilOrganization::factory()->create();
+    $organization = Organization::factory()->create();
     $person = Person::factory()->create();
     $firstConvocation = Convocation::factory()
         ->for($organization, 'organization')
@@ -612,7 +612,7 @@ it('saves term, faction, and commission-related data on the deputy', function ()
 });
 
 it('rejects a deputy faction from another convocation', function () {
-    $organization = CouncilOrganization::factory()->create();
+    $organization = Organization::factory()->create();
     $membershipConvocation = Convocation::factory()
         ->for($organization, 'organization')
         ->create();

@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\CouncilOrganization;
 use App\Models\Official;
+use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,8 +21,9 @@ class OfficialFactory extends Factory
     {
         return [
             'person_id' => Person::factory(),
-            'organization_id' => CouncilOrganization::factory(),
+            'organization_id' => Organization::factory(),
             'position' => fake('uk_UA')->jobTitle(),
+            'is_head' => false,
             'image' => fake()->optional()->imageUrl(),
             'homepage' => fake()->optional()->url(),
         ];

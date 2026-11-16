@@ -3,10 +3,10 @@
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
 use App\Models\Motion;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
@@ -16,7 +16,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
 
 it('stores an agenda item without inventing a vote event', function () {
-    $organization = CouncilOrganization::factory()->create();
+    $organization = Organization::factory()->create();
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
         ->create();
@@ -39,8 +39,8 @@ it('stores an agenda item without inventing a vote event', function () {
 });
 
 it('scopes convocation names to their council organization', function () {
-    $firstOrganization = CouncilOrganization::factory()->create();
-    $secondOrganization = CouncilOrganization::factory()->create();
+    $firstOrganization = Organization::factory()->create();
+    $secondOrganization = Organization::factory()->create();
 
     $firstConvocation = Convocation::factory()
         ->for($firstOrganization, 'organization')
@@ -111,7 +111,7 @@ it('keeps the demo voting seed repeatable', function () {
     $this->seed(RollCallVotingDemoSeeder::class);
     $this->seed(RollCallVotingDemoSeeder::class);
 
-    expect(CouncilOrganization::query()->count())->toBe(1)
+    expect(Organization::query()->count())->toBe(1)
         ->and(Convocation::query()->count())->toBe(1)
         ->and(CouncilSession::query()->count())->toBe(1)
         ->and(PlenaryMeeting::query()->count())->toBe(1)

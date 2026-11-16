@@ -6,9 +6,9 @@ use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Exports\DatasetExporter;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Jobs\UploadDatasetRegister;
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Models\DatasetResource;
+use App\Models\Organization;
 use App\Models\User;
 use App\Services\OpenDataPortal;
 use Filament\Actions\ExportAction;
@@ -49,7 +49,7 @@ function exporterMetadata(array $overrides = []): array
 it('exports dataset rows using the open data register schema', function (): void {
     config(['services.open_data.base_url' => 'https://data.gov.ua']);
 
-    $publisher = CouncilOrganization::factory()->create([
+    $publisher = Organization::factory()->create([
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
         'edrpou' => '04058410',
     ]);
@@ -120,7 +120,7 @@ it('exports dataset rows using the open data register schema', function (): void
 });
 
 it('exports metadata contact values without using the responsible official', function (): void {
-    $publisher = CouncilOrganization::factory()->create([
+    $publisher = Organization::factory()->create([
         'edrpou' => 'null',
     ]);
     $dataset = Dataset::factory()
@@ -216,7 +216,7 @@ it('uploads a completed dataset export when the option is selected', function ()
     ]);
     $userId = auth()->id();
 
-    $publisher = CouncilOrganization::factory()->create(['name' => 'Розпорядник', 'edrpou' => '04058410']);
+    $publisher = Organization::factory()->create(['name' => 'Розпорядник', 'edrpou' => '04058410']);
     $first = Dataset::factory()->for($publisher, 'publisher')->create([
         'external_id' => 'first-id',
         'title' => 'Перший набір',
@@ -318,7 +318,7 @@ it('does not prepare a portal register when the upload option is unchecked or ab
     config(['queue.default' => 'sync']);
     Storage::fake('local');
     Queue::fake([UploadDatasetRegister::class]);
-    $publisher = CouncilOrganization::factory()->create();
+    $publisher = Organization::factory()->create();
     $dataset = Dataset::factory()->for($publisher, 'publisher')->create(['external_id' => 'first-id']);
     $dataset->meta()->create(exporterMetadata());
 
@@ -346,7 +346,7 @@ it('uploads the filtered export when portal upload is selected', function (): vo
             return Http::response(['success' => true, 'result' => ['id' => 'register-resource']]);
         },
     ]);
-    $publisher = CouncilOrganization::factory()->create();
+    $publisher = Organization::factory()->create();
     $included = Dataset::factory()->for($publisher, 'publisher')->create(['external_id' => 'included-id', 'title' => 'Included dataset']);
     $included->meta()->create(exporterMetadata());
     DatasetResource::factory()->for($included)->create(['name' => DatasetResourceType::Register, 'external_id' => 'register-resource']);

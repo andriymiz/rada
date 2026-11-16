@@ -8,10 +8,10 @@ use App\Enums\Gender;
 use App\Enums\MotionResult;
 use App\Enums\VoteOption;
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
 use App\Models\Motion;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\Vote;
@@ -22,7 +22,7 @@ class RollCallVotingDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $organization = CouncilOrganization::query()->firstOrCreate(
+        $organization = Organization::query()->firstOrCreate(
             ['edrpou' => 'TEST0001'],
             [
                 'name' => 'Демонстраційна міська рада',

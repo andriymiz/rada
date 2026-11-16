@@ -29,7 +29,7 @@ class Convocation extends Model
     {
         static::saving(function (Convocation $convocation): void {
             if (! $convocation->exists && $convocation->organization_id === null) {
-                $organization = CouncilOrganization::query()->orderBy('id')->first();
+                $organization = Organization::query()->orderBy('id')->first();
 
                 if ($organization !== null) {
                     $convocation->organization()->associate($organization);
@@ -54,10 +54,10 @@ class Convocation extends Model
         ];
     }
 
-    /** @return BelongsTo<CouncilOrganization, $this> */
+    /** @return BelongsTo<Organization, $this> */
     public function organization(): BelongsTo
     {
-        return $this->belongsTo(CouncilOrganization::class);
+        return $this->belongsTo(Organization::class);
     }
 
     /** @return HasMany<CouncilSession, $this> */

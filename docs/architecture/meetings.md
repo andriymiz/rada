@@ -53,7 +53,7 @@ A convocation belongs to one council organization. A council session is a named 
 
 ```mermaid
 erDiagram
-    COUNCIL_ORGANIZATIONS {
+    ORGANIZATIONS {
         int id PK
         string name
         string edrpou UK
@@ -225,7 +225,7 @@ erDiagram
     }
 
     PEOPLE ||--o{ DEPUTIES : has_terms
-    COUNCIL_ORGANIZATIONS ||--o{ CONVOCATIONS : owns
+    ORGANIZATIONS ||--o{ CONVOCATIONS : owns
     CONVOCATIONS o|--o{ DEPUTIES : scopes
     CONVOCATIONS ||--o{ COUNCIL_SESSIONS : contains
     CONVOCATIONS ||--o{ PERMANENT_COMMISSIONS : contains

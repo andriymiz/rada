@@ -35,11 +35,6 @@ class OfficialForm
                         ->create($data)
                         ->getKey())
                     ->createOptionModalHeading('Нова особа'),
-                Select::make('organization_id')
-                    ->label('Організація')
-                    ->relationship('organization', 'name')
-                    ->searchable()
-                    ->required(),
                 TextInput::make('position')
                     ->label('Посада')
                     ->required()

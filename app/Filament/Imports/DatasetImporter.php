@@ -5,8 +5,8 @@ namespace App\Filament\Imports;
 use App\Enums\DatasetRecommendation;
 use App\Enums\DatasetStatus;
 use App\Enums\DatasetUpdateFrequency;
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
+use App\Models\Organization;
 use App\Services\OpenDataPortal;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
@@ -87,8 +87,8 @@ class DatasetImporter extends Importer
                 ->guesses(['publisherName'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
-                ->relationship(resolveUsing: function (string $state, array $data, Dataset $record): ?CouncilOrganization {
-                    return CouncilOrganization::query()
+                ->relationship(resolveUsing: function (string $state, array $data, Dataset $record): ?Organization {
+                    return Organization::query()
                         ->where('name', $state)
                         ->when($data['publisher_id'] ?? null,
                             fn ($query, $organizationId) => $query->where('edrpou', $organizationId))

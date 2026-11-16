@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('officials', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('person_id')->constrained('people')->restrictOnDelete();
-            $table->foreignId('organization_id')->constrained('council_organizations')->restrictOnDelete();
+            $table->foreignId('organization_id')->constrained('organizations')->cascadeOnDelete();
             $table->string('position');
+            $table->boolean('is_head')->default(false);
             $table->text('image')->nullable();
             $table->text('homepage')->nullable();
             $table->timestamps();

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
+use App\Models\Organization;
 use Illuminate\Database\Seeder;
 
 class ConvocationSeeder extends Seeder
@@ -13,7 +13,7 @@ class ConvocationSeeder extends Seeder
      */
     public function run(): void
     {
-        $organization = CouncilOrganization::query()
+        $organization = Organization::query()
             ->where('edrpou', 'TEST0001')
             ->firstOrFail();
 

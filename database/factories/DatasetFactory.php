@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,7 +20,7 @@ class DatasetFactory extends Factory
     {
         return [
             'title' => fake()->sentence(4),
-            'publisher_id' => CouncilOrganization::factory(),
+            'publisher_id' => Organization::factory(),
         ];
     }
 }

@@ -9,10 +9,10 @@ use App\Filament\Resources\PlenaryMeetings\PlenaryMeetingResource;
 use App\Filament\Resources\PlenaryMeetings\RelationManagers\MotionsRelationManager;
 use App\Jobs\ProcessRollCallImport;
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
 use App\Models\CouncilSession;
 use App\Models\Deputy;
 use App\Models\Motion;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlenaryMeeting;
 use App\Models\RollCallImport;
@@ -33,7 +33,7 @@ beforeEach(function () {
 });
 
 it('lists plenary meetings with question counts and actionable statuses', function () {
-    $organization = CouncilOrganization::factory()->create(['name' => 'Міська рада']);
+    $organization = Organization::factory()->create(['name' => 'Міська рада']);
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
         ->create(['label' => '8 скликання']);
@@ -77,8 +77,8 @@ it('lists plenary meetings with question counts and actionable statuses', functi
 });
 
 it('creates a meeting without exposing the organization field', function () {
-    $organization = CouncilOrganization::factory()->create();
-    CouncilOrganization::factory()->create();
+    $organization = Organization::factory()->create();
+    Organization::factory()->create();
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
         ->create(['label' => '8 скликання']);
@@ -103,7 +103,7 @@ it('creates a meeting without exposing the organization field', function () {
 });
 
 it('creates a new council session from the session dropdown', function () {
-    $organization = CouncilOrganization::factory()->create();
+    $organization = Organization::factory()->create();
     $convocation = Convocation::factory()
         ->for($organization, 'organization')
         ->create(['label' => '9 скликання']);

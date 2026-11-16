@@ -5,8 +5,8 @@ use App\Enums\DatasetStatus;
 use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Imports\DatasetImporter;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
+use App\Models\Organization;
 use App\Models\User;
 use Filament\Actions\Imports\Jobs\ImportCsv;
 use Filament\Actions\Imports\Models\Import;
@@ -64,7 +64,7 @@ it('imports and updates a dataset from a register row', function (): void {
     ]);
 
     $title = 'Довідник підприємств, установ, організацій, що належать до сфери управління розпорядника інформації, та територіальних органів розпорядника інформації, зокрема їх ідентифікаційних кодів юридичної особи в Єдиному державному реєстрі підприємств і організацій України, офіційних веб-сайтів, адрес електронної пошти, номерів телефонів, адрес місцезнаходження';
-    $organization = CouncilOrganization::factory()->create([
+    $organization = Organization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
@@ -137,7 +137,7 @@ it('records a failed portal response and continues importing the next row', func
             ->push(['result' => ['resources' => []]]),
     ]);
     Exceptions::fake([RequestException::class]);
-    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $organization = Organization::factory()->create(['edrpou' => '04058410']);
     $import = Import::query()->create([
         'file_name' => 'datasets.csv',
         'file_path' => 'datasets.csv',
@@ -196,7 +196,7 @@ it('rejects a dataset row when its publisher is unknown', function (): void {
 
 it('preserves a UUID supplied as the register identifier', function (): void {
     fakeEmptyDatasetResources();
-    $organization = CouncilOrganization::factory()->create([
+    $organization = Organization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
@@ -226,7 +226,7 @@ it('preserves a UUID supplied as the register identifier', function (): void {
 
 it('matches imported datasets by recommendation when the external identifier is new', function (): void {
     fakeEmptyDatasetResources();
-    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $organization = Organization::factory()->create(['edrpou' => '04058410']);
     $dataset = Dataset::factory()
         ->for($organization, 'publisher')
         ->create([
@@ -267,7 +267,7 @@ it('matches imported datasets by recommendation when the external identifier is 
 
 it('fills an empty title on an existing dataset', function (): void {
     fakeEmptyDatasetResources();
-    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $organization = Organization::factory()->create(['edrpou' => '04058410']);
     $dataset = Dataset::factory()
         ->for($organization, 'publisher')
         ->create([
@@ -298,7 +298,7 @@ it('fills an empty title on an existing dataset', function (): void {
 
 it('falls back to dataset title when no recommendation matches the imported title', function (): void {
     fakeEmptyDatasetResources();
-    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $organization = Organization::factory()->create(['edrpou' => '04058410']);
     $dataset = Dataset::factory()
         ->for($organization, 'publisher')
         ->create(['title' => 'Набір за назвою']);
@@ -335,7 +335,7 @@ it('falls back to dataset title when no recommendation matches the imported titl
 });
 
 it('rejects a dataset row without an external identifier', function (): void {
-    $organization = CouncilOrganization::factory()->create(['edrpou' => '04058410']);
+    $organization = Organization::factory()->create(['edrpou' => '04058410']);
 
     DatasetImporter::test()
         ->import([
@@ -358,7 +358,7 @@ it('rejects a dataset row without an external identifier', function (): void {
 
 it('imports contact metadata without resolving an official', function (): void {
     fakeEmptyDatasetResources();
-    CouncilOrganization::factory()->create([
+    Organization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
@@ -386,7 +386,7 @@ it('imports contact metadata without resolving an official', function (): void {
 });
 
 it('rejects dataset update frequencies that are not labels', function (string $frequency): void {
-    $organization = CouncilOrganization::factory()->create([
+    $organization = Organization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
@@ -415,7 +415,7 @@ it('rejects dataset update frequencies that are not labels', function (string $f
 
 it('ignores resource formats during dataset import', function (): void {
     fakeEmptyDatasetResources();
-    $organization = CouncilOrganization::factory()->create([
+    $organization = Organization::factory()->create([
         'edrpou' => '04058410',
         'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);

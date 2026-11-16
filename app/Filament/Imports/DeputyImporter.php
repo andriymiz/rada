@@ -35,7 +35,7 @@ class DeputyImporter extends Importer
         return [
             ImportColumn::make('number')
                 ->label('Порядковий номер')
-                ->guess(['number', 'id'])
+                ->guesses(['number', 'id'])
                 ->integer()
                 ->requiredMapping()
                 ->rules(['required', 'integer', 'min:1']),
@@ -43,26 +43,26 @@ class DeputyImporter extends Importer
             ImportColumn::make('voting_identifier')
                 ->label('Номер пульта')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->guess(['votingIdentifier'])
+                ->guesses(['votingIdentifier'])
                 ->rules(['nullable', 'string', 'max:255']),
 
             ImportColumn::make('last_name')
                 ->label('Прізвище')
-                ->guess(['familyName'])
+                ->guesses(['familyName'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('first_name')
                 ->label('Імʼя')
-                ->guess(['name'])
+                ->guesses(['name'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('middle_name')
                 ->label('По батькові')
-                ->guess(['additionalName'])
+                ->guesses(['additionalName'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
                 ->fillRecordUsing(fn (): null => null),
@@ -76,7 +76,7 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('date_of_birth')
                 ->label('Дата народження')
-                ->guess(['birthDate'])
+                ->guesses(['birthDate'])
                 ->requiredMapping()
                 ->rules(['required', 'date'])
                 ->fillRecordUsing(fn (): null => null),
@@ -148,7 +148,7 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('start_date')
                 ->label('Дата початку')
-                ->guess(['startDate'])
+                ->guesses(['startDate'])
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->ignoreBlankState()
                 ->rules(['nullable', 'date']),
@@ -169,7 +169,7 @@ class DeputyImporter extends Importer
 
             ImportColumn::make('area_id')
                 ->label('Виборчий округ')
-                ->guess(['areaId'])
+                ->guesses(['areaId'])
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'integer', 'min:0']),
         ];

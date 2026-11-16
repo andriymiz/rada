@@ -8,9 +8,9 @@ use App\Enums\DatasetUpdateFrequency;
 use App\Filament\Resources\Datasets\Pages\EditDataset;
 use App\Filament\Resources\Datasets\Pages\ManageDatasets;
 use App\Filament\Resources\Datasets\RelationManagers\ResourcesRelationManager;
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Models\DatasetGroup;
+use App\Models\Organization;
 use App\Services\OpenDataPortal;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -75,7 +75,7 @@ class DatasetResource extends Resource
                     ->searchable()
                     ->preload()
                     ->columnSpan(2)
-                    ->default(fn (): ?int => CouncilOrganization::query()->value('id'))
+                    ->default(fn (): ?int => Organization::query()->value('id'))
                     ->required(),
                 TextInput::make('info_owner')
                     ->label('Власники інформації')

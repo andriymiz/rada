@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\DatasetResourceType;
-use App\Models\CouncilOrganization;
 use App\Models\Dataset;
 use App\Models\DatasetMeta;
 use App\Models\DatasetResource;
@@ -66,16 +65,12 @@ class OpenDataPortal
      */
     public function searchPackages(string $search): array
     {
-        $organizationId = CouncilOrganization::query()
-            ->whereNotNull('open_data_id')
-            ->value('open_data_id');
-
         return Http::acceptJson()
             ->baseUrl(config('services.open_data.base_url'))
             ->get('/api/3/action/package_search', [
                 'q' => filled($search) ? $search : '*',
                 'rows' => 10,
-                'fq' => 'owner_org:"'.$organizationId.'"',
+                'fq' => 'owner_org:"'.config('services.open_data.organization_id').'"',
             ])
             ->throw()
             ->collect('result.results')

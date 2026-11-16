@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Convocation;
-use App\Models\CouncilOrganization;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -20,7 +20,7 @@ class ConvocationFactory extends Factory
     public function definition(): array
     {
         return [
-            'organization_id' => CouncilOrganization::factory(),
+            'organization_id' => Organization::factory(),
             'label' => Str::upper(fake()->unique()->bothify('?? скликання')),
         ];
     }

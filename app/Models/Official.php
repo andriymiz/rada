@@ -11,10 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
+/**
+ * @property bool $is_head
+ */
 #[Fillable([
     'person_id',
     'organization_id',
     'position',
+    'is_head',
     'image',
     'homepage',
 ])]
@@ -23,16 +27,23 @@ class Official extends Model implements ContactPointable
     /** @use HasFactory<OfficialFactory> */
     use HasFactory;
 
+    protected function casts(): array
+    {
+        return [
+            'is_head' => 'boolean',
+        ];
+    }
+
     /** @return BelongsTo<Person, $this> */
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
     }
 
-    /** @return BelongsTo<CouncilOrganization, $this> */
+    /** @return BelongsTo<Organization, $this> */
     public function organization(): BelongsTo
     {
-        return $this->belongsTo(CouncilOrganization::class);
+        return $this->belongsTo(Organization::class);
     }
 
     /** @return MorphMany<ContactPoint, $this> */

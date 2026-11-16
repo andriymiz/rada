@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\CouncilOrganization;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<CouncilOrganization>
+ * @extends Factory<Organization>
  */
-class CouncilOrganizationFactory extends Factory
+class OrganizationFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -19,6 +19,7 @@ class CouncilOrganizationFactory extends Factory
     {
         return [
             'name' => fake()->company().' міська рада',
+            'short_name' => fake()->company(),
             'edrpou' => fake()->unique()->numerify('########'),
             'katoottg' => 'UA'.fake()->unique()->numerify('#################'),
         ];
