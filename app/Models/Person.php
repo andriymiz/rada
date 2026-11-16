@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 /**
+ * @property Gender|null $gender
  * @property-read string $full_name
  * @property-read string $short_name
  */

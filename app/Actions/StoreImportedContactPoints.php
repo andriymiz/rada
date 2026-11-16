@@ -61,7 +61,7 @@ class StoreImportedContactPoints
         $contactPoint = new ContactPoint;
         $contactPoint->contactable_type = $contactable->getMorphClass();
         $contactPoint->contactable_id = $contactable->getKey();
-        $contactPoint->type = $type->value;
+        $contactPoint->type = $type;
         $contactPoint->value = $value;
         $contactPoint->is_public = true;
         $contactPoint->save();

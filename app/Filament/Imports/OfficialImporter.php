@@ -78,7 +78,9 @@ class OfficialImporter extends Importer
             ImportColumn::make('socialAccount')
                 ->label('Соціальна мережа')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->rules(['nullable', 'url', 'max:2048'])
+                ->multiple(',')
+                ->rules(['nullable', 'array'])
+                ->nestedRecursiveRules(['url:http,https', 'max:2048'])
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('telephone')

@@ -35,11 +35,6 @@ class OrganizationImporter extends Importer
                 ->label('Повна назва')
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255']),
-            ImportColumn::make('short_name')
-                ->label('Коротка назва')
-                ->guesses(['shortName'])
-                ->requiredMapping()
-                ->rules(['required', 'string', 'max:255']),
             ImportColumn::make('description')
                 ->label('Опис')
                 ->requiredMapping()

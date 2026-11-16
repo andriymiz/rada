@@ -132,6 +132,26 @@ it('imports multiple contact values without changing them during normalization',
     ]);
 });
 
+it('imports multiple social accounts from an officials csv row', function (): void {
+    Organization::factory()->create(['edrpou' => '04058410']);
+
+    OfficialImporter::test()
+        ->import([
+            'name' => 'Коваль Олена',
+            'gender' => '2',
+            'positionName' => 'Міський голова',
+            'orgId' => '04058410',
+            'orgName' => 'Міська рада',
+            'socialAccount' => 'https://facebook.com/koval, https://instagram.com/koval',
+        ])
+        ->assertImported();
+
+    expect(Official::query()->sole()->contactPoints->pluck('value')->all())->toBe([
+        'https://facebook.com/koval',
+        'https://instagram.com/koval',
+    ]);
+});
+
 it('rejects a null string inside a list of email addresses', function (): void {
     Organization::factory()->create(['edrpou' => '04058410']);
 

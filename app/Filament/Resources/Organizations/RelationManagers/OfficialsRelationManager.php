@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Organizations\RelationManagers;
 
-use App\Filament\Imports\OfficialImporter;
 use App\Filament\Resources\Officials\Schemas\OfficialForm;
 use App\Filament\Resources\Officials\Tables\OfficialsTable;
 use App\Models\Official;
@@ -10,7 +9,6 @@ use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ImportAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -34,7 +32,6 @@ class OfficialsRelationManager extends RelationManager
         return OfficialsTable::configure($table)
             ->headerActions([
                 CreateAction::make(),
-                ImportAction::make()->importer(OfficialImporter::class),
             ])
             ->recordActions([
                 Action::make('markAsHead')

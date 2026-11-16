@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
  * @property bool $is_head
+ * @property-read Reception|null $reception
  */
 #[Fillable([
     'person_id',

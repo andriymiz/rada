@@ -178,7 +178,6 @@ it('imports organizations and resolves their official head and parent', function
     $organization = Organization::query()->where('edrpou', '33334444')->firstOrFail();
 
     expect($organization->name)->toBe('Повна назва установи')
-        ->and($organization->short_name)->toBe('Установа')
         ->and($organization->constituent_doc)->toBeNull()
         ->and($organization->social_accounts)->toBe([
             'https://social.example.com/one',
