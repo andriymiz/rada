@@ -51,9 +51,32 @@ class ImportHelper
             return $state;
         }
 
+        $state = trim($state);
+        if (preg_match("/^'[+=@-]/", $state) === 1) {
+            $state = substr($state, 1);
+        }
+
         $phone = ltrim($state, "'+‘’ \t\n\r\0\x0B");
 
-        return str_starts_with($phone, '380') ? '+'.$phone : trim($state);
+        return str_starts_with($phone, '380') ? '+'.$phone : $state;
+    }
+
+    public static function normalizeContactList(mixed $state, mixed $originalState, bool $isPhone = false): mixed
+    {
+        if (! is_string($originalState)) {
+            return $state;
+        }
+
+        if (blank($originalState) || Str::of($originalState)->trim()->lower()->exactly('null')) {
+            return [];
+        }
+
+        return array_map(
+            fn (string $value): mixed => $isPhone
+                ? self::normalizePhoneCastState(trim($value), trim($value))
+                : trim($value),
+            explode(',', $originalState),
+        );
     }
 
     /**

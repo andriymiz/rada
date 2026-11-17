@@ -31,8 +31,8 @@ it('exports contact details only for deputies in the selected convocation', func
     $party = PoliticalParty::factory()->create();
     Deputy::factory()->for($person)->for($convocation, 'convocation')->for($party, 'politicalParty')->create([
         'number' => 1,
-        'email' => 'deputy@example.gov.ua',
-        'phone' => '+380501234567',
+        'emails' => ['deputy@example.gov.ua', 'office@example.gov.ua'],
+        'phones' => ['+12025550123', '+380501234567', '+380674445566'],
         'social_accounts' => ['https://facebook.com/koval', 'https://t.me/koval'],
         'opening_hours' => 'Пн 09:00-12:00',
         'availability_restriction' => 'За записом',
@@ -58,8 +58,8 @@ it('exports contact details only for deputies in the selected convocation', func
 
     expect($rows)->toHaveCount(1)
         ->and($rows[0]['familyName'])->toBe('Коваль')
-        ->and($rows[0]['email'])->toBe('deputy@example.gov.ua')
-        ->and($rows[0]['telephone'])->toBe('+380501234567')
+        ->and($rows[0]['email'])->toBe('deputy@example.gov.ua, office@example.gov.ua')
+        ->and($rows[0]['telephone'])->toBe("'+12025550123, +380501234567, +380674445566")
         ->and($rows[0]['account'])->toBe('https://facebook.com/koval, https://t.me/koval')
         ->and($rows[0]['openingHours'])->toBe('Пн 09:00-12:00')
         ->and($rows[0]['availabilityRestriction'])->toBe('За записом');
@@ -67,7 +67,7 @@ it('exports contact details only for deputies in the selected convocation', func
     $importConvocation = Convocation::factory()->create();
     DeputyImporter::test(
         columnMap: [
-            'number' => 'number',
+            'number' => 'id',
             'last_name' => 'familyName',
             'first_name' => 'name',
             'middle_name' => 'additionalName',
@@ -75,8 +75,8 @@ it('exports contact details only for deputies in the selected convocation', func
             'date_of_birth' => 'birthDate',
             'biography' => 'biography',
             'partyName' => 'partyName',
-            'email' => 'email',
-            'telephone' => 'telephone',
+            'emails' => 'email',
+            'phones' => 'telephone',
             'account' => 'account',
             'openingHours' => 'openingHours',
             'availabilityRestriction' => 'availabilityRestriction',
@@ -85,8 +85,8 @@ it('exports contact details only for deputies in the selected convocation', func
     )->import($rows[0])->assertImported();
 
     $imported = $importConvocation->deputies()->sole();
-    expect($imported->email)->toBe('deputy@example.gov.ua')
-        ->and($imported->phone)->toBe('+380501234567')
+    expect($imported->emails)->toBe(['deputy@example.gov.ua', 'office@example.gov.ua'])
+        ->and($imported->phones)->toBe(['+12025550123', '+380501234567', '+380674445566'])
         ->and($imported->social_accounts)->toBe(['https://facebook.com/koval', 'https://t.me/koval'])
         ->and($imported->opening_hours)->toBe('Пн 09:00-12:00')
         ->and($imported->availability_restriction)->toBe('За записом');

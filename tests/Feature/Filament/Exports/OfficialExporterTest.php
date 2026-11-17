@@ -2,6 +2,7 @@
 
 use App\Enums\Gender;
 use App\Filament\Exports\OfficialExporter;
+use App\Filament\Imports\OrganizationImporter;
 use App\Filament\Resources\Organizations\Pages\ListOrganizations;
 use App\Models\Official;
 use App\Models\Organization;
@@ -41,8 +42,8 @@ it('exports officials using the posts csv schema', function (): void {
             'position' => 'Міський голова',
             'image' => 'https://example.com/photo.jpg',
             'homepage' => 'https://example.com/official',
-            'email' => 'public@example.gov.ua',
-            'phone' => '+380501234567',
+            'emails' => ['public@example.gov.ua'],
+            'phones' => ['+380501234567'],
             'social_accounts' => ['https://facebook.com/koval', 'https://instagram.com/koval'],
             'opening_hours' => 'Пн 09:00-12:00',
             'availability_restriction' => 'За попереднім записом',
@@ -50,9 +51,12 @@ it('exports officials using the posts csv schema', function (): void {
     $official->load(['person', 'organization']);
 
     expect(OfficialExporter::test()->export($official))->toBe([
+        (string) $official->id,
         'Коваль Олена Вікторівна',
         '2',
         'Міський голова',
+        'null',
+        'null',
         '04058410',
         'ЗБОРІВСЬКА МІСЬКА РАДА',
         'https://example.com/photo.jpg',
@@ -60,8 +64,6 @@ it('exports officials using the posts csv schema', function (): void {
         'https://facebook.com/koval, https://instagram.com/koval',
         '+380501234567',
         'public@example.gov.ua',
-        'null',
-        'null',
         'Пн 09:00-12:00',
         'За попереднім записом',
     ]);
@@ -69,9 +71,12 @@ it('exports officials using the posts csv schema', function (): void {
     expect(collect(OfficialExporter::getColumns())->map(
         fn (ExportColumn $column): ?string => $column->getLabel(),
     )->all())->toBe([
+        'uid',
         'name',
         'gender',
         'positionName',
+        'unitId',
+        'unitName',
         'orgId',
         'orgName',
         'img',
@@ -79,8 +84,6 @@ it('exports officials using the posts csv schema', function (): void {
         'socialAccount',
         'telephone',
         'email',
-        'unitId',
-        'unitName',
         'openingHours',
         'availabilityRestriction',
     ]);
@@ -95,7 +98,7 @@ it('exports null optional values and unknown gender when the official has no add
         'last_name' => 'Коваль',
         'first_name' => 'Олена',
         'middle_name' => null,
-        'gender' => null,
+        'gender' => Gender::Unknown,
     ]);
     $official = Official::factory()
         ->for($person)
@@ -108,13 +111,14 @@ it('exports null optional values and unknown gender when the official has no add
     $official->load(['person', 'organization']);
 
     expect(OfficialExporter::test()->export($official))->toBe([
+        (string) $official->id,
         'Коваль Олена',
         '0',
         'Секретар',
+        'null',
+        'null',
         '04058410',
         'ЗБОРІВСЬКА МІСЬКА РАДА',
-        'null',
-        'null',
         'null',
         'null',
         'null',
@@ -171,14 +175,14 @@ it('continues to export organizations from the same page', function (): void {
         'edrpou' => '12345678',
         'social_accounts' => ['https://example.com/one', 'https://example.com/two'],
         'contact_point' => 'Приймальня',
-        'email' => 'office@example.com',
-        'phone' => '+380501234567',
+        'emails' => ['office@example.com', 'info@example.com'],
+        'phones' => ['+380501234567', '+380501234568'],
         'opening_hours' => 'Пн 09:00-12:00',
         'availability_restriction' => 'За записом',
     ]);
 
     livewire(ListOrganizations::class)
-        ->callAction('export')
+        ->callAction('exportOrganizations')
         ->assertNotified();
 
     $export = Export::query()->sole();
@@ -196,8 +200,20 @@ it('continues to export organizations from the same page', function (): void {
         ->and($rows[0]['Name'])->toBe('Перша організація')
         ->and($rows[0]['socialAccount'])->toBe('https://example.com/one, https://example.com/two')
         ->and($rows[0]['contactPointName'])->toBe('Приймальня')
-        ->and($rows[0]['contactPointEmail'])->toBe('office@example.com')
-        ->and($rows[0]['contactPointTelephone'])->toBe('+380501234567')
+        ->and($rows[0]['contactPointEmail'])->toBe('office@example.com, info@example.com')
+        ->and($rows[0]['contactPointTelephone'])->toBe("'+380501234567, +380501234568")
         ->and($rows[0]['openingHours'])->toBe('Пн 09:00-12:00')
         ->and($rows[0]['availabilityRestriction'])->toBe('За записом');
+
+    OrganizationImporter::test(columnMap: [
+        'edrpou' => 'Id',
+        'name' => 'Name',
+        'description' => 'Description',
+        'emails' => 'contactPointEmail',
+        'phones' => 'contactPointTelephone',
+    ])->import($rows[0])->assertImported();
+
+    $organization = Organization::query()->where('edrpou', '12345678')->sole();
+    expect($organization->emails)->toBe(['office@example.com', 'info@example.com'])
+        ->and($organization->phones)->toBe(['+380501234567', '+380501234568']);
 });

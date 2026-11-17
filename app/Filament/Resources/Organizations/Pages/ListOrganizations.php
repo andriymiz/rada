@@ -28,11 +28,11 @@ class ListOrganizations extends ListRecords
         return [
             ActionGroup::make([
                 ActionGroup::make([
-                    ImportAction::make()
+                    ImportAction::make('importOrganizations')
                         ->label('Імпорт організацій')
                         ->pluralModelLabel('організацій')
                         ->importer(OrganizationImporter::class),
-                    ExportAction::make()
+                    ExportAction::make('exportOrganizations')
                         ->label('Експорт організацій')
                         ->pluralModelLabel('організацій')
                         ->exporter(OrganizationExporter::class)
@@ -45,7 +45,7 @@ class ListOrganizations extends ListRecords
                         ])),
                 ])->dropdown(false),
                 ActionGroup::make([
-                    ImportAction::make()
+                    ImportAction::make('importOfficials')
                         ->label('Імпорт посадовців')
                         ->pluralModelLabel('посадовців')
                         ->importer(OfficialImporter::class),

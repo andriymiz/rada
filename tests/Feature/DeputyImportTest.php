@@ -41,8 +41,8 @@ it('imports a deputy with open data attributes and related entities', function (
             'biography' => 'Біографічні дані депутата.',
             'partyName' => 'Партія розвитку',
             'partyId' => '12345678',
-            'email' => 'kovalchuk@example.gov.ua',
-            'telephone' => '+380501234567',
+            'emails' => 'kovalchuk@example.gov.ua',
+            'phones' => '+380501234567',
             'homepage' => 'https://council.example.gov.ua/deputy/kovalchuk',
             'account' => 'https://facebook.com/kovalchuk',
             'openingHours' => 'Пн 09:00-12:00',
@@ -83,8 +83,8 @@ it('imports a deputy with open data attributes and related entities', function (
         ->and($deputy->commission_position)->toBe('Секретар')
         ->and($deputy->reception)->toBeNull();
 
-    expect($deputy->email)->toBe('kovalchuk@example.gov.ua')
-        ->and($deputy->phone)->toBe('+380501234567')
+    expect($deputy->emails)->toBe(['kovalchuk@example.gov.ua'])
+        ->and($deputy->phones)->toBe(['+380501234567'])
         ->and($deputy->social_accounts)->toBe(['https://facebook.com/kovalchuk'])
         ->and($deputy->opening_hours)->toBe('Пн 09:00-12:00')
         ->and($deputy->availability_restriction)->toBe('За записом');
@@ -106,6 +106,8 @@ it('updates the start date and preserves it when the imported date is blank', fu
         'biography' => 'Біографія',
         'partyName' => 'Партія розвитку',
         'start_date' => '2021-03-15',
+        'emails' => 'deputy@example.com',
+        'phones' => '+380501234567',
     ];
 
     DeputyImporter::test(options: ['convocation' => $convocation])
@@ -228,8 +230,8 @@ it('handles nullable optional values with Filament default casting', function ()
             'biography' => 'Біографічні дані Олени Шевченко.',
             'partyName' => 'Партія Шевченка',
             'partyId' => 'null',
-            'email' => 'null',
-            'telephone' => 'null',
+            'emails' => 'deputy@example.com',
+            'phones' => '+380501234567',
             'homepage' => 'null',
             'account' => 'null',
             'factionName' => 'Позафракційний',
@@ -259,8 +261,8 @@ it('handles nullable optional values with Filament default casting', function ()
         ->and($deputy->voting_identifier)->toBeNull()
         ->and($deputy->homepage)->toBeNull()
         ->and($deputy->reception)->toBeNull()
-        ->and($deputy->email)->toBeNull()
-        ->and($deputy->phone)->toBeNull()
+        ->and($deputy->emails)->toBe(['deputy@example.com'])
+        ->and($deputy->phones)->toBe(['+380501234567'])
         ->and($deputy->social_accounts)->toBeEmpty();
 });
 
@@ -280,9 +282,9 @@ it('normalizes mixed-case null values while preserving other contact values', fu
             'partyId' => ' NuLl ',
             'homepage' => ' NULL ',
             'area_id' => ' null ',
-            'email' => ' NuLl ',
+            'emails' => 'deputy@example.com',
             'account' => ' NULL ',
-            'telephone' => '380501234567',
+            'phones' => '380501234567',
         ])
         ->assertImported();
 
@@ -291,8 +293,8 @@ it('normalizes mixed-case null values while preserving other contact values', fu
     expect($deputy->politicalParty->edrpou)->toBeNull()
         ->and($deputy->homepage)->toBeNull()
         ->and($deputy->area_id)->toBeNull()
-        ->and($deputy->phone)->toBe('+380501234567')
-        ->and($deputy->email)->toBeNull()
+        ->and($deputy->phones)->toBe(['+380501234567'])
+        ->and($deputy->emails)->toBe(['deputy@example.com'])
         ->and($deputy->social_accounts)->toBeEmpty();
 });
 
@@ -310,8 +312,8 @@ it('updates existing deputy and person on repeated import', function () {
         'biography' => 'Стара біографія',
         'number' => 1,
         'voting_identifier' => 'dep-01',
-        'email' => 'old@example.com',
-        'phone' => '+380501112233',
+        'emails' => ['old@example.com'],
+        'phones' => ['+380501112233'],
         'social_accounts' => ['https://example.com/old'],
         'opening_hours' => 'Старий графік',
         'availability_restriction' => 'Старі обмеження',
@@ -332,8 +334,8 @@ it('updates existing deputy and person on repeated import', function () {
             'voting_identifier' => 'dep-01-new',
             'image' => 'https://example.gov.ua/photo-updated.png',
             'homepage' => 'https://example.gov.ua/deputies/melnyk',
-            'email' => 'new@example.com',
-            'telephone' => '380674445566',
+            'emails' => 'new@example.com',
+            'phones' => '380674445566',
             'account' => 'https://example.com/new',
             'openingHours' => 'Новий графік',
             'availabilityRestriction' => 'Нові обмеження',
@@ -348,8 +350,8 @@ it('updates existing deputy and person on repeated import', function () {
         ->and($deputy->voting_identifier)->toBe('dep-01-new')
         ->and($deputy->image)->toBe('https://example.gov.ua/photo-updated.png')
         ->and($deputy->homepage)->toBe('https://example.gov.ua/deputies/melnyk')
-        ->and($deputy->email)->toBe('new@example.com')
-        ->and($deputy->phone)->toBe('+380674445566')
+        ->and($deputy->emails)->toBe(['new@example.com'])
+        ->and($deputy->phones)->toBe(['+380674445566'])
         ->and($deputy->social_accounts)->toBe(['https://example.com/new'])
         ->and($deputy->opening_hours)->toBe('Новий графік')
         ->and($deputy->availability_restriction)->toBe('Нові обмеження');
@@ -385,6 +387,8 @@ it('matches a deputy by its convocation number when the imported name changes', 
             'gender' => 2,
             'date_of_birth' => '1990-04-15',
             'biography' => 'Оновлена біографія цільового депутата.',
+            'emails' => 'deputy@example.com',
+            'phones' => '+380501234567',
         ])
         ->assertImported();
 
@@ -420,6 +424,8 @@ it('reuses a deputy person across convocations without duplicating them within a
         'gender' => 2,
         'date_of_birth' => '1985-03-12',
         'biography' => 'Оновлена біографія депутата.',
+        'emails' => 'deputy@example.com',
+        'phones' => '+380501234567',
     ];
 
     DeputyImporter::test(
@@ -466,6 +472,8 @@ it('allows voting identifiers to repeat across deputy records', function () {
             'date_of_birth' => '1982-06-05',
             'biography' => 'Біографічні дані Сергія Сидоренка.',
             'voting_identifier' => 'taken-vote-id',
+            'emails' => 'deputy@example.com',
+            'phones' => '+380501234567',
         ])
         ->assertImported();
 
@@ -491,19 +499,19 @@ it('parses multiple comma-separated social accounts', function () {
             'date_of_birth' => '1988-03-21',
             'biography' => 'Біографічні дані Марії Бондар.',
             'partyName' => 'Партія Бондар',
-            'email' => 'bondar1@example.gov.ua',
-            'telephone' => '+380501112233',
+            'emails' => 'bondar1@example.gov.ua',
+            'phones' => '+380501112233',
             'account' => 'https://t.me/mbondar, https://instagram.com/mbondar',
         ])
         ->assertImported();
 
     $deputy = Deputy::query()->where('convocation_id', $convocation->id)->firstOrFail();
-    expect($deputy->email)->toBe('bondar1@example.gov.ua')
-        ->and($deputy->phone)->toBe('+380501112233')
+    expect($deputy->emails)->toBe(['bondar1@example.gov.ua'])
+        ->and($deputy->phones)->toBe(['+380501112233'])
         ->and($deputy->social_accounts)->toBe(['https://t.me/mbondar', 'https://instagram.com/mbondar']);
 });
 
-it('rejects multiple emails and telephone numbers during import validation', function () {
+it('rejects an invalid additional email during import validation', function () {
     $convocation = Convocation::factory()->create();
 
     DeputyImporter::test(
@@ -518,12 +526,33 @@ it('rejects multiple emails and telephone numbers during import validation', fun
             'date_of_birth' => '1985-02-14',
             'biography' => 'Біографічні дані Тетяни Романюк.',
             'partyName' => 'Партія Романюк',
-            'email' => 'valid@example.gov.ua,not-an-email',
-            'telephone' => '+380501112233,+380674445566',
+            'emails' => 'valid@example.gov.ua,not-an-email',
+            'phones' => '+380501112233,+380674445566',
         ])
-        ->assertHasErrors(['email' => 'email', 'telephone' => 'not_regex']);
+        ->assertHasErrors(['emails.1' => 'email']);
 
     expect(Deputy::query()->where('convocation_id', $convocation->id)->exists())->toBeFalse();
+});
+
+it('requires a primary email and telephone when importing a deputy', function (): void {
+    $convocation = Convocation::factory()->create();
+
+    DeputyImporter::test(options: ['convocation' => $convocation])
+        ->import([
+            'number' => 4,
+            'last_name' => 'Романюк',
+            'first_name' => 'Тетяна',
+            'middle_name' => 'Петрівна',
+            'gender' => 2,
+            'date_of_birth' => '1985-02-14',
+            'biography' => 'Біографія',
+            'partyName' => 'Партія Романюк',
+            'emails' => 'null',
+            'phones' => '',
+        ])
+        ->assertHasErrors(['emails' => 'required', 'phones' => 'required']);
+
+    expect(Deputy::query()->whereBelongsTo($convocation)->exists())->toBeFalse();
 });
 
 it('rejects a deputy row without a party name', function () {

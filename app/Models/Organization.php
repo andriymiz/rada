@@ -22,6 +22,8 @@ use LogicException;
  * @property string|null $constituent_doc
  * @property string|null $homepage
  * @property array<int, string>|null $social_accounts
+ * @property array<int, string>|null $emails
+ * @property array<int, string>|null $phones
  * @property string|null $logo
  * @property int|null $parent_org_id
  * @property-read Official|null $head
@@ -37,8 +39,8 @@ use LogicException;
     'homepage',
     'social_accounts',
     'contact_point',
-    'email',
-    'phone',
+    'emails',
+    'phones',
     'opening_hours',
     'availability_restriction',
     'logo',
@@ -53,6 +55,8 @@ class Organization extends Model
     {
         return [
             'social_accounts' => 'array',
+            'emails' => 'array',
+            'phones' => 'array',
         ];
     }
 

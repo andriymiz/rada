@@ -5,13 +5,16 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\RadaLogin;
 use App\Filament\Pages\RadaDashboard;
 use App\Filament\RadaPanelTheme;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\ImportAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -76,6 +79,13 @@ class RadaPanelProvider extends PanelProvider
         });
         ImportAction::configureUsing(function (ImportAction $action): void {
             $action->label('Імпорт');
+        });
+        ExportColumn::configureUsing(function (ExportColumn $column): void {
+            $column->default('null')->preventFormulaInjection();
+        });
+        Repeater::configureUsing(function (Repeater $repeater): void {
+            $repeater->reorderable(false)
+                ->addAction(fn (Action $action) => $action->label('Додати'));
         });
     }
 

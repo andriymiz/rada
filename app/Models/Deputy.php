@@ -21,6 +21,8 @@ use Illuminate\Validation\ValidationException;
  * @property int|null $number
  * @property DeputyStatus $status
  * @property array<int, string>|null $social_accounts
+ * @property array<int, string>|null $emails
+ * @property array<int, string>|null $phones
  * @property Carbon|null $start_date
  */
 #[Fillable([
@@ -41,8 +43,8 @@ use Illuminate\Validation\ValidationException;
     'image',
     'biography',
     'social_accounts',
-    'email',
-    'phone',
+    'emails',
+    'phones',
     'opening_hours',
     'availability_restriction',
 ])]
@@ -85,6 +87,8 @@ class Deputy extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'social_accounts' => 'array',
+            'emails' => 'array',
+            'phones' => 'array',
         ];
     }
 

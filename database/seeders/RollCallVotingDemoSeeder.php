@@ -100,8 +100,8 @@ class RollCallVotingDemoSeeder extends Seeder
                     'status' => DeputyStatus::Active,
                     'voting_identifier' => $votingIdentifier,
                     'start_date' => '2020-11-01',
-                    'email' => 'demo@example.test',
-                    'phone' => '+380000000000',
+                    'emails' => ['demo@example.test'],
+                    'phones' => ['+380000000000'],
                 ],
             );
 

@@ -29,13 +29,15 @@ class OrganizationForm
                     ->label('Коротка назва')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('katoottg')
-                    ->label('КАТОТТГ')
-                    ->length(19)
-                    ->unique(ignoreRecord: true),
+                TextInput::make('logo')
+                    ->label('Логотип')
+                    ->url()
+                    ->rule('url:http,https')
+                    ->maxLength(2048),
                 Textarea::make('description')
                     ->label('Опис')
                     ->maxLength(300)
+                    ->required()
                     ->columnSpanFull(),
                 Select::make('parent_org_id')
                     ->label('Належність до сфери управління')
@@ -57,39 +59,35 @@ class OrganizationForm
                     ->url()
                     ->rule('url:http,https')
                     ->maxLength(2048),
-                Repeater::make('social_accounts')
-                    ->label('Соціальні мережі')
-                    ->simple(
-                        TextInput::make('url')
-                            ->url()
-                            ->rule('url:http,https')
-                            ->required(),
-                    )
-                    ->columnSpanFull(),
                 TextInput::make('contact_point')
                     ->label('Контактна особа')
                     ->maxLength(255),
-                TextInput::make('email')
-                    ->label('Електронна пошта')
-                    ->email()
-                    ->maxLength(255),
-                TextInput::make('phone')
-                    ->label('Телефон')
-                    ->tel()
-                    ->maxLength(255)
-                    ->rule('not_regex:/,/'),
+                Repeater::make('social_accounts')
+                    ->label('Соціальні мережі')
+                    ->columnSpanFull()
+                    ->defaultItems(0)
+                    ->simple(TextInput::make('url')->url()->rule('url:http,https')->maxLength(2048)->required()),
+                Repeater::make('emails')
+                    ->label('Електронні адреси')
+                    ->required()
+                    ->minItems(1)
+                    ->defaultItems(1)
+                    ->simple(TextInput::make('email')->email()->maxLength(255)->required()),
+                Repeater::make('phones')
+                    ->label('Телефони')
+                    ->required()
+                    ->minItems(1)
+                    ->defaultItems(1)
+                    ->simple(TextInput::make('phone')->maxLength(255)->rule('not_regex:/,/')->required()),
                 Textarea::make('opening_hours')
                     ->label('Графік роботи')
                     ->maxLength(2048),
                 Textarea::make('availability_restriction')
                     ->label('Обмеження доступності')
                     ->maxLength(2048),
-                TextInput::make('logo')
-                    ->label('Логотип')
-                    ->url()
-                    ->rule('url:http,https')
-                    ->maxLength(2048)
-                    ->columnSpanFull(),
+                TextInput::make('katoottg')
+                    ->label('КАТОТТГ')
+                    ->length(19),
             ]);
     }
 }

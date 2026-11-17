@@ -93,16 +93,23 @@ class DeputyImporter extends Importer
                 ->rules(['nullable', 'string', 'max:8'])
                 ->fillRecordUsing(fn (): null => null),
 
-            ImportColumn::make('email')
-                ->label('Електронна пошта')
-                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->rules(['nullable', 'email', 'max:255']),
+            ImportColumn::make('phones')
+                ->label('Телефон')
+                ->guesses(['telephone'])
+                ->requiredMapping()
+                ->multiple(',')
+                ->castStateUsing(fn (mixed $state, mixed $originalState): mixed => ImportHelper::normalizeContactList($state, $originalState, isPhone: true))
+                ->rules(['required', 'array', 'min:1'])
+                ->nestedRecursiveRules(['required', 'string', 'max:255', 'not_regex:/,/']),
 
-            ImportColumn::make('telephone')
-                ->label('Номер телефону')
-                ->castStateUsing(ImportHelper::normalizePhoneCastState(...))
-                ->rules(['nullable', 'string', 'max:255', 'not_regex:/,/'])
-                ->fillRecordUsing(fn (Deputy $record, mixed $state) => $record->phone = $state),
+            ImportColumn::make('emails')
+                ->label('Електронна пошта')
+                ->guesses(['email'])
+                ->requiredMapping()
+                ->multiple(',')
+                ->castStateUsing(ImportHelper::normalizeContactList(...))
+                ->rules(['required', 'array', 'min:1'])
+                ->nestedRecursiveRules(['required', 'email', 'max:255']),
 
             ImportColumn::make('homepage')
                 ->label('Веб-сторінка')

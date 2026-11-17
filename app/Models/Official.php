@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 /**
  * @property bool $is_head
  * @property array<int, string>|null $social_accounts
+ * @property array<int, string>|null $emails
+ * @property array<int, string>|null $phones
  * @property-read Reception|null $reception
  */
 #[Fillable([
@@ -22,8 +24,8 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
     'image',
     'homepage',
     'social_accounts',
-    'email',
-    'phone',
+    'emails',
+    'phones',
     'opening_hours',
     'availability_restriction',
 ])]
@@ -37,6 +39,8 @@ class Official extends Model
         return [
             'is_head' => 'boolean',
             'social_accounts' => 'array',
+            'emails' => 'array',
+            'phones' => 'array',
         ];
     }
 

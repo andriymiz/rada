@@ -251,10 +251,25 @@ class DeputyForm
                 ->visible(fn (?Deputy $record): bool => $record !== null && ! $record->reception()->exists()),
             Repeater::make('social_accounts')
                 ->label('Соціальні мережі')
+                ->columnSpanFull()
                 ->defaultItems(0)
+                ->reorderable(false)
+                ->addAction(fn (Action $action) => $action->label('Додати'))
                 ->simple(TextInput::make('url')->url()->rule('url:http,https')->maxLength(2048)->required()),
-            TextInput::make('email')->label('Електронна пошта')->email()->maxLength(255),
-            TextInput::make('phone')->label('Телефон')->tel()->maxLength(255)->rule('not_regex:/,/'),
+            Repeater::make('emails')
+                ->label('Електронні адреси')
+                ->required()
+                ->minItems(1)
+                ->reorderable(false)
+                ->addAction(fn (Action $action) => $action->label('Додати'))
+                ->simple(TextInput::make('email')->email()->maxLength(255)->required()),
+            Repeater::make('phones')
+                ->label('Телефони')
+                ->required()
+                ->minItems(1)
+                ->reorderable(false)
+                ->addAction(fn (Action $action) => $action->label('Додати'))
+                ->simple(TextInput::make('phone')->maxLength(255)->rule('not_regex:/,/')->required()),
             Textarea::make('opening_hours')->label('Графік прийому')->maxLength(2048),
             Textarea::make('availability_restriction')->label('Обмеження доступності')->maxLength(2048),
         ];

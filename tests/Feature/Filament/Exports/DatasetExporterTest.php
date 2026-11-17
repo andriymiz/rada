@@ -162,7 +162,7 @@ it('exports dataset metadata stored in its related record', function (): void {
         'реєстр, дані',
         'Підстава.',
         'https://data.gov.ua/dataset/c65f219b-4f4e-4e51-8dc6-7a1df3001252',
-        null,
+        'null',
     ]);
 });
 

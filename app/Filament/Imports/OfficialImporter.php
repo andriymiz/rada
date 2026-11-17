@@ -73,16 +73,23 @@ class OfficialImporter extends Importer
                 ->nestedRecursiveRules(['url:http,https', 'max:2048'])
                 ->fillRecordUsing(fn (Official $record, mixed $state) => $record->social_accounts = $state),
 
-            ImportColumn::make('telephone')
+            ImportColumn::make('phones')
                 ->label('Телефон')
-                ->castStateUsing(ImportHelper::normalizePhoneCastState(...))
-                ->rules(['nullable', 'string', 'max:255', 'not_regex:/,/'])
-                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->phone = $state),
+                ->guesses(['telephone'])
+                ->requiredMapping()
+                ->multiple(',')
+                ->castStateUsing(fn (mixed $state, mixed $originalState): mixed => ImportHelper::normalizeContactList($state, $originalState, isPhone: true))
+                ->rules(['required', 'array', 'min:1'])
+                ->nestedRecursiveRules(['required', 'string', 'max:255', 'not_regex:/,/']),
 
-            ImportColumn::make('email')
+            ImportColumn::make('emails')
                 ->label('Електронна пошта')
-                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->rules(['nullable', 'email', 'max:255']),
+                ->guesses(['email'])
+                ->requiredMapping()
+                ->multiple(',')
+                ->castStateUsing(ImportHelper::normalizeContactList(...))
+                ->rules(['required', 'array', 'min:1'])
+                ->nestedRecursiveRules(['required', 'email', 'max:255']),
 
             ImportColumn::make('unitId')
                 ->label('Код підрозділу')

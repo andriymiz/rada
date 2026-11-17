@@ -28,29 +28,19 @@ class DatasetExporter extends Exporter
     public static function getColumns(): array
     {
         return [
-            ExportColumn::make('uid')
-                ->label('uid')
-                ->state(fn (Dataset $record): string => $record->external_id),
+            ExportColumn::make('external_id')->label('uid'),
             ExportColumn::make('title')
                 ->label('title')
                 ->state(fn (Dataset $record): string => $record->rec_code?->getLabel() ?? $record->title),
-            ExportColumn::make('description')
-                ->label('description')
-                ->state(fn (Dataset $record): string => $record->meta->description),
+            ExportColumn::make('meta.description')->label('description'),
             ExportColumn::make('accrualPeriodicity')
                 ->label('accrualPeriodicity')
                 ->state(fn (Dataset $record): string => self::formatUpdateFrequency(
                     $record->meta->accrual_periodicity,
                 )),
-            ExportColumn::make('keywords')
-                ->label('keywords')
-                ->state(fn (Dataset $record): string => implode(', ', $record->meta->keywords)),
-            ExportColumn::make('purpose')
-                ->label('purpose')
-                ->state(fn (Dataset $record): string => $record->meta->purpose),
-            ExportColumn::make('url')
-                ->label('url')
-                ->state(fn (Dataset $record): string => $record->url),
+            ExportColumn::make('meta.keywords')->label('keywords'),
+            ExportColumn::make('meta.purpose')->label('purpose'),
+            ExportColumn::make('url')->label('url'),
             ExportColumn::make('distributionFormat')
                 ->label('distributionFormat')
                 ->state(fn (Dataset $record): string => $record->resources
@@ -58,18 +48,10 @@ class DatasetExporter extends Exporter
                     ->filter(fn (mixed $format): bool => is_string($format) && filled($format))
                     ->unique()
                     ->implode(', ')),
-            ExportColumn::make('publisherName')
-                ->label('publisherName')
-                ->state(fn (Dataset $record): string => $record->publisher->name),
-            ExportColumn::make('publisherId')
-                ->label('publisherId')
-                ->state(fn (Dataset $record): string => $record->publisher->edrpou ?? 'null'),
-            ExportColumn::make('contactPointName')
-                ->label('contactPointName')
-                ->state(fn (Dataset $record): string => $record->meta->contact_point_name),
-            ExportColumn::make('contactPointEmail')
-                ->label('contactPointEmail')
-                ->state(fn (Dataset $record): string => $record->meta->contact_point_email),
+            ExportColumn::make('publisher.name')->label('publisherName'),
+            ExportColumn::make('publisher.edrpou')->label('publisherId'),
+            ExportColumn::make('meta.contact_point_name')->label('contactPointName'),
+            ExportColumn::make('meta.contact_point_email')->label('contactPointEmail'),
         ];
     }
 

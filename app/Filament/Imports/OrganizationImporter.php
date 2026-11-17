@@ -60,16 +60,22 @@ class OrganizationImporter extends Importer
                 ->guesses(['contactPointName'])
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:255']),
-            ImportColumn::make('email')
-                ->label('Електронна пошта')
-                ->guesses(['contactPointEmail'])
-                ->castStateUsing(ImportHelper::normalizeNullCastState(...))
-                ->rules(['nullable', 'email', 'max:255']),
-            ImportColumn::make('phone')
+            ImportColumn::make('phones')
                 ->label('Телефон')
                 ->guesses(['contactPointTelephone'])
-                ->castStateUsing(ImportHelper::normalizePhoneCastState(...))
-                ->rules(['nullable', 'string', 'max:255', 'not_regex:/,/']),
+                ->requiredMapping()
+                ->multiple(',')
+                ->castStateUsing(fn (mixed $state, mixed $originalState): mixed => ImportHelper::normalizeContactList($state, $originalState, isPhone: true))
+                ->rules(['required', 'array', 'min:1'])
+                ->nestedRecursiveRules(['required', 'string', 'max:255', 'not_regex:/,/']),
+            ImportColumn::make('emails')
+                ->label('Електронна пошта')
+                ->guesses(['contactPointEmail'])
+                ->requiredMapping()
+                ->multiple(',')
+                ->castStateUsing(ImportHelper::normalizeContactList(...))
+                ->rules(['required', 'array', 'min:1'])
+                ->nestedRecursiveRules(['required', 'email', 'max:255']),
             ImportColumn::make('opening_hours')
                 ->label('Графік роботи')
                 ->guesses(['openingHours'])
@@ -102,10 +108,10 @@ class OrganizationImporter extends Importer
                         ->where('edrpou', $state)
                         ->first();
                 }),
-            ImportColumn::make('catuttc')
-                ->label('Код КАТОТТГ')
-                ->guesses(['CATUTTC'])
-                ->rules(['required', 'string', 'size:10']),
+            // ImportColumn::make('catuttc')
+            //     ->label('Код КАТОТТГ')
+            //     ->guesses(['CATUTTC'])
+            //     ->rules(['required', 'string', 'size:19']),
         ];
     }
 

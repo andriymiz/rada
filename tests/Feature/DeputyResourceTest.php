@@ -60,6 +60,8 @@ it('creates a deputy profile without requiring reception details', function () {
             'homepage' => 'https://council.example.gov.ua/deputies/test',
             'image' => 'https://council.example.gov.ua/photos/test.png',
             'biography' => 'Біографія депутата.',
+            'emails' => [['email' => 'deputy@example.com']],
+            'phones' => [['phone' => '+380501234567']],
         ])
         ->callMountedTableAction()
         ->assertHasNoTableActionErrors();
@@ -92,8 +94,8 @@ it('creates a deputy profile without requiring reception details', function () {
     expect(Schema::hasColumn('deputies', 'homepage'))->toBeTrue()
         ->and(Schema::hasColumn('people', 'homepage'))->toBeFalse();
 
-    expect($deputy->email)->toBeNull()
-        ->and($deputy->phone)->toBeNull();
+    expect($deputy->emails)->toBe(['deputy@example.com'])
+        ->and($deputy->phones)->toBe(['+380501234567']);
 });
 
 it('saves each selected deputy status', function (DeputyStatus $status) {
@@ -108,6 +110,8 @@ it('saves each selected deputy status', function (DeputyStatus $status) {
         'person_id' => $person->id,
         'political_party_id' => $party->id,
         'biography' => 'Біографія депутата.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
         'status' => $status->value,
     ])
         ->assertHasNoTableActionErrors();
@@ -133,6 +137,8 @@ it('rejects deputy homepage and image values that are not HTTP URLs', function (
         'homepage' => 'not-a-url',
         'image' => 'not-a-url',
         'biography' => 'Біографія депутата.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasTableActionErrors(['homepage', 'image']);
 
@@ -157,6 +163,8 @@ it('links an existing person to a new deputy', function () {
         'person_id' => $person->id,
         'political_party_id' => $party->id,
         'biography' => 'Біографія депутата.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasNoTableActionErrors();
 
@@ -181,6 +189,8 @@ it('defaults a new deputy term start date to its convocation start date', functi
         'person_id' => $person->id,
         'political_party_id' => $party->id,
         'biography' => 'Біографія депутата.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasNoTableActionErrors();
 
@@ -214,6 +224,8 @@ it('defaults a new deputy number and pult number after the current highest value
         'person_id' => $person->id,
         'political_party_id' => $party->id,
         'biography' => 'Біографія депутата.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasNoTableActionErrors();
 
@@ -235,6 +247,8 @@ it('rejects a deputy number already used in the same convocation', function () {
         'political_party_id' => PoliticalParty::factory()->create()->id,
         'number' => 5,
         'biography' => 'Біографія депутата.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasTableActionErrors(['number']);
 
@@ -253,6 +267,8 @@ it('rejects linking the same person to two deputy records in one convocation', f
         'person_id' => $person->id,
         'political_party_id' => $party->id,
         'biography' => 'Біографія депутата.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasTableActionErrors(['person_id']);
 
@@ -272,6 +288,8 @@ it('allows one person to have a deputy record in each convocation', function () 
         'person_id' => $person->id,
         'political_party_id' => $party->id,
         'biography' => 'Біографія наступного скликання.',
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasNoTableActionErrors();
 
@@ -357,6 +375,8 @@ it('stores gender code 9 for a person created from the dropdown', function () {
         ->setTableActionData([
             'political_party_id' => $party->id,
             'biography' => 'Біографія депутата.',
+            'emails' => [['email' => 'deputy@example.com']],
+            'phones' => [['phone' => '+380501234567']],
         ])
         ->callMountedTableAction()
         ->assertHasNoTableActionErrors();
@@ -382,6 +402,8 @@ it('keeps the person and convocation fixed when editing a deputy', function () {
             'person_id' => $otherPerson->id,
             'biography' => 'Оновлена біографія.',
             'image' => 'https://example.gov.ua/photos/updated.png',
+            'emails' => [['email' => 'deputy@example.com']],
+            'phones' => [['phone' => '+380501234567']],
         ])
         ->assertHasNoTableActionErrors();
 
@@ -429,16 +451,16 @@ it('saves contact details directly in the deputy edit form', function () {
         'pageClass' => EditConvocation::class,
     ])->callTableAction('edit', $deputy, [
         'political_party_id' => $party->id,
-        'email' => 'deputy@example.gov.ua',
-        'phone' => '+380123456789',
+        'emails' => [['email' => 'deputy@example.gov.ua'], ['email' => 'office@example.com']],
+        'phones' => [['phone' => '+380123456789'], ['phone' => '+380501234568']],
         'social_accounts' => [['url' => 'https://council.example.gov.ua']],
         'opening_hours' => 'Пн 09:00–18:00',
         'availability_restriction' => 'За записом',
     ])->assertHasNoTableActionErrors();
 
     $deputy->refresh();
-    expect($deputy->email)->toBe('deputy@example.gov.ua')
-        ->and($deputy->phone)->toBe('+380123456789')
+    expect($deputy->emails)->toBe(['deputy@example.gov.ua', 'office@example.com'])
+        ->and($deputy->phones)->toBe(['+380123456789', '+380501234568'])
         ->and($deputy->social_accounts)->toBe(['https://council.example.gov.ua'])
         ->and($deputy->opening_hours)->toBe('Пн 09:00–18:00')
         ->and($deputy->availability_restriction)->toBe('За записом');
@@ -453,11 +475,44 @@ it('validates email in the deputy edit form', function () {
     ])
         ->callTableAction('edit', $deputy, [
             'political_party_id' => $deputy->political_party_id,
-            'email' => 'not-an-email',
+            'emails' => [['email' => 'not-an-email']],
+            'phones' => [['phone' => '+380501234567']],
         ])
         ->assertHasTableActionErrors();
 
-    expect($deputy->refresh()->email)->toBeNull();
+    expect($deputy->refresh()->emails)->toBeNull();
+});
+
+it('validates each contact in the deputy form', function (): void {
+    $deputy = Deputy::factory()->create();
+    $party = PoliticalParty::factory()->create();
+
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('edit', $deputy, [
+        'political_party_id' => $party->id,
+        'emails' => [['email' => 'not-an-email']],
+        'phones' => [['phone' => '123,456']],
+    ])->assertHasTableActionErrors(['emails.0.email', 'phones.0.phone']);
+
+    expect($deputy->refresh()->emails)->toBeNull();
+});
+
+it('requires email and telephone lists in the deputy form', function (): void {
+    $deputy = Deputy::factory()->create();
+    $party = PoliticalParty::factory()->create();
+
+    livewire(DeputiesRelationManager::class, [
+        'ownerRecord' => $deputy->convocation,
+        'pageClass' => EditConvocation::class,
+    ])->callTableAction('edit', $deputy, [
+        'political_party_id' => $party->id,
+        'emails' => [],
+        'phones' => [],
+    ])->assertHasTableActionErrors(['emails' => 'required', 'phones' => 'required']);
+
+    expect($deputy->refresh()->emails)->toBeNull();
 });
 
 it('updates deputy details without changing its linked person or reception', function () {
@@ -474,6 +529,8 @@ it('updates deputy details without changing its linked person or reception', fun
     ])
         ->callTableAction('edit', $deputy, [
             'biography' => 'Оновлена біографія.',
+            'emails' => [['email' => 'deputy@example.com']],
+            'phones' => [['phone' => '+380501234567']],
         ])
         ->assertHasNoTableActionErrors();
 
@@ -552,6 +609,8 @@ it('saves term, faction, and commission-related data on the deputy', function ()
         'faction_id' => $faction->id,
         'faction_position' => 'Голова фракції',
         'status' => DeputyStatus::Departed->value,
+        'emails' => [['email' => 'deputy@example.com']],
+        'phones' => [['phone' => '+380501234567']],
     ])
         ->assertHasNoTableActionErrors();
 
