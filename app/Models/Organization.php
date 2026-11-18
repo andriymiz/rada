@@ -79,6 +79,12 @@ class Organization extends Model
         return $this->hasMany(Official::class);
     }
 
+    /** @return HasMany<OrganizationUnit, $this> */
+    public function organizationUnits(): HasMany
+    {
+        return $this->hasMany(OrganizationUnit::class);
+    }
+
     /** @return HasOne<Official, $this> */
     public function head(): HasOne
     {

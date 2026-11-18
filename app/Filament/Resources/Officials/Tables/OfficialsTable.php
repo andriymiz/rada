@@ -52,7 +52,7 @@ class OfficialsTable
                     ->searchable()
                     ->sortable(),
             ])
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['person', 'organization']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['person', 'organization'])->withCount('headedUnits'))
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),

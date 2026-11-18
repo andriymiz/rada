@@ -44,7 +44,9 @@ class OfficialsRelationManager extends RelationManager
                     })
                     ->successNotificationTitle('Посадовця призначено керівником'),
                 EditAction::make(),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->disabled(fn (Official $record): bool => $record->headed_units_count > 0)
+                    ->tooltip(fn (Official $record): ?string => $record->headed_units_count > 0 ? 'Спершу змініть керівника підрозділу.' : null),
             ]);
     }
 }

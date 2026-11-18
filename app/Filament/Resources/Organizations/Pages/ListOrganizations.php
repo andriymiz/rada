@@ -5,10 +5,13 @@ namespace App\Filament\Resources\Organizations\Pages;
 use App\Filament\Concerns\HasRadaBreadcrumbs;
 use App\Filament\Exports\OfficialExporter;
 use App\Filament\Exports\OrganizationExporter;
+use App\Filament\Exports\OrganizationUnitExporter;
 use App\Filament\Imports\OfficialImporter;
 use App\Filament\Imports\OrganizationImporter;
+use App\Filament\Imports\OrganizationUnitImporter;
 use App\Filament\Resources\Organizations\OrganizationResource;
 use App\Models\Official;
+use App\Models\OrganizationUnit;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\ExportAction;
@@ -43,6 +46,21 @@ class ListOrganizations extends ListRecords
                             'head.person',
                             'parentOrganization',
                         ])),
+                ])->dropdown(false),
+                ActionGroup::make([
+                    ImportAction::make('importOrganizationUnits')
+                        ->label('Імпорт підрозділів')
+                        ->pluralModelLabel('підрозділів')
+                        ->modalDescription('До початку імпорту створіть організації та батьківські підрозділи.')
+                        ->importer(OrganizationUnitImporter::class),
+                    ExportAction::make('exportOrganizationUnits')
+                        ->label('Експорт підрозділів')
+                        ->pluralModelLabel('підрозділів')
+                        ->exporter(OrganizationUnitExporter::class)
+                        ->fileName('organizationUnits')
+                        ->columnMapping(false)
+                        ->formats([ExportFormat::Csv])
+                        ->modifyQueryUsing(fn (): Builder => OrganizationUnitExporter::modifyQuery(OrganizationUnit::query())),
                 ])->dropdown(false),
                 ActionGroup::make([
                     ImportAction::make('importOfficials')

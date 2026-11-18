@@ -6,6 +6,7 @@ use App\Filament\Resources\Organizations\Pages\CreateOrganization;
 use App\Filament\Resources\Organizations\Pages\EditOrganization;
 use App\Filament\Resources\Organizations\Pages\ListOrganizations;
 use App\Filament\Resources\Organizations\RelationManagers\OfficialsRelationManager;
+use App\Filament\Resources\Organizations\RelationManagers\OrganizationUnitsRelationManager;
 use App\Filament\Resources\Organizations\Schemas\OrganizationForm;
 use App\Filament\Resources\Organizations\Tables\OrganizationsTable;
 use App\Models\Organization;
@@ -14,15 +15,12 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class OrganizationResource extends Resource
 {
     protected static ?string $model = Organization::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
-
-    protected static string|UnitEnum|null $navigationGroup = 'Налаштування';
 
     protected static ?string $modelLabel = 'організація';
 
@@ -49,6 +47,7 @@ class OrganizationResource extends Resource
     {
         return [
             OfficialsRelationManager::class,
+            OrganizationUnitsRelationManager::class,
         ];
     }
 
