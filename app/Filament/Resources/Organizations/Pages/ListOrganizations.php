@@ -40,7 +40,6 @@ class ListOrganizations extends ListRecords
                         ->pluralModelLabel('організацій')
                         ->exporter(OrganizationExporter::class)
                         ->fileName('organizations')
-                        ->columnMapping(false)
                         ->formats([ExportFormat::Csv])
                         ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
                             'head.person',
@@ -58,7 +57,6 @@ class ListOrganizations extends ListRecords
                         ->pluralModelLabel('підрозділів')
                         ->exporter(OrganizationUnitExporter::class)
                         ->fileName('organizationUnits')
-                        ->columnMapping(false)
                         ->formats([ExportFormat::Csv])
                         ->modifyQueryUsing(fn (): Builder => OrganizationUnitExporter::modifyQuery(OrganizationUnit::query())),
                 ])->dropdown(false),
@@ -72,7 +70,6 @@ class ListOrganizations extends ListRecords
                         ->pluralModelLabel('посадовців')
                         ->exporter(OfficialExporter::class)
                         ->fileName('posts')
-                        ->columnMapping(false)
                         ->formats([ExportFormat::Csv])
                         ->modifyQueryUsing(fn (): Builder => OfficialExporter::modifyQuery(Official::query())),
                 ])->dropdown(false),

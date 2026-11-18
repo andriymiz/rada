@@ -29,20 +29,17 @@ class DatasetExporter extends Exporter
     {
         return [
             ExportColumn::make('external_id')->label('uid'),
-            ExportColumn::make('title')
-                ->label('title')
+            ExportColumn::make('title')->label('title')
                 ->state(fn (Dataset $record): string => $record->rec_code?->getLabel() ?? $record->title),
             ExportColumn::make('meta.description')->label('description'),
-            ExportColumn::make('accrualPeriodicity')
-                ->label('accrualPeriodicity')
+            ExportColumn::make('accrualPeriodicity')->label('accrualPeriodicity')
                 ->state(fn (Dataset $record): string => self::formatUpdateFrequency(
                     $record->meta->accrual_periodicity,
                 )),
             ExportColumn::make('meta.keywords')->label('keywords'),
             ExportColumn::make('meta.purpose')->label('purpose'),
             ExportColumn::make('url')->label('url'),
-            ExportColumn::make('distributionFormat')
-                ->label('distributionFormat')
+            ExportColumn::make('distributionFormat')->label('distributionFormat')
                 ->state(fn (Dataset $record): string => $record->resources
                     ->pluck('format')
                     ->filter(fn (mixed $format): bool => is_string($format) && filled($format))
@@ -52,6 +49,9 @@ class DatasetExporter extends Exporter
             ExportColumn::make('publisher.edrpou')->label('publisherId'),
             ExportColumn::make('meta.contact_point_name')->label('contactPointName'),
             ExportColumn::make('meta.contact_point_email')->label('contactPointEmail'),
+
+            ExportColumn::make('status')->label('status')->enabledByDefault(false),
+            ExportColumn::make('status_note')->label('statusNote')->enabledByDefault(false),
         ];
     }
 

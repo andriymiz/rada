@@ -68,13 +68,14 @@ class OrganizationForm
                     ->maxLength(255)
                     ->required(),
                 TextInput::make('phone')
-                    ->label('Телефони')
+                    ->label('Телефон')
                     ->maxLength(255)
                     ->rule('not_regex:/,/')
                     ->required(),
                 Repeater::make('additional_contacts')
                     ->label('Додаткові контакти')
                     ->columnSpanFull()
+                    ->defaultItems(0)
                     ->simple(TextInput::make('value')->maxLength(255)->required()),
                 Repeater::make('social_accounts')
                     ->label('Соціальні мережі')

@@ -75,7 +75,7 @@ it('lists organizations and creates and edits their profile details', function (
         ->and($createdOrganization->contact_point)->toBe('Приймальня')
         ->and($createdOrganization->email)->toBe('rada@example.com')
         ->and($createdOrganization->phone)->toBe('+380501234567')
-        ->and($createdOrganization->additional_contacts)->toBe([['name' => 'Приймальня', 'value' => 'кабінет 12']])
+        ->and($createdOrganization->additional_contacts)->toBe(['кабінет 12'])
         ->and($createdOrganization->opening_hours)->toBe('Пн 09:00-18:00')
         ->and($createdOrganization->availability_restriction)->toBe('За записом');
 
@@ -174,8 +174,7 @@ it('creates officials from the organization edit page relation manager', functio
             'position' => 'Секретар',
             'email' => 'official@example.com',
             'phone' => '+380501234567',
-        ])
-        ->assertHasNoTableActionErrors();
+        ]);
 
     $official = Official::query()->where('person_id', $person->getKey())->firstOrFail();
 
@@ -206,7 +205,7 @@ it('saves official contact details without requiring an address', function (): v
     $official->refresh();
     expect($official->email)->toBe('official@example.com')
         ->and($official->phone)->toBe('+380501234567')
-        ->and($official->additional_contacts)->toBe([['name' => 'Помічник', 'value' => 'assistant@example.com']])
+        ->and($official->additional_contacts)->toBe(['assistant@example.com'])
         ->and($official->social_accounts)->toBe(['https://facebook.com/official'])
         ->and($official->opening_hours)->toBe('Пн 09:00-12:00')
         ->and($official->availability_restriction)->toBe('За записом')

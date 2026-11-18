@@ -44,7 +44,6 @@ class DeputiesRelationManager extends RelationManager
                 ExportAction::make()
                     ->exporter(DeputyExporter::class)
                     ->fileName('deputies')
-                    ->columnMapping(false)
                     ->formats([ExportFormat::Csv]),
             ])
             ->recordActions([

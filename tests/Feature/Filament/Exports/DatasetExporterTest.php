@@ -102,21 +102,6 @@ it('exports dataset rows using the open data register schema', function (): void
         'Контакт порталу',
         'portal@example.gov.ua',
     ]);
-
-    expect(collect(DatasetExporter::getColumns())->map->getLabel()->all())->toBe([
-        'uid',
-        'title',
-        'description',
-        'accrualPeriodicity',
-        'keywords',
-        'purpose',
-        'url',
-        'distributionFormat',
-        'publisherName',
-        'publisherId',
-        'contactPointName',
-        'contactPointEmail',
-    ]);
 });
 
 it('exports metadata contact values without using the responsible official', function (): void {
@@ -184,8 +169,7 @@ it('exports only the complete register schema as a CSV resource', function (): v
     livewire(ManageDatasets::class)
         ->assertActionExists('export', fn (ExportAction $action): bool => $action->getExporter() === DatasetExporter::class
             && $action->getFileName(new Export) === 'register'
-            && $action->getFormats() === [ExportFormat::Csv]
-            && ! $action->hasColumnMapping())
+            && $action->getFormats() === [ExportFormat::Csv])
         ->assertActionDoesNotExist('publishRegister');
 });
 

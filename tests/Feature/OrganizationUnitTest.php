@@ -101,7 +101,7 @@ it('manages organization units within their organization', function (): void {
         ->and($unit->short_name)->toBe('Архів')
         ->and($unit->email)->toBe('office@example.com')
         ->and($unit->phone)->toBe('+380501234567')
-        ->and($unit->additional_contacts)->toBe([['name' => 'Факс', 'value' => '+380501234568']]);
+        ->and($unit->additional_contacts)->toBe(['+380501234568']);
 
     livewire(OrganizationUnitsRelationManager::class, [
         'ownerRecord' => $organization,
@@ -288,8 +288,7 @@ it('exports units from all organizations with the specified CSV columns and impo
         ->assertActionExists('importOrganizationUnits')
         ->assertActionExists('exportOrganizationUnits', fn (ExportAction $action): bool => $action->getExporter() === OrganizationUnitExporter::class
             && $action->getFileName(new Export) === 'organizationUnits'
-            && $action->getFormats() === [ExportFormat::Csv]
-            && ! $action->hasColumnMapping())
+            && $action->getFormats() === [ExportFormat::Csv])
         ->searchTable('Міська рада')
         ->callAction('exportOrganizationUnits')
         ->assertNotified();

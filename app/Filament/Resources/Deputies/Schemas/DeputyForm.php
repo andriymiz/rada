@@ -269,6 +269,7 @@ class DeputyForm
             Repeater::make('additional_contacts')
                 ->label('Додаткові контакти')
                 ->columnSpanFull()
+                ->defaultItems(0)
                 ->simple(TextInput::make('value')->maxLength(255)->required()),
             Textarea::make('opening_hours')->label('Графік прийому')->maxLength(2048),
             Textarea::make('availability_restriction')->label('Обмеження доступності')->maxLength(2048),

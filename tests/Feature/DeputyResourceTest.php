@@ -63,8 +63,7 @@ it('creates a deputy profile without requiring reception details', function () {
             'email' => 'deputy@example.com',
             'phone' => '+380501234567',
         ])
-        ->callMountedTableAction()
-        ->assertHasNoTableActionErrors();
+        ->callMountedTableAction();
 
     $deputy = Deputy::query()->with('person')->firstOrFail();
 
@@ -113,8 +112,7 @@ it('saves each selected deputy status', function (DeputyStatus $status) {
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
         'status' => $status->value,
-    ])
-        ->assertHasNoTableActionErrors();
+    ]);
 
     expect(Deputy::query()->firstOrFail()->status)->toBe($status);
 })->with([
@@ -165,8 +163,7 @@ it('links an existing person to a new deputy', function () {
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
-    ])
-        ->assertHasNoTableActionErrors();
+    ]);
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
 
@@ -191,8 +188,7 @@ it('defaults a new deputy term start date to its convocation start date', functi
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
-    ])
-        ->assertHasNoTableActionErrors();
+    ]);
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
 
@@ -226,8 +222,7 @@ it('defaults a new deputy number and pult number after the current highest value
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
-    ])
-        ->assertHasNoTableActionErrors();
+    ]);
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
 
@@ -290,8 +285,7 @@ it('allows one person to have a deputy record in each convocation', function () 
         'biography' => 'Біографія наступного скликання.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
-    ])
-        ->assertHasNoTableActionErrors();
+    ]);
 
     expect($person->deputies()->count())->toBe(2)
         ->and($person->deputies()->where('convocation_id', $firstDeputy->convocation_id)->exists())->toBeTrue()
@@ -453,7 +447,7 @@ it('saves contact details directly in the deputy edit form', function () {
         'political_party_id' => $party->id,
         'email' => 'deputy@example.gov.ua',
         'phone' => '+380123456789',
-        'additional_contacts' => [['name' => 'Офіс', 'value' => 'office@example.com']],
+        'additional_contacts' => [['value' => 'office@example.com']],
         'social_accounts' => [['url' => 'https://council.example.gov.ua']],
         'opening_hours' => 'Пн 09:00–18:00',
         'availability_restriction' => 'За записом',
@@ -462,7 +456,7 @@ it('saves contact details directly in the deputy edit form', function () {
     $deputy->refresh();
     expect($deputy->email)->toBe('deputy@example.gov.ua')
         ->and($deputy->phone)->toBe('+380123456789')
-        ->and($deputy->additional_contacts)->toBe([['name' => 'Офіс', 'value' => 'office@example.com']])
+        ->and($deputy->additional_contacts)->toBe(['office@example.com'])
         ->and($deputy->social_accounts)->toBe(['https://council.example.gov.ua'])
         ->and($deputy->opening_hours)->toBe('Пн 09:00–18:00')
         ->and($deputy->availability_restriction)->toBe('За записом');

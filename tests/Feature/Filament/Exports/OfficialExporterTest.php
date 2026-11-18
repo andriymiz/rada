@@ -133,8 +133,7 @@ it('offers the officials export as a posts csv action on the organizations page'
     livewire(ListOrganizations::class)
         ->assertActionExists('exportOfficials', fn (ExportAction $action): bool => $action->getExporter() === OfficialExporter::class
             && $action->getFileName(new Export) === 'posts'
-            && $action->getFormats() === [ExportFormat::Csv]
-            && ! $action->hasColumnMapping());
+            && $action->getFormats() === [ExportFormat::Csv]);
 });
 
 it('exports officials from all organizations through the organizations page', function (): void {
@@ -197,7 +196,7 @@ it('continues to export organizations from the same page', function (): void {
 
     expect($rows)->toHaveCount(1)
         ->and($rows[0]['Id'])->toBe('12345678')
-        ->and($rows[0]['Name'])->toBe('Перша організація')
+        ->and($rows[0]['name'])->toBe('Перша організація')
         ->and($rows[0]['socialAccount'])->toBe('https://example.com/one, https://example.com/two')
         ->and($rows[0]['contactPointName'])->toBe('Приймальня')
         ->and($rows[0]['contactPointEmail'])->toBe('office@example.com')
@@ -207,8 +206,8 @@ it('continues to export organizations from the same page', function (): void {
 
     OrganizationImporter::test(columnMap: [
         'edrpou' => 'Id',
-        'name' => 'Name',
-        'description' => 'Description',
+        'name' => 'name',
+        'description' => 'description',
         'email' => 'contactPointEmail',
         'phone' => 'contactPointTelephone',
     ])->import($rows[0])->assertImported();

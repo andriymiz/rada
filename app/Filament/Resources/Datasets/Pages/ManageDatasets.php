@@ -59,7 +59,6 @@ class ManageDatasets extends ManageRecords
                     ->pluralModelLabel('наборів даних')
                     ->exporter(DatasetExporter::class)
                     ->fileName('register')
-                    ->columnMapping(false)
                     ->formats([ExportFormat::Csv])
                     ->modifyQueryUsing(fn (Builder $query): Builder => $query
                         ->whereNotNull((new Dataset)->qualifyColumn('external_id'))
