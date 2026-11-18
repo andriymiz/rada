@@ -440,8 +440,8 @@ it('creates a deputy through the selected convocation relationship', function ()
         'person_id' => $person->id,
         'political_party_id' => $party->id,
         'biography' => 'Біографія депутата.',
-        'emails' => [['email' => 'deputy@example.com']],
-        'phones' => [['phone' => '+380501234567']],
+        'email' => 'deputy@example.com',
+        'phone' => '+380501234567',
     ])
         ->assertHasNoFormErrors();
 

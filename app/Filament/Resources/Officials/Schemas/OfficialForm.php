@@ -51,18 +51,20 @@ class OfficialForm
                     ->columnSpanFull()
                     ->defaultItems(0)
                     ->simple(TextInput::make('url')->url()->rule('url:http,https')->maxLength(2048)->required()),
-                Repeater::make('emails')
-                    ->label('Електронні адреси')
-                    ->required()
-                    ->minItems(1)
-                    ->defaultItems(1)
-                    ->simple(TextInput::make('email')->email()->maxLength(255)->required()),
-                Repeater::make('phones')
-                    ->label('Телефони')
-                    ->required()
-                    ->minItems(1)
-                    ->defaultItems(1)
-                    ->simple(TextInput::make('phone')->maxLength(255)->rule('not_regex:/,/')->required()),
+                TextInput::make('email')
+                    ->label('Електронна пошта')
+                    ->email()
+                    ->maxLength(255)
+                    ->required(),
+                TextInput::make('phone')
+                    ->label('Телефон')
+                    ->maxLength(255)
+                    ->rule('not_regex:/,/')
+                    ->required(),
+                Repeater::make('additional_contacts')
+                    ->label('Додаткові контакти')
+                    ->columnSpanFull()
+                    ->simple(TextInput::make('value')->maxLength(255)->required()),
                 Textarea::make('opening_hours')->label('Графік прийому')->maxLength(2048),
                 Textarea::make('availability_restriction')->label('Обмеження доступності')->maxLength(2048),
                 Section::make('Місце прийому')

@@ -29,8 +29,8 @@ class OrganizationUnitFactory extends Factory
             'short_name' => fake()->words(1, true),
             'description' => fake()->sentence(),
             'contact_point' => fake()->name(),
-            'emails' => [fake()->safeEmail()],
-            'phones' => ['+380501234567'],
+            'email' => fake()->safeEmail(),
+            'phone' => '+380501234567',
         ];
     }
 }

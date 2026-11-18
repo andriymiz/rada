@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'uid', 'organization_id', 'head_id', 'parent_unit_id', 'full_name', 'short_name', 'description',
-    'constituent_doc', 'homepage', 'contact_point', 'emails', 'phones',
+    'constituent_doc', 'homepage', 'contact_point', 'email', 'phone', 'additional_contacts',
     'opening_hours', 'availability_restriction',
 ])]
 class OrganizationUnit extends Model
@@ -21,7 +21,7 @@ class OrganizationUnit extends Model
 
     protected function casts(): array
     {
-        return ['emails' => 'array', 'phones' => 'array'];
+        return ['additional_contacts' => 'array'];
     }
 
     /** @return BelongsTo<Organization, $this> */

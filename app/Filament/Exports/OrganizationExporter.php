@@ -40,8 +40,8 @@ class OrganizationExporter extends Exporter
             ExportColumn::make('addressLocatorName')->state(fn (): string => 'null'),
             ExportColumn::make('addressPostCode')->state(fn (): string => 'null'),
             ExportColumn::make('contact_point')->label('contactPointName'),
-            ExportColumn::make('emails')->label('contactPointEmail'),
-            ExportColumn::make('phones')->label('contactPointTelephone'),
+            ExportColumn::make('email')->label('contactPointEmail'),
+            ExportColumn::make('phone')->label('contactPointTelephone'),
             ExportColumn::make('opening_hours')->label('openingHours'),
             ExportColumn::make('availability_restriction')->label('availabilityRestriction'),
         ];

@@ -61,22 +61,11 @@ class ImportHelper
         return str_starts_with($phone, '380') ? '+'.$phone : $state;
     }
 
-    public static function normalizeContactList(mixed $state, mixed $originalState, bool $isPhone = false): mixed
+    public static function normalizeEmailCastState(mixed $state, mixed $originalState): mixed
     {
-        if (! is_string($originalState)) {
-            return $state;
-        }
+        $state = self::normalizeNullCastState($state, $originalState);
 
-        if (blank($originalState) || Str::of($originalState)->trim()->lower()->exactly('null')) {
-            return [];
-        }
-
-        return array_map(
-            fn (string $value): mixed => $isPhone
-                ? self::normalizePhoneCastState(trim($value), trim($value))
-                : trim($value),
-            explode(',', $originalState),
-        );
+        return is_string($state) ? trim($state) : $state;
     }
 
     /**

@@ -39,8 +39,8 @@ function organizationUnitImportMap(): array
         'parentUnit' => 'subUnitOfId',
         'subUnitOfName' => 'subUnitOfName',
         'contact_point' => 'contactPointName',
-        'emails' => 'contactPointEmail',
-        'phones' => 'contactPointTelephone',
+        'email' => 'contactPointEmail',
+        'phone' => 'contactPointTelephone',
         'opening_hours' => 'openingHours',
         'availability_restriction' => 'availabilityRestriction',
     ];
@@ -61,8 +61,8 @@ function organizationUnitImportRow(array $overrides = []): array
         'subUnitOfId' => 'null',
         'subUnitOfName' => 'null',
         'contactPointName' => 'Приймальня',
-        'contactPointEmail' => 'first@example.com, second@example.com',
-        'contactPointTelephone' => '380501234567, +380501234568',
+        'contactPointEmail' => 'first@example.com',
+        'contactPointTelephone' => '380501234567',
         'openingHours' => 'Пн 09:00-17:00',
         'availabilityRestriction' => 'За записом',
     ], $overrides);
@@ -88,8 +88,9 @@ it('manages organization units within their organization', function (): void {
             'head_id' => $head->id,
             'parent_unit_id' => $parent->id,
             'contact_point' => 'Приймальня',
-            'emails' => [['email' => 'office@example.com']],
-            'phones' => [['phone' => '+380501234567']],
+            'email' => 'office@example.com',
+            'phone' => '+380501234567',
+            'additional_contacts' => [['name' => 'Факс', 'value' => '+380501234568']],
         ])
         ->assertHasNoTableActionErrors();
 
@@ -98,7 +99,9 @@ it('manages organization units within their organization', function (): void {
         ->and($unit->parentUnit->is($parent))->toBeTrue()
         ->and($unit->full_name)->toBe('Архівний відділ')
         ->and($unit->short_name)->toBe('Архів')
-        ->and($unit->emails)->toBe(['office@example.com']);
+        ->and($unit->email)->toBe('office@example.com')
+        ->and($unit->phone)->toBe('+380501234567')
+        ->and($unit->additional_contacts)->toBe([['name' => 'Факс', 'value' => '+380501234568']]);
 
     livewire(OrganizationUnitsRelationManager::class, [
         'ownerRecord' => $organization,
@@ -124,8 +127,8 @@ it('validates contacts and organizations while importing existing identifiers an
     $other = OrganizationUnit::factory()->create(['uid' => 'other']);
 
     OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())
-        ->import(organizationUnitImportRow(['contactPointEmail' => ', office@example.com', 'contactPointTelephone' => '']))
-        ->assertHasErrors(['emails.0', 'phones']);
+        ->import(organizationUnitImportRow(['contactPointEmail' => 'not-an-email', 'contactPointTelephone' => '']))
+        ->assertHasErrors(['email', 'phone']);
     OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())
         ->import(organizationUnitImportRow(['unitOfId' => '87654321']))
         ->assertHasErrors(['organization']);
@@ -181,8 +184,8 @@ it('imports and updates a unit using existing organization, head and parent', fu
         ->and($unit->head->is($head))->toBeTrue()
         ->and($unit->parentUnit->is($parent))->toBeTrue()
         ->and($unit->full_name)->toBe('Архівний відділ')
-        ->and($unit->emails)->toBe(['first@example.com', 'second@example.com'])
-        ->and($unit->phones)->toBe(['+380501234567', '+380501234568']);
+        ->and($unit->email)->toBe('first@example.com')
+        ->and($unit->phone)->toBe('+380501234567');
 
     $exported = OrganizationUnitExporter::test()->export($unit);
     expect($exported[1])->toBe('Архівний відділ')
@@ -276,8 +279,8 @@ it('exports units from all organizations with the specified CSV columns and impo
     $head = Official::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
     OrganizationUnit::factory()->for($organization, 'organization')->create([
         'uid' => '1.2', 'head_id' => $head->id, 'full_name' => 'Архівний відділ',
-        'emails' => ['first@example.com', 'second@example.com'],
-        'phones' => ['+380501234567', '+380501234568'],
+        'email' => 'first@example.com',
+        'phone' => '+380501234567',
     ]);
     OrganizationUnit::factory()->create();
 
@@ -308,9 +311,9 @@ it('exports units from all organizations with the specified CSV columns and impo
     expect($row['unitOfId'])->toBe('12345678')
         ->and($row['name'])->toBe('Архівний відділ')
         ->and($row['headName'])->toBe('Коваль Олена')
-        ->and($row['contactPointTelephone'])->toBe("'+380501234567, +380501234568")
+        ->and($row['contactPointTelephone'])->toBe('+380501234567')
         ->and($row['CATUTTC'])->toBe('null');
 
     OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())->import($row)->assertImported();
-    expect(OrganizationUnit::query()->where('uid', '1.2')->sole()->phones)->toBe(['+380501234567', '+380501234568']);
+    expect(OrganizationUnit::query()->where('uid', '1.2')->sole()->phone)->toBe('+380501234567');
 });

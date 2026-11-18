@@ -48,13 +48,12 @@ class OrganizationUnitImporter extends Importer
                 ->fillRecordUsing(fn (): null => null),
             ImportColumn::make('contact_point')->label('Контактна особа або підрозділ')->guesses(['contactPointName'])
                 ->requiredMapping()->rules(['required', 'string', 'max:255']),
-            ImportColumn::make('emails')->label('Електронні адреси')->guesses(['contactPointEmail'])
-                ->requiredMapping()->multiple(',')->castStateUsing(ImportHelper::normalizeContactList(...))
-                ->rules(['required', 'array', 'min:1'])->nestedRecursiveRules(['required', 'email', 'max:255']),
-            ImportColumn::make('phones')->label('Телефони')->guesses(['contactPointTelephone'])
-                ->requiredMapping()->multiple(',')
-                ->castStateUsing(fn (mixed $state, mixed $originalState): mixed => ImportHelper::normalizeContactList($state, $originalState, isPhone: true))
-                ->rules(['required', 'array', 'min:1'])->nestedRecursiveRules(['required', 'string', 'max:255', 'not_regex:/,/']),
+            ImportColumn::make('email')->label('Електронна пошта')->guesses(['contactPointEmail'])
+                ->requiredMapping()->castStateUsing(ImportHelper::normalizeEmailCastState(...))
+                ->rules(['required', 'email', 'max:255']),
+            ImportColumn::make('phone')->label('Телефон')->guesses(['contactPointTelephone'])
+                ->requiredMapping()->castStateUsing(ImportHelper::normalizePhoneCastState(...))
+                ->rules(['required', 'string', 'max:255', 'not_regex:/,/']),
             ImportColumn::make('opening_hours')->label('Графік прийому')->guesses(['openingHours'])
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))->rules(['nullable', 'string', 'max:2048']),
             ImportColumn::make('availability_restriction')->label('Обмеження прийому')->guesses(['availabilityRestriction'])

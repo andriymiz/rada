@@ -34,8 +34,8 @@ class OrganizationUnitSeeder extends Seeder
             'short_name' => 'Відділ',
             'description' => 'Приклад структурного підрозділу.',
             'contact_point' => 'Приймальня',
-            'emails' => ['office@example.com'],
-            'phones' => ['+380501234567'],
+            'email' => 'office@example.com',
+            'phone' => '+380501234567',
         ]);
     }
 }

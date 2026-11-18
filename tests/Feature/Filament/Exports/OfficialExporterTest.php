@@ -42,8 +42,8 @@ it('exports officials using the posts csv schema', function (): void {
             'position' => 'Міський голова',
             'image' => 'https://example.com/photo.jpg',
             'homepage' => 'https://example.com/official',
-            'emails' => ['public@example.gov.ua'],
-            'phones' => ['+380501234567'],
+            'email' => 'public@example.gov.ua',
+            'phone' => '+380501234567',
             'social_accounts' => ['https://facebook.com/koval', 'https://instagram.com/koval'],
             'opening_hours' => 'Пн 09:00-12:00',
             'availability_restriction' => 'За попереднім записом',
@@ -175,8 +175,8 @@ it('continues to export organizations from the same page', function (): void {
         'edrpou' => '12345678',
         'social_accounts' => ['https://example.com/one', 'https://example.com/two'],
         'contact_point' => 'Приймальня',
-        'emails' => ['office@example.com', 'info@example.com'],
-        'phones' => ['+380501234567', '+380501234568'],
+        'email' => 'office@example.com',
+        'phone' => '+380501234567',
         'opening_hours' => 'Пн 09:00-12:00',
         'availability_restriction' => 'За записом',
     ]);
@@ -200,8 +200,8 @@ it('continues to export organizations from the same page', function (): void {
         ->and($rows[0]['Name'])->toBe('Перша організація')
         ->and($rows[0]['socialAccount'])->toBe('https://example.com/one, https://example.com/two')
         ->and($rows[0]['contactPointName'])->toBe('Приймальня')
-        ->and($rows[0]['contactPointEmail'])->toBe('office@example.com, info@example.com')
-        ->and($rows[0]['contactPointTelephone'])->toBe("'+380501234567, +380501234568")
+        ->and($rows[0]['contactPointEmail'])->toBe('office@example.com')
+        ->and($rows[0]['contactPointTelephone'])->toBe('+380501234567')
         ->and($rows[0]['openingHours'])->toBe('Пн 09:00-12:00')
         ->and($rows[0]['availabilityRestriction'])->toBe('За записом');
 
@@ -209,11 +209,11 @@ it('continues to export organizations from the same page', function (): void {
         'edrpou' => 'Id',
         'name' => 'Name',
         'description' => 'Description',
-        'emails' => 'contactPointEmail',
-        'phones' => 'contactPointTelephone',
+        'email' => 'contactPointEmail',
+        'phone' => 'contactPointTelephone',
     ])->import($rows[0])->assertImported();
 
     $organization = Organization::query()->where('edrpou', '12345678')->sole();
-    expect($organization->emails)->toBe(['office@example.com', 'info@example.com'])
-        ->and($organization->phones)->toBe(['+380501234567', '+380501234568']);
+    expect($organization->email)->toBe('office@example.com')
+        ->and($organization->phone)->toBe('+380501234567');
 });

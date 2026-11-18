@@ -46,8 +46,9 @@ it('lists organizations and creates and edits their profile details', function (
             'homepage' => 'https://example.com',
             'social_accounts' => [['url' => 'https://social.example.com/org']],
             'contact_point' => 'Приймальня',
-            'emails' => [['email' => 'rada@example.com'], ['email' => 'office@example.com'], ['email' => 'info@example.com']],
-            'phones' => [['phone' => '+380501234567'], ['phone' => '+380501234568'], ['phone' => '+380501234569']],
+            'email' => 'rada@example.com',
+            'phone' => '+380501234567',
+            'additional_contacts' => [['name' => 'Приймальня', 'value' => 'кабінет 12']],
             'opening_hours' => 'Пн 09:00-18:00',
             'availability_restriction' => 'За записом',
             'logo' => 'https://example.com/logo.png',
@@ -72,8 +73,9 @@ it('lists organizations and creates and edits their profile details', function (
         ->and($createdOrganization->short_name)->toBe('Оновлена коротка назва')
         ->and($createdOrganization->social_accounts)->toBe(['https://social.example.com/org'])
         ->and($createdOrganization->contact_point)->toBe('Приймальня')
-        ->and($createdOrganization->emails)->toBe(['rada@example.com', 'office@example.com', 'info@example.com'])
-        ->and($createdOrganization->phones)->toBe(['+380501234567', '+380501234568', '+380501234569'])
+        ->and($createdOrganization->email)->toBe('rada@example.com')
+        ->and($createdOrganization->phone)->toBe('+380501234567')
+        ->and($createdOrganization->additional_contacts)->toBe([['name' => 'Приймальня', 'value' => 'кабінет 12']])
         ->and($createdOrganization->opening_hours)->toBe('Пн 09:00-18:00')
         ->and($createdOrganization->availability_restriction)->toBe('За записом');
 
@@ -88,7 +90,7 @@ it('stores the parent organization relationship', function (): void {
     $organization = Organization::factory()->create();
 
     livewire(EditOrganization::class, ['record' => $organization->getKey()])
-        ->fillForm(['parent_org_id' => $parent->getKey(), 'description' => 'Опис', 'emails' => [['email' => 'office@example.com']], 'phones' => [['phone' => '+380501234567']]])
+        ->fillForm(['parent_org_id' => $parent->getKey(), 'description' => 'Опис', 'email' => 'office@example.com', 'phone' => '+380501234567'])
         ->call('save')
         ->assertHasNoFormErrors();
 
@@ -96,26 +98,26 @@ it('stores the parent organization relationship', function (): void {
         ->and($parent->refresh()->childOrganizations->contains($organization))->toBeTrue();
 });
 
-it('validates each contact in the organization form', function (): void {
+it('validates singular contacts in the organization form', function (): void {
     livewire(CreateOrganization::class)
         ->fillForm([
             'edrpou' => '12345678',
             'name' => 'Організація',
             'short_name' => 'Організація',
-            'emails' => [['email' => 'not-an-email']],
-            'phones' => [['phone' => '123,456']],
+            'email' => 'not-an-email',
+            'phone' => '123,456',
         ])
         ->call('create')
-        ->assertHasFormErrors(['emails.0.email', 'phones.0.phone']);
+        ->assertHasFormErrors(['email', 'phone']);
 
     expect(Organization::query()->where('edrpou', '12345678')->exists())->toBeFalse();
 });
 
-it('requires email and telephone lists in the organization form', function (): void {
+it('requires email and telephone in the organization form', function (): void {
     livewire(CreateOrganization::class)
-        ->fillForm(['edrpou' => '12345678', 'name' => 'Організація', 'short_name' => 'Організація', 'emails' => [], 'phones' => []])
+        ->fillForm(['edrpou' => '12345678', 'name' => 'Організація', 'short_name' => 'Організація', 'email' => '', 'phone' => ''])
         ->call('create')
-        ->assertHasFormErrors(['emails' => 'required', 'phones' => 'required']);
+        ->assertHasFormErrors(['email' => 'required', 'phone' => 'required']);
 
     expect(Organization::query()->where('edrpou', '12345678')->exists())->toBeFalse();
 });
@@ -126,10 +128,10 @@ it('requires primary contacts when importing an organization', function (): void
             'edrpou' => '12345678',
             'name' => 'Організація',
             'description' => 'Опис',
-            'emails' => 'null',
-            'phones' => '',
+            'email' => 'null',
+            'phone' => '',
         ])
-        ->assertHasErrors(['emails' => 'required', 'phones' => 'required']);
+        ->assertHasErrors(['email' => 'required', 'phone' => 'required']);
 
     expect(Organization::query()->where('edrpou', '12345678')->exists())->toBeFalse();
 });
@@ -170,8 +172,8 @@ it('creates officials from the organization edit page relation manager', functio
         ->callTableAction('create', data: [
             'person_id' => $person->getKey(),
             'position' => 'Секретар',
-            'emails' => [['email' => 'official@example.com'], ['email' => 'assistant@example.com']],
-            'phones' => [['phone' => '+380501234567'], ['phone' => '+380501234568']],
+            'email' => 'official@example.com',
+            'phone' => '+380501234567',
         ])
         ->assertHasNoTableActionErrors();
 
@@ -192,8 +194,9 @@ it('saves official contact details without requiring an address', function (): v
         'pageClass' => EditOrganization::class,
     ])
         ->callTableAction('edit', $official, [
-            'emails' => [['email' => 'official@example.com'], ['email' => 'assistant@example.com']],
-            'phones' => [['phone' => '+380501234567'], ['phone' => '+380501234568']],
+            'email' => 'official@example.com',
+            'phone' => '+380501234567',
+            'additional_contacts' => [['name' => 'Помічник', 'value' => 'assistant@example.com']],
             'social_accounts' => [['url' => 'https://facebook.com/official']],
             'opening_hours' => 'Пн 09:00-12:00',
             'availability_restriction' => 'За записом',
@@ -201,8 +204,9 @@ it('saves official contact details without requiring an address', function (): v
         ->assertHasNoTableActionErrors();
 
     $official->refresh();
-    expect($official->emails)->toBe(['official@example.com', 'assistant@example.com'])
-        ->and($official->phones)->toBe(['+380501234567', '+380501234568'])
+    expect($official->email)->toBe('official@example.com')
+        ->and($official->phone)->toBe('+380501234567')
+        ->and($official->additional_contacts)->toBe([['name' => 'Помічник', 'value' => 'assistant@example.com']])
         ->and($official->social_accounts)->toBe(['https://facebook.com/official'])
         ->and($official->opening_hours)->toBe('Пн 09:00-12:00')
         ->and($official->availability_restriction)->toBe('За записом')
@@ -216,30 +220,38 @@ it('validates each contact in the official form', function (): void {
         'ownerRecord' => $official->organization,
         'pageClass' => EditOrganization::class,
     ])->callTableAction('edit', $official, [
-        'emails' => [['email' => 'not-an-email']],
-        'phones' => [['phone' => '123,456']],
-    ])->assertHasTableActionErrors(['emails.0.email', 'phones.0.phone']);
+        'email' => 'not-an-email',
+        'phone' => '123,456',
+    ])->assertHasTableActionErrors(['email', 'phone']);
 
-    expect($official->refresh()->emails)->toBeNull();
+    expect($official->refresh()->email)->toBeNull();
 });
 
-it('requires email and telephone lists in the official form', function (): void {
+it('requires email and telephone in the official form', function (): void {
     $official = Official::factory()->create();
 
     livewire(OfficialsRelationManager::class, [
         'ownerRecord' => $official->organization,
         'pageClass' => EditOrganization::class,
     ])->callTableAction('edit', $official, [
-        'emails' => [],
-        'phones' => [],
-    ])->assertHasTableActionErrors(['emails' => 'required', 'phones' => 'required']);
+        'email' => '',
+        'phone' => '',
+    ])->assertHasTableActionErrors(['email' => 'required', 'phone' => 'required']);
 
-    expect($official->refresh()->emails)->toBeNull();
+    expect($official->refresh()->email)->toBeNull();
 });
 
 it('stores the head flag on officials instead of an organization foreign key', function (): void {
     expect(Schema::hasColumn('officials', 'is_head'))->toBeTrue()
         ->and(Schema::hasColumn('organizations', 'head_id'))->toBeFalse();
+});
+
+it('stores singular and additional contacts for every contactable entity', function (): void {
+    foreach (['organizations', 'organization_units', 'officials', 'deputies'] as $table) {
+        expect(Schema::hasColumns($table, ['email', 'phone', 'additional_contacts']))->toBeTrue()
+            ->and(Schema::hasColumn($table, 'emails'))->toBeFalse()
+            ->and(Schema::hasColumn($table, 'phones'))->toBeFalse();
+    }
 });
 
 it('imports organizations and resolves their official head and parent', function (): void {
@@ -257,8 +269,8 @@ it('imports organizations and resolves their official head and parent', function
         'homepage' => 'homepage',
         'social_accounts' => 'socialAccount',
         'contact_point' => 'contactPointName',
-        'emails' => 'contactPointEmail',
-        'phones' => 'contactPointTelephone',
+        'email' => 'contactPointEmail',
+        'phone' => 'contactPointTelephone',
         'opening_hours' => 'openingHours',
         'availability_restriction' => 'availabilityRestriction',
         'logo' => 'logo',
@@ -276,8 +288,8 @@ it('imports organizations and resolves their official head and parent', function
             'homepage' => 'https://example.com',
             'socialAccount' => 'https://social.example.com/one, https://social.example.com/two',
             'contactPointName' => 'Приймальня',
-            'contactPointEmail' => 'rada@example.com, office@example.com',
-            'contactPointTelephone' => '380501234567, +380501234568',
+            'contactPointEmail' => 'rada@example.com',
+            'contactPointTelephone' => '380501234567',
             'openingHours' => 'Пн 09:00-18:00',
             'availabilityRestriction' => 'За записом',
             'logo' => 'null',
@@ -297,8 +309,8 @@ it('imports organizations and resolves their official head and parent', function
             'https://social.example.com/two',
         ])
         ->and($organization->contact_point)->toBe('Приймальня')
-        ->and($organization->emails)->toBe(['rada@example.com', 'office@example.com'])
-        ->and($organization->phones)->toBe(['+380501234567', '+380501234568'])
+        ->and($organization->email)->toBe('rada@example.com')
+        ->and($organization->phone)->toBe('+380501234567')
         ->and($organization->opening_hours)->toBe('Пн 09:00-18:00')
         ->and($organization->availability_restriction)->toBe('За записом')
         ->and($organization->parentOrganization->is($parent))->toBeTrue()
@@ -321,8 +333,8 @@ it('exports organization rows using the structure csv columns', function (): voi
         'homepage' => 'https://example.com',
         'social_accounts' => ['https://social.example.com/org'],
         'contact_point' => 'Приймальня',
-        'emails' => ['rada@example.com'],
-        'phones' => ['+380501234567'],
+        'email' => 'rada@example.com',
+        'phone' => '+380501234567',
         'opening_hours' => 'Пн 09:00-18:00',
         'availability_restriction' => 'За записом',
         'logo' => 'https://example.com/logo.png',

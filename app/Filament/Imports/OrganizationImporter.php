@@ -60,22 +60,18 @@ class OrganizationImporter extends Importer
                 ->guesses(['contactPointName'])
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:255']),
-            ImportColumn::make('phones')
+            ImportColumn::make('phone')
                 ->label('Телефон')
                 ->guesses(['contactPointTelephone'])
                 ->requiredMapping()
-                ->multiple(',')
-                ->castStateUsing(fn (mixed $state, mixed $originalState): mixed => ImportHelper::normalizeContactList($state, $originalState, isPhone: true))
-                ->rules(['required', 'array', 'min:1'])
-                ->nestedRecursiveRules(['required', 'string', 'max:255', 'not_regex:/,/']),
-            ImportColumn::make('emails')
+                ->castStateUsing(ImportHelper::normalizePhoneCastState(...))
+                ->rules(['required', 'string', 'max:255', 'not_regex:/,/']),
+            ImportColumn::make('email')
                 ->label('Електронна пошта')
                 ->guesses(['contactPointEmail'])
                 ->requiredMapping()
-                ->multiple(',')
-                ->castStateUsing(ImportHelper::normalizeContactList(...))
-                ->rules(['required', 'array', 'min:1'])
-                ->nestedRecursiveRules(['required', 'email', 'max:255']),
+                ->castStateUsing(ImportHelper::normalizeEmailCastState(...))
+                ->rules(['required', 'email', 'max:255']),
             ImportColumn::make('opening_hours')
                 ->label('Графік роботи')
                 ->guesses(['openingHours'])

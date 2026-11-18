@@ -29,8 +29,8 @@ class OfficialExporter extends Exporter
             ExportColumn::make('image')->label('img'),
             ExportColumn::make('homepage')->label('homepage'),
             ExportColumn::make('social_accounts')->label('socialAccount'),
-            ExportColumn::make('phones')->label('telephone'),
-            ExportColumn::make('emails')->label('email'),
+            ExportColumn::make('phone')->label('telephone'),
+            ExportColumn::make('email')->label('email'),
             ExportColumn::make('opening_hours')->label('openingHours'),
             ExportColumn::make('availability_restriction')->label('availabilityRestriction'),
         ];
