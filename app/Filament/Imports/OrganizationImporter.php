@@ -31,8 +31,9 @@ class OrganizationImporter extends Importer
                 ->guesses(['Id'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'size:8']),
-            ImportColumn::make('name')
+            ImportColumn::make('full_name')
                 ->label('Повна назва')
+                ->guesses(['name'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255']),
             ImportColumn::make('description')

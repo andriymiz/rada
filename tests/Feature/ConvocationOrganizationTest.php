@@ -18,7 +18,7 @@ beforeEach(function () {
 
 it('creates meetings under the organization attached to their convocation', function () {
     $organization = Organization::factory()->create([
-        'name' => 'Міська рада',
+        'full_name' => 'Міська рада',
     ]);
     $convocation = Convocation::factory()
         ->for($organization, 'organization')

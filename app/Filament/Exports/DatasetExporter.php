@@ -45,7 +45,7 @@ class DatasetExporter extends Exporter
                     ->filter(fn (mixed $format): bool => is_string($format) && filled($format))
                     ->unique()
                     ->implode(', ')),
-            ExportColumn::make('publisher.name')->label('publisherName'),
+            ExportColumn::make('publisher.full_name')->label('publisherName'),
             ExportColumn::make('publisher.edrpou')->label('publisherId'),
             ExportColumn::make('meta.contact_point_name')->label('contactPointName'),
             ExportColumn::make('meta.contact_point_email')->label('contactPointEmail'),

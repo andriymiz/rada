@@ -15,7 +15,7 @@ class OrganizationSeeder extends Seeder
         Organization::query()->firstOrCreate(
             ['edrpou' => 'TEST0001'],
             [
-                'name' => 'Демонстраційна міська рада',
+                'full_name' => 'Демонстраційна міська рада',
                 'short_name' => 'Демонстраційна рада',
                 'katoottg' => 'UA00000000000000000',
             ],

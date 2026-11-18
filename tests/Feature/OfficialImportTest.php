@@ -16,7 +16,7 @@ beforeEach(function (): void {
 it('imports an official from the posts csv row', function (): void {
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА ТЕРНОПІЛЬСЬКОГО РАЙОНУ ТЕРНОПІЛЬСЬКОЇ ОБЛАСТІ',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА ТЕРНОПІЛЬСЬКОГО РАЙОНУ ТЕРНОПІЛЬСЬКОЇ ОБЛАСТІ',
     ]);
 
     OfficialImporter::test()

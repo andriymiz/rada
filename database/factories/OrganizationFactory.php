@@ -18,7 +18,7 @@ class OrganizationFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->company().' міська рада',
+            'full_name' => fake()->company().' міська рада',
             'short_name' => fake()->company(),
             'edrpou' => fake()->unique()->numerify('########'),
             'katoottg' => 'UA'.fake()->unique()->numerify('#################'),

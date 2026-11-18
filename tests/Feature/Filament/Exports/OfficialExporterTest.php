@@ -27,7 +27,7 @@ beforeEach(function (): void {
 it('exports officials using the posts csv schema', function (): void {
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
     $person = Person::factory()->create([
         'last_name' => 'Коваль',
@@ -92,7 +92,7 @@ it('exports officials using the posts csv schema', function (): void {
 it('exports null optional values and unknown gender when the official has no additional details', function (): void {
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
     $person = Person::factory()->create([
         'last_name' => 'Коваль',
@@ -139,8 +139,8 @@ it('offers the officials export as a posts csv action on the organizations page'
 it('exports officials from all organizations through the organizations page', function (): void {
     config(['queue.default' => 'sync']);
     Storage::fake('local');
-    $first = Organization::factory()->create(['name' => 'Перша організація', 'edrpou' => '12345678']);
-    $second = Organization::factory()->create(['name' => 'Друга організація', 'edrpou' => '87654321']);
+    $first = Organization::factory()->create(['full_name' => 'Перша організація', 'edrpou' => '12345678']);
+    $second = Organization::factory()->create(['full_name' => 'Друга організація', 'edrpou' => '87654321']);
     $firstPerson = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
     $secondPerson = Person::factory()->create(['last_name' => 'Мельник', 'first_name' => 'Іван', 'middle_name' => null]);
     Official::factory()->for($firstPerson)->for($first, 'organization')->create(['position' => 'Директор']);
@@ -170,7 +170,7 @@ it('continues to export organizations from the same page', function (): void {
     config(['queue.default' => 'sync']);
     Storage::fake('local');
     Organization::factory()->create([
-        'name' => 'Перша організація',
+        'full_name' => 'Перша організація',
         'edrpou' => '12345678',
         'social_accounts' => ['https://example.com/one', 'https://example.com/two'],
         'contact_point' => 'Приймальня',

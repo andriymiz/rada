@@ -50,7 +50,7 @@ it('exports dataset rows using the open data register schema', function (): void
     config(['services.open_data.base_url' => 'https://data.gov.ua']);
 
     $publisher = Organization::factory()->create([
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
         'edrpou' => '04058410',
     ]);
     $dataset = Dataset::factory()
@@ -200,7 +200,7 @@ it('uploads a completed dataset export when the option is selected', function ()
     ]);
     $userId = auth()->id();
 
-    $publisher = Organization::factory()->create(['name' => 'Розпорядник', 'edrpou' => '04058410']);
+    $publisher = Organization::factory()->create(['full_name' => 'Розпорядник', 'edrpou' => '04058410']);
     $first = Dataset::factory()->for($publisher, 'publisher')->create([
         'external_id' => 'first-id',
         'title' => 'Перший набір',

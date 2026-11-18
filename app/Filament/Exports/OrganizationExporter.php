@@ -19,7 +19,7 @@ class OrganizationExporter extends Exporter
     {
         return [
             ExportColumn::make('edrpou')->label('Id'),
-            ExportColumn::make('name')->label('name'),
+            ExportColumn::make('full_name')->label('name'),
             ExportColumn::make('description')->label('description'),
             ExportColumn::make('constituent_doc')->label('constituentDocUrl'),
             ExportColumn::make('homepage')->label('homepage'),
@@ -28,7 +28,7 @@ class OrganizationExporter extends Exporter
             ExportColumn::make('head.person.full_name')->label('headName'),
             ExportColumn::make('head.position')->label('headPost'),
             ExportColumn::make('parentOrganization.edrpou')->label('subOrgOfId'),
-            ExportColumn::make('parentOrganization.name')->label('subOrgOfName'),
+            ExportColumn::make('parentOrganization.full_name')->label('subOrgOfName'),
             ExportColumn::make('CATUTTC')->label('CATUTTC')->state(fn (): string => 'null'),
             ExportColumn::make('addressAdminUnitL1')->label('addressAdminUnitL1')->state(fn (): string => 'null'),
             ExportColumn::make('addressAdminUnitL2')->label('addressAdminUnitL2')->state(fn (): string => 'null'),

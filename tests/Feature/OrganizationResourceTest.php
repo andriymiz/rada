@@ -9,6 +9,7 @@ use App\Filament\Resources\Organizations\Pages\ListOrganizations;
 use App\Filament\Resources\Organizations\RelationManagers\OfficialsRelationManager;
 use App\Models\Official;
 use App\Models\Organization;
+use App\Models\OrganizationGroup;
 use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
@@ -23,9 +24,11 @@ beforeEach(function (): void {
 });
 
 it('lists organizations and creates and edits their profile details', function (): void {
+    $group = OrganizationGroup::factory()->create(['name' => 'Місцеві ради']);
     $organization = Organization::factory()->create([
-        'name' => 'Повна назва ради',
+        'full_name' => 'Повна назва ради',
         'short_name' => 'Міська рада',
+        'group_id' => $group->getKey(),
     ]);
 
     livewire(ListOrganizations::class)
@@ -34,13 +37,14 @@ it('lists organizations and creates and edits their profile details', function (
         ->assertSee('Організації')
         ->assertActionExists('importOrganizations')
         ->assertActionExists('exportOrganizations')
-        ->assertTableColumnStateSet('name', 'Міська рада', $organization);
+        ->assertTableColumnStateSet('full_name', 'Міська рада', $organization);
 
     livewire(CreateOrganization::class)
         ->fillForm([
             'edrpou' => '12345678',
-            'name' => 'Повна назва за ЄДР',
+            'full_name' => 'Повна назва за ЄДР',
             'short_name' => 'Коротка назва',
+            'group_id' => $group->getKey(),
             'description' => 'Опис організації',
             'constituent_doc' => 'https://example.com/statut',
             'homepage' => 'https://example.com',
@@ -63,14 +67,15 @@ it('lists organizations and creates and edits their profile details', function (
 
     livewire(EditOrganization::class, ['record' => $createdOrganization->getKey()])
         ->fillForm([
-            'name' => 'Оновлена повна назва',
+            'full_name' => 'Оновлена повна назва',
             'short_name' => 'Оновлена коротка назва',
         ])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($createdOrganization->refresh()->name)->toBe('Оновлена повна назва')
+    expect($createdOrganization->refresh()->full_name)->toBe('Оновлена повна назва')
         ->and($createdOrganization->short_name)->toBe('Оновлена коротка назва')
+        ->and($createdOrganization->group->is($group))->toBeTrue()
         ->and($createdOrganization->social_accounts)->toBe(['https://social.example.com/org'])
         ->and($createdOrganization->contact_point)->toBe('Приймальня')
         ->and($createdOrganization->email)->toBe('rada@example.com')
@@ -81,7 +86,7 @@ it('lists organizations and creates and edits their profile details', function (
 
     $this->assertDatabaseHas(Organization::class, [
         'id' => $createdOrganization->getKey(),
-        'name' => 'Оновлена повна назва',
+        'full_name' => 'Оновлена повна назва',
     ]);
 });
 
@@ -102,7 +107,7 @@ it('validates singular contacts in the organization form', function (): void {
     livewire(CreateOrganization::class)
         ->fillForm([
             'edrpou' => '12345678',
-            'name' => 'Організація',
+            'full_name' => 'Організація',
             'short_name' => 'Організація',
             'email' => 'not-an-email',
             'phone' => '123,456',
@@ -115,7 +120,7 @@ it('validates singular contacts in the organization form', function (): void {
 
 it('requires email and telephone in the organization form', function (): void {
     livewire(CreateOrganization::class)
-        ->fillForm(['edrpou' => '12345678', 'name' => 'Організація', 'short_name' => 'Організація', 'email' => '', 'phone' => ''])
+        ->fillForm(['edrpou' => '12345678', 'full_name' => 'Організація', 'short_name' => 'Організація', 'email' => '', 'phone' => ''])
         ->call('create')
         ->assertHasFormErrors(['email' => 'required', 'phone' => 'required']);
 
@@ -251,17 +256,20 @@ it('stores singular and additional contacts for every contactable entity', funct
             ->and(Schema::hasColumn($table, 'emails'))->toBeFalse()
             ->and(Schema::hasColumn($table, 'phones'))->toBeFalse();
     }
+
+    expect(Schema::hasColumns('organizations', ['full_name', 'group_id']))->toBeTrue()
+        ->and(Schema::hasColumn('organizations', 'name'))->toBeFalse();
 });
 
 it('imports organizations and resolves their official head and parent', function (): void {
     $parent = Organization::factory()->create([
         'edrpou' => '11112222',
-        'name' => 'Батьківська організація',
+        'full_name' => 'Батьківська організація',
     ]);
 
     OrganizationImporter::test(columnMap: [
         'edrpou' => 'Id',
-        'name' => 'name',
+        'full_name' => 'name',
         'short_name' => 'shortName',
         'description' => 'description',
         'constituent_doc' => 'constituentDocUrl',
@@ -301,7 +309,7 @@ it('imports organizations and resolves their official head and parent', function
 
     $organization = Organization::query()->where('edrpou', '33334444')->firstOrFail();
 
-    expect($organization->name)->toBe('Повна назва установи')
+    expect($organization->full_name)->toBe('Повна назва установи')
         ->and($organization->constituent_doc)->toBeNull()
         ->and($organization->social_accounts)->toBe([
             'https://social.example.com/one',
@@ -321,11 +329,11 @@ it('imports organizations and resolves their official head and parent', function
 it('exports organization rows using the structure csv columns', function (): void {
     $parent = Organization::factory()->create([
         'edrpou' => '11112222',
-        'name' => 'Батьківська організація',
+        'full_name' => 'Батьківська організація',
     ]);
     $organization = Organization::factory()->create([
         'edrpou' => '33334444',
-        'name' => 'Повна назва установи',
+        'full_name' => 'Повна назва установи',
         'short_name' => 'Установа',
         'description' => 'Опис установи',
         'constituent_doc' => 'https://example.com/statut',

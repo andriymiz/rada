@@ -274,7 +274,7 @@ it('reuses an existing person when creating a head for the organization', functi
 it('exports units from all organizations with the specified CSV columns and imports the exported contacts', function (): void {
     config(['queue.default' => 'sync']);
     Storage::fake('local');
-    $organization = Organization::factory()->create(['edrpou' => '12345678', 'name' => 'Міська рада']);
+    $organization = Organization::factory()->create(['edrpou' => '12345678', 'full_name' => 'Міська рада']);
     $person = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
     $head = Official::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
     OrganizationUnit::factory()->for($organization, 'organization')->create([

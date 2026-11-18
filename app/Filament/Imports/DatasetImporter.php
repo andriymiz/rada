@@ -89,7 +89,7 @@ class DatasetImporter extends Importer
                 ->rules(['required', 'string', 'max:255'])
                 ->relationship(resolveUsing: function (string $state, array $data, Dataset $record): ?Organization {
                     return Organization::query()
-                        // ->where('name', $state)
+                        // ->where('full_name', $state)
                         ->when($data['publisher_id'] ?? null,
                             fn ($query, $organizationId) => $query->where('edrpou', $organizationId))
                         ->first();

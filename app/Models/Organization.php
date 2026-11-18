@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /**
- * @property string $name
+ * @property string $full_name
  * @property string|null $short_name
  * @property string $edrpou
  * @property string|null $katoottg
@@ -27,11 +27,13 @@ use LogicException;
  * @property array<int, array{name: string, value: string}>|null $additional_contacts
  * @property string|null $logo
  * @property int|null $parent_org_id
+ * @property int|null $group_id
  * @property-read Official|null $head
+ * @property-read OrganizationGroup|null $group
  * @property-read Organization|null $parentOrganization
  */
 #[Fillable([
-    'name',
+    'full_name',
     'short_name',
     'edrpou',
     'katoottg',
@@ -47,6 +49,7 @@ use LogicException;
     'availability_restriction',
     'logo',
     'parent_org_id',
+    'group_id',
 ])]
 class Organization extends Model
 {
@@ -96,6 +99,12 @@ class Organization extends Model
     public function parentOrganization(): BelongsTo
     {
         return $this->belongsTo(Organization::class, 'parent_org_id');
+    }
+
+    /** @return BelongsTo<OrganizationGroup, $this> */
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(OrganizationGroup::class);
     }
 
     /** @return HasMany<Organization, $this> */

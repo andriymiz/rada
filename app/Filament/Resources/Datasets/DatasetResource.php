@@ -71,7 +71,7 @@ class DatasetResource extends Resource
                     ->editOptionForm(static fn (): array => self::groupOptionForm()),
                 Select::make('publisher_id')
                     ->label('Розпорядник')
-                    ->relationship('publisher', 'name')
+                    ->relationship('publisher', 'full_name')
                     ->searchable()
                     ->preload()
                     ->columnSpan(2)

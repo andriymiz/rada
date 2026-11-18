@@ -66,7 +66,7 @@ it('imports and updates a dataset from a register row', function (): void {
     $title = 'Довідник підприємств, установ, організацій, що належать до сфери управління розпорядника інформації, та територіальних органів розпорядника інформації, зокрема їх ідентифікаційних кодів юридичної особи в Єдиному державному реєстрі підприємств і організацій України, офіційних веб-сайтів, адрес електронної пошти, номерів телефонів, адрес місцезнаходження';
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
     $externalId = 'c65f219b-4f4e-4e51-8dc6-7a1df3001252';
     $row = [
@@ -153,7 +153,7 @@ it('records a failed portal response and continues importing the next row', func
         'keywords' => 'реєстр',
         'purpose' => 'Мета',
         'publisher_id' => '04058410',
-        'publisher' => $organization->name,
+        'publisher' => $organization->full_name,
         'contact_point_name' => 'Контактна особа',
         'contact_point_email' => 'contact@example.gov.ua',
     ];
@@ -198,7 +198,7 @@ it('preserves a UUID supplied as the register identifier', function (): void {
     fakeEmptyDatasetResources();
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
     $externalId = 'c65f219b-4f4e-4e51-8dc6-7a1df3001252';
 
@@ -252,7 +252,7 @@ it('matches imported datasets by recommendation when the external identifier is 
             'purpose' => 'Мета',
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher' => $organization->name,
+            'publisher' => $organization->full_name,
             'contact_point_name' => 'Контактна особа',
             'contact_point_email' => 'contact@example.gov.ua',
         ])
@@ -286,7 +286,7 @@ it('fills an empty title on an existing dataset', function (): void {
             'purpose' => 'Мета',
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher' => $organization->name,
+            'publisher' => $organization->full_name,
             'contact_point_name' => 'Контактна особа',
             'contact_point_email' => 'contact@example.gov.ua',
         ])
@@ -321,7 +321,7 @@ it('falls back to dataset title when no recommendation matches the imported titl
             'purpose' => 'Мета',
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher' => $organization->name,
+            'publisher' => $organization->full_name,
             'contact_point_name' => 'Контактна особа',
             'contact_point_email' => 'contact@example.gov.ua',
         ])
@@ -347,7 +347,7 @@ it('rejects a dataset row without an external identifier', function (): void {
             'purpose' => 'Мета',
             'distribution_formats' => 'CSV',
             'publisher_id' => '04058410',
-            'publisher' => $organization->name,
+            'publisher' => $organization->full_name,
             'contact_point_name' => 'Контактна особа',
             'contact_point_email' => 'contact@example.gov.ua',
         ])
@@ -360,7 +360,7 @@ it('imports contact metadata without resolving an official', function (): void {
     fakeEmptyDatasetResources();
     Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
 
     DatasetImporter::test()
@@ -388,7 +388,7 @@ it('imports contact metadata without resolving an official', function (): void {
 it('rejects dataset update frequencies that are not labels', function (string $frequency): void {
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
     DatasetImporter::test()
         ->import([
@@ -417,7 +417,7 @@ it('ignores resource formats during dataset import', function (): void {
     fakeEmptyDatasetResources();
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
-        'name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
+        'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
     ]);
     DatasetImporter::test()
         ->import([

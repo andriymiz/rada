@@ -25,7 +25,7 @@ class OfficialExporter extends Exporter
             ExportColumn::make('unitId')->label('unitId')->state(fn (): string => 'null'),
             ExportColumn::make('unitName')->label('unitName')->state(fn (): string => 'null'),
             ExportColumn::make('organization.edrpou')->label('orgId'),
-            ExportColumn::make('organization.name')->label('orgName'),
+            ExportColumn::make('organization.full_name')->label('orgName'),
             ExportColumn::make('image')->label('img'),
             ExportColumn::make('homepage')->label('homepage'),
             ExportColumn::make('social_accounts')->label('socialAccount'),

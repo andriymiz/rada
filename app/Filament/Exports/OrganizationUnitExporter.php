@@ -24,7 +24,7 @@ class OrganizationUnitExporter extends Exporter
             ExportColumn::make('head.person.full_name')->label('headName'),
             ExportColumn::make('head.position')->label('headPost'),
             ExportColumn::make('organization.edrpou')->label('unitOfId'),
-            ExportColumn::make('organization.name')->label('unitOfName'),
+            ExportColumn::make('organization.full_name')->label('unitOfName'),
             ExportColumn::make('parentUnit.uid')->label('subUnitOfId'),
             ExportColumn::make('parentUnit.full_name')->label('subUnitOfName'),
             ExportColumn::make('CATUTTC')->label('CATUTTC')->state(fn (): string => 'null'),

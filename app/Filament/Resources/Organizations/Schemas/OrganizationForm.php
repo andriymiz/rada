@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Organizations\Schemas;
 
 use App\Models\Organization;
+use App\Models\OrganizationGroup;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -21,7 +22,7 @@ class OrganizationForm
                     ->length(8)
                     ->unique(ignoreRecord: true)
                     ->required(),
-                TextInput::make('name')
+                TextInput::make('full_name')
                     ->label('Повна назва за ЄДР')
                     ->required()
                     ->maxLength(255),
@@ -29,6 +30,12 @@ class OrganizationForm
                     ->label('Коротка назва')
                     ->required()
                     ->maxLength(255),
+                Select::make('group_id')
+                    ->label('Група')
+                    ->relationship('group', 'name')
+                    ->preload()
+                    ->createOptionForm(self::groupOptionForm())
+                    ->editOptionForm(self::groupOptionForm()),
                 TextInput::make('logo')
                     ->label('Логотип')
                     ->url()
@@ -43,7 +50,7 @@ class OrganizationForm
                     ->label('Належність до сфери управління')
                     ->relationship(
                         'parentOrganization',
-                        'name',
+                        'full_name',
                         modifyQueryUsing: fn (Builder $query, ?Organization $record): Builder => $query
                             ->when($record, fn (Builder $query): Builder => $query->whereKeyNot($record->getKey())),
                     )
@@ -92,5 +99,19 @@ class OrganizationForm
                     ->label('КАТОТТГ')
                     ->length(19),
             ]);
+    }
+
+    /**
+     * @return array<int, TextInput>
+     */
+    private static function groupOptionForm(): array
+    {
+        return [
+            TextInput::make('name')
+                ->label('Назва групи')
+                ->required()
+                ->maxLength(255)
+                ->unique(OrganizationGroup::class, 'name', ignoreRecord: true),
+        ];
     }
 }
