@@ -165,6 +165,10 @@ class OrganizationImporter extends Importer
         );
 
         $official->position = $headPost;
-        $organization->setHead($official);
+        $official->is_post = true;
+        $official->save();
+
+        $organization->head()->associate($official);
+        $organization->save();
     }
 }

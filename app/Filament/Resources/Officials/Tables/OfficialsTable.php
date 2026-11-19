@@ -44,8 +44,8 @@ class OfficialsTable
                                 ->select('middle_name')
                                 ->whereColumn('people.id', 'officials.person_id'), $sortDirection);
                     }),
-                IconColumn::make('is_head')
-                    ->label('Керівник')
+                IconColumn::make('is_post')
+                    ->label('Посадовець')
                     ->boolean(),
                 TextColumn::make('position')
                     ->label('Посада')

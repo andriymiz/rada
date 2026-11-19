@@ -12,7 +12,6 @@ use App\Models\Organization;
 use App\Models\OrganizationGroup;
 use App\Models\Person;
 use App\Models\User;
-use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
 
@@ -141,14 +140,14 @@ it('requires primary contacts when importing an organization', function (): void
     expect(Organization::query()->where('edrpou', '12345678')->exists())->toBeFalse();
 });
 
-it('manages officials through the organization relation manager and assigns a single head', function (): void {
+it('selects an organization head from its associated officials', function (): void {
     $organization = Organization::factory()->create();
     $head = Official::factory()
         ->for($organization, 'organization')
-        ->create(['is_head' => true]);
+        ->create(['is_post' => true]);
     $candidate = Official::factory()
         ->for($organization, 'organization')
-        ->create(['is_head' => false]);
+        ->create(['is_post' => false]);
     $unrelatedOfficial = Official::factory()->create();
 
     livewire(OfficialsRelationManager::class, [
@@ -157,13 +156,38 @@ it('manages officials through the organization relation manager and assigns a si
     ])
         ->assertCanSeeTableRecords([$head, $candidate])
         ->assertCanNotSeeTableRecords([$unrelatedOfficial])
-        ->assertTableColumnStateSet('is_head', true, $head)
-        ->callAction(TestAction::make('markAsHead')->table($candidate));
+        ->assertTableColumnStateSet('is_post', true, $head);
 
-    expect($organization->fresh()->head->is($candidate))->toBeTrue()
-        ->and($head->refresh()->is_head)->toBeFalse()
-        ->and($candidate->refresh()->is_head)->toBeTrue()
-        ->and($organization->officials()->where('is_head', true)->count())->toBe(1);
+    livewire(EditOrganization::class, ['record' => $organization->getKey()])
+        ->fillForm([
+            'head_id' => $candidate->getKey(),
+            'description' => 'Опис організації',
+            'email' => 'office@example.com',
+            'phone' => '+380501234567',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($organization->refresh()->head->is($candidate))->toBeTrue()
+        ->and($head->refresh()->is_post)->toBeTrue()
+        ->and($candidate->refresh()->is_post)->toBeFalse();
+});
+
+it('rejects organization heads that belong to a different organization', function (): void {
+    $organization = Organization::factory()->create();
+    $otherOfficial = Official::factory()->create();
+
+    livewire(EditOrganization::class, ['record' => $organization->getKey()])
+        ->fillForm([
+            'head_id' => $otherOfficial->getKey(),
+            'description' => 'Опис організації',
+            'email' => 'office@example.com',
+            'phone' => '+380501234567',
+        ])
+        ->call('save')
+        ->assertHasFormErrors(['head_id']);
+
+    expect($organization->refresh()->head_id)->toBeNull();
 });
 
 it('creates officials from the organization edit page relation manager', function (): void {
@@ -200,6 +224,7 @@ it('saves official contact details without requiring an address', function (): v
         ->callTableAction('edit', $official, [
             'email' => 'official@example.com',
             'phone' => '+380501234567',
+            'is_post' => true,
             'additional_contacts' => [['name' => 'Помічник', 'value' => 'assistant@example.com']],
             'social_accounts' => [['url' => 'https://facebook.com/official']],
             'opening_hours' => 'Пн 09:00-12:00',
@@ -210,6 +235,7 @@ it('saves official contact details without requiring an address', function (): v
     $official->refresh();
     expect($official->email)->toBe('official@example.com')
         ->and($official->phone)->toBe('+380501234567')
+        ->and($official->is_post)->toBeTrue()
         ->and($official->additional_contacts)->toBe(['assistant@example.com'])
         ->and($official->social_accounts)->toBe(['https://facebook.com/official'])
         ->and($official->opening_hours)->toBe('Пн 09:00-12:00')
@@ -245,9 +271,10 @@ it('requires email and telephone in the official form', function (): void {
     expect($official->refresh()->email)->toBeNull();
 });
 
-it('stores the head flag on officials instead of an organization foreign key', function (): void {
-    expect(Schema::hasColumn('officials', 'is_head'))->toBeTrue()
-        ->and(Schema::hasColumn('organizations', 'head_id'))->toBeFalse();
+it('stores organization heads separately from official post flags', function (): void {
+    expect(Schema::hasColumn('officials', 'is_post'))->toBeTrue()
+        ->and(Schema::hasColumn('officials', 'is_head'))->toBeFalse()
+        ->and(Schema::hasColumn('organizations', 'head_id'))->toBeTrue();
 });
 
 it('stores singular and additional contacts for every contactable entity', function (): void {
@@ -322,7 +349,7 @@ it('imports organizations and resolves their official head and parent', function
         ->and($organization->availability_restriction)->toBe('За записом')
         ->and($organization->parentOrganization->is($parent))->toBeTrue()
         ->and($organization->head->position)->toBe('Директор')
-        ->and($organization->head->is_head)->toBeTrue()
+        ->and($organization->head->is_post)->toBeTrue()
         ->and($organization->head->person->full_name)->toBe('Коваль Олена Вікторівна');
 });
 
@@ -356,8 +383,9 @@ it('exports organization rows using the structure csv columns', function (): voi
         ->for($organization, 'organization')
         ->create([
             'position' => 'Директор',
-            'is_head' => true,
+            'is_post' => true,
         ]);
+    $organization->head()->associate($head);
     $organization->parentOrganization()->associate($parent);
     $organization->save();
     $organization->load(['head.person', 'parentOrganization']);

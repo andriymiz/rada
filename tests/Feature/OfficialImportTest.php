@@ -52,7 +52,8 @@ it('imports an official from the posts csv row', function (): void {
         ->and($official->organization->is($organization))->toBeTrue()
         ->and($official->position)->toBe('Міський голова')
         ->and($official->image)->toBe('https://example.com/photo.jpg')
-        ->and($official->homepage)->toBe('https://example.com/official');
+        ->and($official->homepage)->toBe('https://example.com/official')
+        ->and($official->is_post)->toBeTrue();
 
     expect($official->email)->toBe('rada@example.com')
         ->and($official->phone)->toBe('+380354021743')
@@ -262,6 +263,7 @@ it('updates the matching official in the requested organization', function (): v
 
     expect(Official::query()->count())->toBe(2)
         ->and($official->refresh()->position)->toBe('Нова посада')
+        ->and($official->is_post)->toBeTrue()
         ->and($official->email)->toBe('new@example.com')
         ->and($official->phone)->toBe('+380674445566')
         ->and($official->social_accounts)->toBe(['https://example.com/new'])

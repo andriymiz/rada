@@ -10,6 +10,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -36,6 +37,8 @@ class OfficialForm
                     ->label('Посада')
                     ->required()
                     ->maxLength(255),
+                Toggle::make('is_post')
+                    ->label('Посадовець'),
                 TextInput::make('image')
                     ->label('Посилання на фото')
                     ->url()

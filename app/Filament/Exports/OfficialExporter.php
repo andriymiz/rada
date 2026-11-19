@@ -42,7 +42,9 @@ class OfficialExporter extends Exporter
      */
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['person', 'organization']);
+        return $query
+            ->where('is_post', true)
+            ->with(['person', 'organization']);
     }
 
     public static function getCompletedNotificationBody(Export $export): string

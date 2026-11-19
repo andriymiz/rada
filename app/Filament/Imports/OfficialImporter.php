@@ -141,6 +141,7 @@ class OfficialImporter extends Importer
         $official->person()->associate($person);
         $official->organization()->associate($this->resolveOrganization());
         $official->position = $this->data['positionName'] ?? '';
+        $official->is_post = true;
     }
 
     public static function getCompletedNotificationBody(Import $import): string

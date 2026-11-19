@@ -23,7 +23,7 @@ class OfficialFactory extends Factory
             'person_id' => Person::factory(),
             'organization_id' => Organization::factory(),
             'position' => fake('uk_UA')->jobTitle(),
-            'is_head' => false,
+            'is_post' => false,
             'image' => fake()->optional()->imageUrl(),
             'homepage' => fake()->optional()->url(),
         ];

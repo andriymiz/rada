@@ -9,9 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\DB;
-use LogicException;
 
 /**
  * @property string $full_name
@@ -27,6 +24,7 @@ use LogicException;
  * @property array<int, array{name: string, value: string}>|null $additional_contacts
  * @property string|null $logo
  * @property int|null $parent_org_id
+ * @property int|null $head_id
  * @property int|null $group_id
  * @property-read Official|null $head
  * @property-read OrganizationGroup|null $group
@@ -49,6 +47,7 @@ use LogicException;
     'availability_restriction',
     'logo',
     'parent_org_id',
+    'head_id',
     'group_id',
 ])]
 class Organization extends Model
@@ -89,10 +88,10 @@ class Organization extends Model
         return $this->hasMany(OrganizationUnit::class);
     }
 
-    /** @return HasOne<Official, $this> */
-    public function head(): HasOne
+    /** @return BelongsTo<Official, $this> */
+    public function head(): BelongsTo
     {
-        return $this->hasOne(Official::class)->where('is_head', true);
+        return $this->belongsTo(Official::class, 'head_id');
     }
 
     /** @return BelongsTo<Organization, $this> */
@@ -111,28 +110,6 @@ class Organization extends Model
     public function childOrganizations(): HasMany
     {
         return $this->hasMany(Organization::class, 'parent_org_id');
-    }
-
-    public function setHead(Official $official): void
-    {
-        if (! $this->exists || ! $official->exists || ! $this->officials()->whereKey($official->getKey())->exists()) {
-            throw new LogicException('Керівником можна призначити лише посадовця цієї організації.');
-        }
-
-        DB::transaction(function () use ($official): void {
-            $this->newQuery()
-                ->whereKey($this->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $this->officials()
-                ->where('is_head', true)
-                ->whereKeyNot($official->getKey())
-                ->update(['is_head' => false]);
-
-            $official->is_head = true;
-            $official->save();
-        });
     }
 
     /** @return HasMany<Convocation, $this> */

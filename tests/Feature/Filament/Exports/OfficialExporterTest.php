@@ -40,6 +40,7 @@ it('exports officials using the posts csv schema', function (): void {
         ->for($organization, 'organization')
         ->create([
             'position' => 'Міський голова',
+            'is_post' => true,
             'image' => 'https://example.com/photo.jpg',
             'homepage' => 'https://example.com/official',
             'email' => 'public@example.gov.ua',
@@ -105,6 +106,7 @@ it('exports null optional values and unknown gender when the official has no add
         ->for($organization, 'organization')
         ->create([
             'position' => 'Секретар',
+            'is_post' => true,
             'image' => null,
             'homepage' => null,
         ]);
@@ -143,8 +145,13 @@ it('exports officials from all organizations through the organizations page', fu
     $second = Organization::factory()->create(['full_name' => 'Друга організація', 'edrpou' => '87654321']);
     $firstPerson = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
     $secondPerson = Person::factory()->create(['last_name' => 'Мельник', 'first_name' => 'Іван', 'middle_name' => null]);
-    Official::factory()->for($firstPerson)->for($first, 'organization')->create(['position' => 'Директор']);
-    Official::factory()->for($secondPerson)->for($second, 'organization')->create(['position' => 'Секретар']);
+    Official::factory()->for($firstPerson)->for($first, 'organization')->create(['position' => 'Директор', 'is_post' => true]);
+    Official::factory()->for($secondPerson)->for($second, 'organization')->create(['position' => 'Секретар', 'is_post' => true]);
+    $unlistedPerson = Person::factory()->create(['last_name' => 'Ткач', 'first_name' => 'Марія', 'middle_name' => null]);
+    Official::factory()->for($unlistedPerson)->for($first, 'organization')->create([
+        'position' => 'Не експортувати',
+        'is_post' => false,
+    ]);
 
     livewire(ListOrganizations::class)
         ->searchTable('Перша організація')

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
- * @property bool $is_head
+ * @property bool $is_post
  * @property array<int, string>|null $social_accounts
  * @property string|null $email
  * @property string|null $phone
@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
     'person_id',
     'organization_id',
     'position',
-    'is_head',
+    'is_post',
     'image',
     'homepage',
     'social_accounts',
@@ -40,7 +40,7 @@ class Official extends Model
     protected function casts(): array
     {
         return [
-            'is_head' => 'boolean',
+            'is_post' => 'boolean',
             'social_accounts' => 'array',
             'additional_contacts' => 'array',
         ];
