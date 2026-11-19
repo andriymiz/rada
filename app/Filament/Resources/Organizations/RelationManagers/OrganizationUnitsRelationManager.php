@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Organizations\RelationManagers;
 
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\OrganizationUnit;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -43,12 +43,12 @@ class OrganizationUnitsRelationManager extends RelationManager
                     ->relationship('head', 'position', modifyQueryUsing: fn (Builder $query): Builder => $query
                         ->where('organization_id', $this->getOwnerRecord()->getKey())
                         ->with('person'))
-                    ->getOptionLabelFromRecordUsing(fn (Official $record): string => $record->person->full_name.' — '.$record->position)
+                    ->getOptionLabelFromRecordUsing(fn (Employee $record): string => $record->person->full_name.' — '.$record->position)
                     ->searchable()
                     ->getSearchResultsUsing(function (string $search): array {
                         $parts = preg_split('/\s+/u', trim($search), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-                        return Official::query()
+                        return Employee::query()
                             ->where('organization_id', $this->getOwnerRecord()->getKey())
                             ->where(fn (Builder $query): Builder => $query
                                 ->where('position', 'like', "%{$search}%")
@@ -61,11 +61,11 @@ class OrganizationUnitsRelationManager extends RelationManager
                                     }
                                 }))
                             ->with('person')->limit(50)->get()
-                            ->mapWithKeys(fn (Official $official): array => [$official->getKey() => $official->person->full_name.' — '.$official->position])
+                            ->mapWithKeys(fn (Employee $employee): array => [$employee->getKey() => $employee->person->full_name.' — '.$employee->position])
                             ->all();
                     })
                     ->required()
-                    ->rule(Rule::exists('officials', 'id')->where('organization_id', $this->getOwnerRecord()->getKey())),
+                    ->rule(Rule::exists('employees', 'id')->where('organization_id', $this->getOwnerRecord()->getKey())),
                 Select::make('parent_unit_id')
                     ->label('Підпорядкування')
                     ->relationship('parentUnit', 'full_name', modifyQueryUsing: fn (Builder $query): Builder => $query

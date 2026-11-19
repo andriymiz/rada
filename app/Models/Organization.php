@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property int|null $parent_org_id
  * @property int|null $head_id
  * @property int|null $group_id
- * @property-read Official|null $head
+ * @property-read Employee|null $head
  * @property-read OrganizationGroup|null $group
  * @property-read Organization|null $parentOrganization
  */
@@ -76,10 +76,10 @@ class Organization extends Model
         );
     }
 
-    /** @return HasMany<Official, $this> */
-    public function officials(): HasMany
+    /** @return HasMany<Employee, $this> */
+    public function employees(): HasMany
     {
-        return $this->hasMany(Official::class);
+        return $this->hasMany(Employee::class);
     }
 
     /** @return HasMany<OrganizationUnit, $this> */
@@ -88,10 +88,10 @@ class Organization extends Model
         return $this->hasMany(OrganizationUnit::class);
     }
 
-    /** @return BelongsTo<Official, $this> */
+    /** @return BelongsTo<Employee, $this> */
     public function head(): BelongsTo
     {
-        return $this->belongsTo(Official::class, 'head_id');
+        return $this->belongsTo(Employee::class, 'head_id');
     }
 
     /** @return BelongsTo<Organization, $this> */

@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\OrganizationUnit;
 use App\Models\Person;
@@ -22,7 +22,7 @@ class OrganizationUnitSeeder extends Seeder
             'first_name' => 'Керівник',
             'middle_name' => null,
         ]);
-        $head = Official::query()->firstOrCreate([
+        $head = Employee::query()->firstOrCreate([
             'organization_id' => $organization->getKey(),
             'person_id' => $person->getKey(),
         ], ['position' => 'Начальник відділу']);

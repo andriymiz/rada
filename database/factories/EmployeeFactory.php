@@ -2,15 +2,15 @@
 
 namespace Database\Factories;
 
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Official>
+ * @extends Factory<Employee>
  */
-class OfficialFactory extends Factory
+class EmployeeFactory extends Factory
 {
     /**
      * Define the model's default state.

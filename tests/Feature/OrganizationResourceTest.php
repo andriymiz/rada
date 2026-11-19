@@ -7,7 +7,7 @@ use App\Filament\Resources\Organizations\Pages\CreateOrganization;
 use App\Filament\Resources\Organizations\Pages\EditOrganization;
 use App\Filament\Resources\Organizations\Pages\ListOrganizations;
 use App\Filament\Resources\Organizations\RelationManagers\OfficialsRelationManager;
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\OrganizationGroup;
 use App\Models\Person;
@@ -142,13 +142,13 @@ it('requires primary contacts when importing an organization', function (): void
 
 it('selects an organization head from its associated officials', function (): void {
     $organization = Organization::factory()->create();
-    $head = Official::factory()
+    $head = Employee::factory()
         ->for($organization, 'organization')
         ->create(['is_post' => true]);
-    $candidate = Official::factory()
+    $candidate = Employee::factory()
         ->for($organization, 'organization')
         ->create(['is_post' => false]);
-    $unrelatedOfficial = Official::factory()->create();
+    $unrelatedOfficial = Employee::factory()->create();
 
     livewire(OfficialsRelationManager::class, [
         'ownerRecord' => $organization,
@@ -175,7 +175,7 @@ it('selects an organization head from its associated officials', function (): vo
 
 it('rejects organization heads that belong to a different organization', function (): void {
     $organization = Organization::factory()->create();
-    $otherOfficial = Official::factory()->create();
+    $otherOfficial = Employee::factory()->create();
 
     livewire(EditOrganization::class, ['record' => $organization->getKey()])
         ->fillForm([
@@ -205,7 +205,7 @@ it('creates officials from the organization edit page relation manager', functio
             'phone' => '+380501234567',
         ]);
 
-    $official = Official::query()->where('person_id', $person->getKey())->firstOrFail();
+    $official = Employee::query()->where('person_id', $person->getKey())->firstOrFail();
 
     expect($official->organization->is($organization))->toBeTrue();
 
@@ -215,7 +215,7 @@ it('creates officials from the organization edit page relation manager', functio
 });
 
 it('saves official contact details without requiring an address', function (): void {
-    $official = Official::factory()->create();
+    $official = Employee::factory()->create();
 
     livewire(OfficialsRelationManager::class, [
         'ownerRecord' => $official->organization,
@@ -244,7 +244,7 @@ it('saves official contact details without requiring an address', function (): v
 });
 
 it('validates each contact in the official form', function (): void {
-    $official = Official::factory()->create();
+    $official = Employee::factory()->create();
 
     livewire(OfficialsRelationManager::class, [
         'ownerRecord' => $official->organization,
@@ -258,7 +258,7 @@ it('validates each contact in the official form', function (): void {
 });
 
 it('requires email and telephone in the official form', function (): void {
-    $official = Official::factory()->create();
+    $official = Employee::factory()->create();
 
     livewire(OfficialsRelationManager::class, [
         'ownerRecord' => $official->organization,
@@ -272,13 +272,15 @@ it('requires email and telephone in the official form', function (): void {
 });
 
 it('stores organization heads separately from official post flags', function (): void {
-    expect(Schema::hasColumn('officials', 'is_post'))->toBeTrue()
-        ->and(Schema::hasColumn('officials', 'is_head'))->toBeFalse()
+    expect(Schema::hasTable('employees'))->toBeTrue()
+        ->and(Schema::hasTable('officials'))->toBeFalse()
+        ->and(Schema::hasColumn('employees', 'is_post'))->toBeTrue()
+        ->and(Schema::hasColumn('employees', 'is_head'))->toBeFalse()
         ->and(Schema::hasColumn('organizations', 'head_id'))->toBeTrue();
 });
 
 it('stores singular and additional contacts for every contactable entity', function (): void {
-    foreach (['organizations', 'organization_units', 'officials', 'deputies'] as $table) {
+    foreach (['organizations', 'organization_units', 'employees', 'deputies'] as $table) {
         expect(Schema::hasColumns($table, ['email', 'phone', 'additional_contacts']))->toBeTrue()
             ->and(Schema::hasColumn($table, 'emails'))->toBeFalse()
             ->and(Schema::hasColumn($table, 'phones'))->toBeFalse();
@@ -378,7 +380,7 @@ it('exports organization rows using the structure csv columns', function (): voi
         'first_name' => 'Олена',
         'middle_name' => 'Вікторівна',
     ]);
-    $head = Official::factory()
+    $head = Employee::factory()
         ->for($person)
         ->for($organization, 'organization')
         ->create([

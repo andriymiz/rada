@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\OrganizationUnit;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -23,7 +23,7 @@ class OrganizationUnitFactory extends Factory
             'uid' => fake()->unique()->uuid(),
             'organization_id' => Organization::factory(),
             'head_id' => function (array $attributes): int {
-                return Official::factory()->create(['organization_id' => $attributes['organization_id']])->getKey();
+                return Employee::factory()->create(['organization_id' => $attributes['organization_id']])->getKey();
             },
             'full_name' => fake()->words(3, true),
             'short_name' => fake()->words(1, true),

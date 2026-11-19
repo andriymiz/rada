@@ -10,7 +10,7 @@ use App\Filament\Imports\OfficialImporter;
 use App\Filament\Imports\OrganizationImporter;
 use App\Filament\Imports\OrganizationUnitImporter;
 use App\Filament\Resources\Organizations\OrganizationResource;
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\OrganizationUnit;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
@@ -71,7 +71,7 @@ class ListOrganizations extends ListRecords
                         ->exporter(OfficialExporter::class)
                         ->fileName('posts')
                         ->formats([ExportFormat::Csv])
-                        ->modifyQueryUsing(fn (): Builder => OfficialExporter::modifyQuery(Official::query())),
+                        ->modifyQueryUsing(fn (): Builder => OfficialExporter::modifyQuery(Employee::query())),
                 ])->dropdown(false),
             ])
                 ->label('Функції')

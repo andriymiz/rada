@@ -16,7 +16,7 @@ flowchart LR
     Meeting[Plenary meeting]
     Person[Person]
     Deputy[Deputy term]
-    Official[Council official]
+    Employee[Employee]
     Party[Political party]
     Commission[Permanent commission]
     Faction[Faction]
@@ -30,7 +30,7 @@ flowchart LR
     Convocation -->|groups| Session
     Session -->|includes| Meeting
     Person -->|may have a term-specific role| Deputy
-    Person -->|may have| Official
+    Person -->|may have| Employee
     Convocation -. scopes .-> Deputy
     Party -. optional nomination .-> Deputy
     Commission -. optional assignment .-> Deputy
@@ -42,9 +42,9 @@ flowchart LR
     VoteEvent -->|records| Vote
     Deputy -. may be identified for .-> Vote
     Deputy -. may own .-> Reception
-    Official -. may own .-> Reception
+    Employee -. may own .-> Reception
     Deputy -. may own .-> ContactPoint
-    Official -. may own .-> ContactPoint
+    Employee -. may own .-> ContactPoint
 ```
 
 A convocation belongs to one council organization. A council session is a named session within a convocation, not a dated meeting; each plenary meeting has its own date and belongs to one council session. Its organization is determined through that session's convocation. Each `deputies` row represents one person's deputy role in one convocation, so the same person can have several deputy records over successive convocations. Deputy term data is stored directly on that record; the council organization is derived through the convocation.
@@ -258,7 +258,7 @@ erDiagram
 - `deputies` hold one person's role for one convocation, including party, faction, commission, voting identifier, status, term dates, positions, electoral area, homepage, image, and deputy-specific biography. The council organization is derived from `convocation_id`, not copied. Database uniqueness prevents duplicate `(person_id, convocation_id)` records. Voting identifiers are not globally unique.
 - `deputies.convocation_id` is nullable, so a deputy record may exist without an associated convocation. When present, it scopes the deputy term and determines the council organization.
 - `people` stores a person's general identity fields; a person can have multiple `deputies` records, at most one for each convocation. A person's full name is derived from the three name columns and is not stored as a separate `name` column. Deputy-specific `biography`, image, and homepage remain on each term-specific deputy record.
-- `officials` link a person to a council organization and store the official's position, image, and homepage.
+- `employees` link a person to a council organization and store the employee's position, image, and homepage.
 - `receptions` stores locations through a polymorphic `receptionable` owner. The database does not add a conventional foreign key for this relation; the application owns the relationship integrity.
 - A plenary meeting belongs to exactly one council session and inherits its organization through the session's convocation. A motion belongs to exactly one meeting; `(plenary_meeting_id, number)` and `uid` are unique.
 - A motion may have no recorded vote or multiple `vote_events`. Each vote event belongs to one motion. A vote event can contain votes with or without a matched deputy: `votes.deputy_id` and `voter_identifier` are nullable, while `voter_name` and `option` preserve the imported voter details. `(vote_event_id, deputy_id)` is unique.

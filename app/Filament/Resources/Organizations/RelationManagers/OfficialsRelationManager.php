@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Organizations\RelationManagers;
 
 use App\Filament\Resources\Officials\Schemas\OfficialForm;
 use App\Filament\Resources\Officials\Tables\OfficialsTable;
-use App\Models\Official;
+use App\Models\Employee;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -14,9 +14,9 @@ use Filament\Tables\Table;
 
 class OfficialsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'officials';
+    protected static string $relationship = 'employees';
 
-    protected static ?string $title = 'Посадовці';
+    protected static ?string $title = 'Працівники';
 
     protected static ?string $recordTitleAttribute = 'position';
 
@@ -34,8 +34,8 @@ class OfficialsRelationManager extends RelationManager
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make()
-                    ->disabled(fn (Official $record): bool => $record->headed_units_count > 0)
-                    ->tooltip(fn (Official $record): ?string => $record->headed_units_count > 0 ? 'Спершу змініть керівника підрозділу.' : null),
+                    ->disabled(fn (Employee $record): bool => $record->headed_units_count > 0)
+                    ->tooltip(fn (Employee $record): ?string => $record->headed_units_count > 0 ? 'Спершу змініть керівника підрозділу.' : null),
             ]);
     }
 }

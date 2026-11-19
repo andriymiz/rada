@@ -100,7 +100,6 @@ class DatasetImporter extends Importer
                 ->guesses(['contactPointName'])
                 ->requiredMapping()
                 ->rules(['required', 'string', 'max:255'])
-                ->helperText('Зберігається в метаданих набору без зв’язку з посадовцем у системі.')
                 ->fillRecordUsing(fn (): null => null),
 
             ImportColumn::make('contact_point_email')

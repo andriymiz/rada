@@ -2,7 +2,7 @@
 
 use App\Enums\Gender;
 use App\Filament\Imports\OfficialImporter;
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -43,7 +43,7 @@ it('imports an official from the posts csv row', function (): void {
         ->where('first_name', 'Руслан')
         ->where('middle_name', 'Сергійович')
         ->firstOrFail();
-    $official = Official::query()->whereBelongsTo($person)->firstOrFail();
+    $official = Employee::query()->whereBelongsTo($person)->firstOrFail();
 
     expect($person->last_name)->toBe('Максимів')
         ->and($person->first_name)->toBe('Руслан')
@@ -79,7 +79,7 @@ it('treats string null values as absent without changing other strings', functio
         ])
         ->assertImported();
 
-    $official = Official::query()->sole();
+    $official = Employee::query()->sole();
 
     expect($official->image)->toBeNull()
         ->and($official->homepage)->toBe('https://example.com/null')
@@ -107,7 +107,7 @@ it('treats a null homepage as absent', function (): void {
         ])
         ->assertImported();
 
-    expect(Official::query()->sole()->homepage)->toBeNull();
+    expect(Employee::query()->sole()->homepage)->toBeNull();
 });
 
 it('requires a primary email and telephone when importing an official', function (): void {
@@ -125,7 +125,7 @@ it('requires a primary email and telephone when importing an official', function
         ])
         ->assertHasErrors(['email' => 'required', 'phone' => 'required']);
 
-    expect(Official::query()->exists())->toBeFalse();
+    expect(Employee::query()->exists())->toBeFalse();
 });
 
 it('rejects comma-separated contacts in singular fields', function (): void {
@@ -142,7 +142,7 @@ it('rejects comma-separated contacts in singular fields', function (): void {
             'phone' => '+380501234567, ',
         ])
         ->assertHasErrors(['email', 'phone']);
-    expect(Official::query()->exists())->toBeFalse();
+    expect(Employee::query()->exists())->toBeFalse();
 });
 
 it('rejects multiple email addresses and telephone numbers in singular fields', function (): void {
@@ -160,7 +160,7 @@ it('rejects multiple email addresses and telephone numbers in singular fields', 
         ])
         ->assertHasErrors(['email', 'phone']);
 
-    expect(Official::query()->exists())->toBeFalse();
+    expect(Employee::query()->exists())->toBeFalse();
 });
 
 it('imports multiple social accounts from an officials csv row', function (): void {
@@ -179,7 +179,7 @@ it('imports multiple social accounts from an officials csv row', function (): vo
         ])
         ->assertImported();
 
-    expect(Official::query()->sole()->social_accounts)->toBe([
+    expect(Employee::query()->sole()->social_accounts)->toBe([
         'https://facebook.com/koval',
         'https://instagram.com/koval',
     ]);
@@ -199,7 +199,7 @@ it('rejects a null string in the singular email field', function (): void {
         ])
         ->assertHasErrors(['email' => 'email']);
 
-    expect(Official::query()->count())->toBe(0);
+    expect(Employee::query()->count())->toBe(0);
 });
 
 it('imports names with missing or additional parts', function (string $name, string $lastName, ?string $firstName, ?string $middleName): void {
@@ -217,7 +217,7 @@ it('imports names with missing or additional parts', function (string $name, str
         ])
         ->assertImported();
 
-    $person = Official::query()->sole()->person;
+    $person = Employee::query()->sole()->person;
 
     expect($person->last_name)->toBe($lastName)
         ->and($person->first_name)->toBe($firstName)
@@ -236,8 +236,8 @@ it('updates the matching official in the requested organization', function (): v
     $otherPerson = Person::factory()->create($name);
     Person::factory()->create();
     $person = Person::factory()->create($name);
-    $otherOfficial = Official::factory()->for($otherPerson)->for($otherOrganization, 'organization')->create(['position' => 'Інша посада']);
-    $official = Official::factory()->for($person)->for($organization, 'organization')->create([
+    $otherOfficial = Employee::factory()->for($otherPerson)->for($otherOrganization, 'organization')->create(['position' => 'Інша посада']);
+    $official = Employee::factory()->for($person)->for($organization, 'organization')->create([
         'position' => 'Попередня посада',
         'email' => 'old@example.com',
         'phone' => '+380501112233',
@@ -261,7 +261,7 @@ it('updates the matching official in the requested organization', function (): v
         ])
         ->assertImported();
 
-    expect(Official::query()->count())->toBe(2)
+    expect(Employee::query()->count())->toBe(2)
         ->and($official->refresh()->position)->toBe('Нова посада')
         ->and($official->is_post)->toBeTrue()
         ->and($official->email)->toBe('new@example.com')

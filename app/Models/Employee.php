@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Database\Factories\OfficialFactory;
+use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,10 +32,12 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
     'opening_hours',
     'availability_restriction',
 ])]
-class Official extends Model
+class Employee extends Model
 {
-    /** @use HasFactory<OfficialFactory> */
+    /** @use HasFactory<EmployeeFactory> */
     use HasFactory;
+
+    protected $table = 'employees';
 
     protected function casts(): array
     {

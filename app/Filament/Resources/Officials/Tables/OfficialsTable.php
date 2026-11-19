@@ -36,16 +36,16 @@ class OfficialsTable
                         return $query
                             ->orderBy(Person::query()
                                 ->select('last_name')
-                                ->whereColumn('people.id', 'officials.person_id'), $sortDirection)
+                                ->whereColumn('people.id', 'employees.person_id'), $sortDirection)
                             ->orderBy(Person::query()
                                 ->select('first_name')
-                                ->whereColumn('people.id', 'officials.person_id'), $sortDirection)
+                                ->whereColumn('people.id', 'employees.person_id'), $sortDirection)
                             ->orderBy(Person::query()
                                 ->select('middle_name')
-                                ->whereColumn('people.id', 'officials.person_id'), $sortDirection);
+                                ->whereColumn('people.id', 'employees.person_id'), $sortDirection);
                     }),
                 IconColumn::make('is_post')
-                    ->label('Посадовець')
+                    ->label('Працівник')
                     ->boolean(),
                 TextColumn::make('position')
                     ->label('Посада')

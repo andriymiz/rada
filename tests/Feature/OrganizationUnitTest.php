@@ -5,7 +5,7 @@ use App\Filament\Imports\OrganizationUnitImporter;
 use App\Filament\Resources\Organizations\Pages\EditOrganization;
 use App\Filament\Resources\Organizations\Pages\ListOrganizations;
 use App\Filament\Resources\Organizations\RelationManagers\OrganizationUnitsRelationManager;
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\OrganizationUnit;
 use App\Models\Person;
@@ -70,7 +70,7 @@ function organizationUnitImportRow(array $overrides = []): array
 
 it('manages organization units within their organization', function (): void {
     $organization = Organization::factory()->create();
-    $head = Official::factory()->for($organization, 'organization')->create();
+    $head = Employee::factory()->for($organization, 'organization')->create();
     $parent = OrganizationUnit::factory()->for($organization, 'organization')->create();
     $other = OrganizationUnit::factory()->create();
 
@@ -121,7 +121,7 @@ it('manages organization units within their organization', function (): void {
 it('validates contacts and organizations while importing existing identifiers and parent links', function (): void {
     $organization = Organization::factory()->create(['edrpou' => '12345678']);
     $person = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
-    $head = Official::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
+    $head = Employee::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
     $unit = OrganizationUnit::factory()->for($organization, 'organization')->create(['uid' => '1.2', 'head_id' => $head->id]);
     $child = OrganizationUnit::factory()->for($organization, 'organization')->create(['uid' => '1.3', 'parent_unit_id' => $unit->id]);
     $other = OrganizationUnit::factory()->create(['uid' => 'other']);
@@ -172,7 +172,7 @@ it('imports an organization by a mapped code without its name and resolves the p
 it('imports and updates a unit using existing organization, head and parent', function (): void {
     $organization = Organization::factory()->create(['edrpou' => '12345678']);
     $person = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
-    $head = Official::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
+    $head = Employee::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
     $parent = OrganizationUnit::factory()->for($organization, 'organization')->create(['uid' => '1', 'full_name' => 'Управління']);
 
     OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())
@@ -210,7 +210,7 @@ it('imports and updates a unit using existing organization, head and parent', fu
 it('rejects a missing parent and creates a missing head for a valid unit', function (): void {
     $organization = Organization::factory()->create(['edrpou' => '12345678']);
     $person = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
-    Official::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
+    Employee::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
 
     OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())
         ->import(organizationUnitImportRow(['subUnitOfId' => 'missing']))
@@ -239,8 +239,8 @@ it('matches a head by name within the organization and updates the position on r
     $name = ['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null];
     $otherPerson = Person::factory()->create($name);
     $person = Person::factory()->create($name);
-    $otherOfficial = Official::factory()->for($otherOrganization, 'organization')->for($otherPerson)->create(['position' => 'Інша посада']);
-    $head = Official::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Стара посада']);
+    $otherOfficial = Employee::factory()->for($otherOrganization, 'organization')->for($otherPerson)->create(['position' => 'Інша посада']);
+    $head = Employee::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Стара посада']);
 
     OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())
         ->import(organizationUnitImportRow())
@@ -253,7 +253,7 @@ it('matches a head by name within the organization and updates the position on r
     expect($unit->head->is($head))->toBeTrue()
         ->and($head->refresh()->position)->toBe('Директор')
         ->and($otherOfficial->refresh()->position)->toBe('Інша посада')
-        ->and($organization->officials()->count())->toBe(1)
+        ->and($organization->employees()->count())->toBe(1)
         ->and(Person::query()->where($name)->count())->toBe(2);
 });
 
@@ -276,7 +276,7 @@ it('exports units from all organizations with the specified CSV columns and impo
     Storage::fake('local');
     $organization = Organization::factory()->create(['edrpou' => '12345678', 'full_name' => 'Міська рада']);
     $person = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
-    $head = Official::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
+    $head = Employee::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
     OrganizationUnit::factory()->for($organization, 'organization')->create([
         'uid' => '1.2', 'head_id' => $head->id, 'full_name' => 'Архівний відділ',
         'email' => 'first@example.com',

@@ -4,7 +4,7 @@ use App\Enums\Gender;
 use App\Filament\Exports\OfficialExporter;
 use App\Filament\Imports\OrganizationImporter;
 use App\Filament\Resources\Organizations\Pages\ListOrganizations;
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -35,7 +35,7 @@ it('exports officials using the posts csv schema', function (): void {
         'middle_name' => 'Вікторівна',
         'gender' => Gender::Female,
     ]);
-    $official = Official::factory()
+    $official = Employee::factory()
         ->for($person)
         ->for($organization, 'organization')
         ->create([
@@ -101,7 +101,7 @@ it('exports null optional values and unknown gender when the official has no add
         'middle_name' => null,
         'gender' => Gender::Unknown,
     ]);
-    $official = Official::factory()
+    $official = Employee::factory()
         ->for($person)
         ->for($organization, 'organization')
         ->create([
@@ -145,10 +145,10 @@ it('exports officials from all organizations through the organizations page', fu
     $second = Organization::factory()->create(['full_name' => 'Друга організація', 'edrpou' => '87654321']);
     $firstPerson = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
     $secondPerson = Person::factory()->create(['last_name' => 'Мельник', 'first_name' => 'Іван', 'middle_name' => null]);
-    Official::factory()->for($firstPerson)->for($first, 'organization')->create(['position' => 'Директор', 'is_post' => true]);
-    Official::factory()->for($secondPerson)->for($second, 'organization')->create(['position' => 'Секретар', 'is_post' => true]);
+    Employee::factory()->for($firstPerson)->for($first, 'organization')->create(['position' => 'Директор', 'is_post' => true]);
+    Employee::factory()->for($secondPerson)->for($second, 'organization')->create(['position' => 'Секретар', 'is_post' => true]);
     $unlistedPerson = Person::factory()->create(['last_name' => 'Ткач', 'first_name' => 'Марія', 'middle_name' => null]);
-    Official::factory()->for($unlistedPerson)->for($first, 'organization')->create([
+    Employee::factory()->for($unlistedPerson)->for($first, 'organization')->create([
         'position' => 'Не експортувати',
         'is_post' => false,
     ]);

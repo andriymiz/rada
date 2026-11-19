@@ -2,7 +2,7 @@
 
 namespace App\Filament\Exports;
 
-use App\Models\Official;
+use App\Models\Employee;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class OfficialExporter extends Exporter
 {
-    protected static ?string $model = Official::class;
+    protected static ?string $model = Employee::class;
 
     /**
      * @return array<ExportColumn>
@@ -37,8 +37,8 @@ class OfficialExporter extends Exporter
     }
 
     /**
-     * @param  Builder<Official>  $query
-     * @return Builder<Official>
+     * @param  Builder<Employee>  $query
+     * @return Builder<Employee>
      */
     public static function modifyQuery(Builder $query): Builder
     {

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Imports;
 
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
 use Filament\Actions\Imports\ImportColumn;
@@ -158,17 +158,17 @@ class OrganizationImporter extends Importer
             'middle_name' => $middleName,
         ]);
 
-        /** @var Official $official */
-        $official = $organization->officials()->firstOrCreate(
+        /** @var Employee $employee */
+        $employee = $organization->employees()->firstOrCreate(
             ['person_id' => $person->getKey()],
             ['position' => $headPost]
         );
 
-        $official->position = $headPost;
-        $official->is_post = true;
-        $official->save();
+        $employee->position = $headPost;
+        $employee->is_post = true;
+        $employee->save();
 
-        $organization->head()->associate($official);
+        $organization->head()->associate($employee);
         $organization->save();
     }
 }

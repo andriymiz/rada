@@ -30,10 +30,10 @@ class OrganizationUnit extends Model
         return $this->belongsTo(Organization::class);
     }
 
-    /** @return BelongsTo<Official, $this> */
+    /** @return BelongsTo<Employee, $this> */
     public function head(): BelongsTo
     {
-        return $this->belongsTo(Official::class, 'head_id');
+        return $this->belongsTo(Employee::class, 'head_id');
     }
 
     /** @return BelongsTo<OrganizationUnit, $this> */

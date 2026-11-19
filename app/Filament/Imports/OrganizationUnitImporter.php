@@ -84,7 +84,7 @@ class OrganizationUnitImporter extends Importer
 
         [$lastName, $firstName, $middleName] = ImportHelper::parseName($headName);
 
-        $official = $unit->organization->officials()
+        $official = $unit->organization->employees()
             ->whereHas('person', fn (Builder $query): Builder => $query
                 ->where('last_name', $lastName)
                 ->where('first_name', $firstName)
@@ -98,7 +98,7 @@ class OrganizationUnitImporter extends Importer
                 'middle_name' => $middleName,
             ]);
 
-            $official = $unit->organization->officials()->create([
+            $official = $unit->organization->employees()->create([
                 'person_id' => $person->getKey(),
                 'position' => $headPost,
             ]);

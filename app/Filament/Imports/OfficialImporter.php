@@ -3,7 +3,7 @@
 namespace App\Filament\Imports;
 
 use App\Enums\Gender;
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
 use Filament\Actions\Imports\ImportColumn;
@@ -13,7 +13,7 @@ use LogicException;
 
 class OfficialImporter extends Importer
 {
-    protected static ?string $model = Official::class;
+    protected static ?string $model = Employee::class;
 
     /**
      * @return array<ImportColumn>
@@ -56,7 +56,7 @@ class OfficialImporter extends Importer
                 ->label('Фото')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'url', 'max:2048'])
-                ->fillRecordUsing(function (Official $record, mixed $state): void {
+                ->fillRecordUsing(function (Employee $record, mixed $state): void {
                     $record->image = $state;
                 }),
 
@@ -71,7 +71,7 @@ class OfficialImporter extends Importer
                 ->multiple(',')
                 ->rules(['nullable', 'array'])
                 ->nestedRecursiveRules(['url:http,https', 'max:2048'])
-                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->social_accounts = $state),
+                ->fillRecordUsing(fn (Employee $record, mixed $state) => $record->social_accounts = $state),
 
             ImportColumn::make('phone')
                 ->label('Телефон')
@@ -101,24 +101,24 @@ class OfficialImporter extends Importer
                 ->label('Графік прийому')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:2048'])
-                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->opening_hours = $state),
+                ->fillRecordUsing(fn (Employee $record, mixed $state) => $record->opening_hours = $state),
 
             ImportColumn::make('availabilityRestriction')
                 ->label('Обмеження доступності')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'string', 'max:2048'])
-                ->fillRecordUsing(fn (Official $record, mixed $state) => $record->availability_restriction = $state),
+                ->fillRecordUsing(fn (Employee $record, mixed $state) => $record->availability_restriction = $state),
         ];
     }
 
-    public function resolveRecord(): Official
+    public function resolveRecord(): Employee
     {
         $organization = $this->resolveOrganization();
         [$lastName, $firstName, $middleName] = ImportHelper::parseName($this->data['name'] ?? '');
 
-        return Official::query()
-            ->select('officials.*')
-            ->join('people', 'people.id', '=', 'officials.person_id')
+        return Employee::query()
+            ->select('employees.*')
+            ->join('people', 'people.id', '=', 'employees.person_id')
             ->where('people.last_name', $lastName)
             ->where('people.first_name', $firstName)
             ->where('people.middle_name', $middleName)
@@ -128,20 +128,20 @@ class OfficialImporter extends Importer
 
     protected function beforeSave(): void
     {
-        $official = $this->getOfficialRecord();
+        $employee = $this->getEmployeeRecord();
         [$lastName, $firstName, $middleName] = ImportHelper::parseName($this->data['name'] ?? '');
 
-        $person = $official->person ?? new Person;
+        $person = $employee->person ?? new Person;
         $person->last_name = $lastName;
         $person->first_name = $firstName;
         $person->middle_name = $middleName;
         $person->gender = $this->data['gender'] ?? null;
         $person->save();
 
-        $official->person()->associate($person);
-        $official->organization()->associate($this->resolveOrganization());
-        $official->position = $this->data['positionName'] ?? '';
-        $official->is_post = true;
+        $employee->person()->associate($person);
+        $employee->organization()->associate($this->resolveOrganization());
+        $employee->position = $this->data['positionName'] ?? '';
+        $employee->is_post = true;
     }
 
     public static function getCompletedNotificationBody(Import $import): string
@@ -155,7 +155,7 @@ class OfficialImporter extends Importer
         $organizationName = $this->data['orgName'] ?? null;
 
         if (! is_string($organizationId) || ! is_string($organizationName) || blank($organizationId) || blank($organizationName)) {
-            throw new LogicException('Ідентифікатор і назва організації є обов’язковими для імпорту посадовця.');
+            throw new LogicException('Ідентифікатор і назва організації є обов’язковими для імпорту працівника.');
         }
 
         $organization = Organization::query()
@@ -169,10 +169,10 @@ class OfficialImporter extends Importer
         return $organization;
     }
 
-    private function getOfficialRecord(): Official
+    private function getEmployeeRecord(): Employee
     {
-        if (! $this->record instanceof Official) {
-            throw new LogicException('Імпортер має працювати із записом посадовця.');
+        if (! $this->record instanceof Employee) {
+            throw new LogicException('Імпортер має працювати із записом працівника.');
         }
 
         return $this->record;

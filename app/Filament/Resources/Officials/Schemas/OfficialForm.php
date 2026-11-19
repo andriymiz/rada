@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Officials\Schemas;
 
 use App\Filament\Resources\People\Schemas\PersonForm;
-use App\Models\Official;
+use App\Models\Employee;
 use App\Models\Person;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
@@ -38,7 +38,7 @@ class OfficialForm
                     ->required()
                     ->maxLength(255),
                 Toggle::make('is_post')
-                    ->label('Посадовець'),
+                    ->label('Працівник'),
                 TextInput::make('image')
                     ->label('Посилання на фото')
                     ->url()
@@ -75,21 +75,21 @@ class OfficialForm
                     ->columnSpanFull()
                     ->relationship(
                         'reception',
-                        fn (?Official $record): bool => $record?->reception()->exists() ?? false,
+                        fn (?Employee $record): bool => $record?->reception()->exists() ?? false,
                     )
-                    ->visible(fn (?Official $record): bool => $record?->reception()->exists() ?? false)
+                    ->visible(fn (?Employee $record): bool => $record?->reception()->exists() ?? false)
                     ->schema(self::receptionFields()),
                 Section::make('Місце прийому')
                     ->columnSpanFull()
                     ->key('reception-add-section')
-                    ->description('За потреби додайте адресу прийому посадовця.')
+                    ->description('За потреби додайте адресу прийому працівника.')
                     ->footerActions([
                         Action::make('addReception')
                             ->label('Додати місце прийому')
                             ->schema(self::receptionFields())
-                            ->action(fn (array $data, Official $record) => $record->reception()->create($data)),
+                            ->action(fn (array $data, Employee $record) => $record->reception()->create($data)),
                     ])
-                    ->visible(fn (?Official $record): bool => $record !== null && ! $record->reception()->exists()),
+                    ->visible(fn (?Employee $record): bool => $record !== null && ! $record->reception()->exists()),
             ]);
     }
 
