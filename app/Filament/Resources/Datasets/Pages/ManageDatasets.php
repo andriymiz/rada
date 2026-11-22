@@ -2,13 +2,10 @@
 
 namespace App\Filament\Resources\Datasets\Pages;
 
-use App\Enums\DatasetResourceType;
 use App\Filament\Exports\DatasetExporter;
 use App\Filament\Imports\DatasetImporter;
-use App\Filament\Imports\ImportHelper;
 use App\Filament\Resources\Datasets\DatasetResource;
 use App\Filament\Resources\Datasets\Widgets\DatasetStatsOverview;
-use App\Models\Dataset;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
@@ -48,25 +45,23 @@ class ManageDatasets extends ManageRecords
                 ->button(),
             ActionGroup::make([
                 ImportAction::make()
-                    ->label('Імпорт з CSV')
+                    ->label('Імпорт наборів')
                     ->pluralModelLabel('наборів даних')
-                    ->importer(DatasetImporter::class)
-                    ->registerModalActions([
-                        ImportHelper::downloadPortalResourceAction(DatasetResourceType::Register),
-                    ]),
+                    ->importer(DatasetImporter::class),
                 ExportAction::make()
-                    ->label('Експорт в CSV')
+                    ->label('Експорт наборів')
                     ->pluralModelLabel('наборів даних')
                     ->exporter(DatasetExporter::class)
                     ->fileName('register')
                     ->formats([ExportFormat::Csv])
-                    ->modifyQueryUsing(fn (Builder $query): Builder => $query
-                        ->whereNotNull((new Dataset)->qualifyColumn('external_id'))
-                        ->whereHas('meta')
-                        ->with([
-                            'meta',
-                            'publisher',
-                        ])),
+                    ->modifyQueryUsing(fn (Builder $query, array $options): Builder => $query
+                        ->when($options['upload_to_portal'] ?? false, fn (Builder $query): Builder => $query
+                            ->whereNotNull('external_id')
+                            ->whereHas('meta')
+                        )->with(['meta', 'publisher'])
+                        ->reorder()
+                        ->orderBy('group_id')
+                        ->orderBy('sort')),
             ])
                 ->label('Функції')
                 ->color('gray')

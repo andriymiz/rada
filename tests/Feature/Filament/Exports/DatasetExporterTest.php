@@ -305,15 +305,27 @@ it('does not prepare a portal register when the upload option is unchecked or ab
     $publisher = Organization::factory()->create();
     $dataset = Dataset::factory()->for($publisher, 'publisher')->create(['external_id' => 'first-id']);
     $dataset->meta()->create(exporterMetadata());
+    $datasetWithoutExternalId = Dataset::factory()->for($publisher, 'publisher')->create([
+        'external_id' => null,
+        'title' => 'Набір без зовнішнього ідентифікатора',
+    ]);
+    $datasetWithoutExternalId->meta()->create(exporterMetadata());
+    Dataset::factory()->for($publisher, 'publisher')->create([
+        'external_id' => 'missing-meta',
+        'title' => 'Набір без метаданих',
+    ]);
 
     livewire(ManageDatasets::class)
         ->callAction('export', data: $options)
         ->assertNotified();
 
     $export = Export::query()->sole();
-    expect((bool) $export->upload_to_portal)->toBeFalse();
+    expect((bool) $export->upload_to_portal)->toBeFalse()
+        ->and($export->total_rows)->toBe(3);
     Storage::disk('local')->assertMissing($export->getFileDirectory().'/register.csv');
-    expect(implode('', iterator_to_array(app(CsvExportContentGenerator::class)($export))))->toContain('first-id');
+    $contents = implode('', iterator_to_array(app(CsvExportContentGenerator::class)($export)));
+    expect($contents)->toContain('first-id')
+        ->toContain('Набір без зовнішнього ідентифікатора');
     Queue::assertNotPushed(UploadDatasetRegister::class);
 })->with([[['upload_to_portal' => false]], [[]]]);
 

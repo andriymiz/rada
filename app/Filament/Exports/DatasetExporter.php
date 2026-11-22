@@ -2,7 +2,6 @@
 
 namespace App\Filament\Exports;
 
-use App\Enums\DatasetUpdateFrequency;
 use App\Models\Dataset;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
@@ -29,13 +28,11 @@ class DatasetExporter extends Exporter
     {
         return [
             ExportColumn::make('external_id')->label('uid'),
-            ExportColumn::make('title')->label('title')
+            ExportColumn::make('external_title')->label('title')
                 ->state(fn (Dataset $record): string => $record->rec_code?->getLabel() ?? $record->title),
             ExportColumn::make('meta.description')->label('description'),
-            ExportColumn::make('accrualPeriodicity')->label('accrualPeriodicity')
-                ->state(fn (Dataset $record): string => self::formatUpdateFrequency(
-                    $record->meta->accrual_periodicity,
-                )),
+            ExportColumn::make('meta.accrual_periodicity')->label('accrualPeriodicity')
+                ->state(fn (Dataset $record): string => $record->meta?->accrual_periodicity?->getLabel() ?? ''),
             ExportColumn::make('meta.keywords')->label('keywords'),
             ExportColumn::make('meta.purpose')->label('purpose'),
             ExportColumn::make('url')->label('url'),
@@ -50,8 +47,10 @@ class DatasetExporter extends Exporter
             ExportColumn::make('meta.contact_point_name')->label('contactPointName'),
             ExportColumn::make('meta.contact_point_email')->label('contactPointEmail'),
 
+            ExportColumn::make('title')->label('internalTitle')->enabledByDefault(false),
             ExportColumn::make('status')->label('status')->enabledByDefault(false),
             ExportColumn::make('status_note')->label('statusNote')->enabledByDefault(false),
+            ExportColumn::make('info_owner')->label('infoOwner')->enabledByDefault(false),
         ];
     }
 
@@ -67,16 +66,5 @@ class DatasetExporter extends Exporter
     public static function getCompletedNotificationBody(Export $export): string
     {
         return ExportHelper::getCompletedNotificationBody($export);
-    }
-
-    private static function formatUpdateFrequency(string $value): string
-    {
-        $frequency = collect(DatasetUpdateFrequency::cases())
-            ->first(fn (DatasetUpdateFrequency $case): bool => in_array($value, [
-                $case->value,
-                $case->getLabel(),
-            ], true));
-
-        return $frequency?->getLabel() ?? $value;
     }
 }

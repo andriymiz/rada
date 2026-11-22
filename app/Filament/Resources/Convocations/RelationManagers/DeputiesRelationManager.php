@@ -2,10 +2,8 @@
 
 namespace App\Filament\Resources\Convocations\RelationManagers;
 
-use App\Enums\DatasetResourceType;
 use App\Filament\Exports\DeputyExporter;
 use App\Filament\Imports\DeputyImporter;
-use App\Filament\Imports\ImportHelper;
 use App\Filament\Resources\Deputies\Schemas\DeputyForm;
 use App\Filament\Resources\Deputies\Tables\DeputiesTable;
 use Filament\Actions\CreateAction;
@@ -34,9 +32,6 @@ class DeputiesRelationManager extends RelationManager
                 CreateAction::make()->schema(DeputyForm::components()),
                 ImportAction::make()
                     ->importer(DeputyImporter::class)
-                    ->registerModalActions([
-                        ImportHelper::downloadPortalResourceAction(DatasetResourceType::Deputies),
-                    ])
                     ->options(fn (): array => [
                         'convocationId' => $this->getOwnerRecord()->getKey(),
                         'convocation' => $this->getOwnerRecord(),

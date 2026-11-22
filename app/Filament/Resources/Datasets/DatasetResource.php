@@ -78,7 +78,7 @@ class DatasetResource extends Resource
                     ->default(fn (): ?int => Organization::query()->value('id'))
                     ->required(),
                 TextInput::make('info_owner')
-                    ->label('Власники інформації')
+                    ->label('Внутрішній розпорядник')
                     ->columnSpan(2)
                     ->maxLength(255),
                 Select::make('status')
@@ -138,7 +138,7 @@ class DatasetResource extends Resource
                         TextEntry::make('meta.description')->label('Опис'),
                         TextEntry::make('meta.accrual_periodicity')
                             ->label('Частота оновлення')
-                            ->formatStateUsing(fn (string $state): string => DatasetUpdateFrequency::tryFrom($state)?->getLabel() ?? $state),
+                            ->formatStateUsing(fn (DatasetUpdateFrequency $state): string => $state->getLabel()),
                         TextEntry::make('meta.keywords')->label('Ключові слова'),
                         TextEntry::make('meta.purpose')->label('Підстава та призначення'),
                         TextEntry::make('meta.contact_point_name')->label('Контактна особа'),
@@ -238,7 +238,7 @@ class DatasetResource extends Resource
                     ->label('Статус')
                     ->tooltip(fn (Dataset $record): ?string => $record->status_note),
                 TextColumn::make('info_owner')
-                    ->label('Розпорядники')
+                    ->label('Розпорядник')
                     ->wrap()
                     ->searchable(),
             ])

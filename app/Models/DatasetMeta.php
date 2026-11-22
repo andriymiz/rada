@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DatasetUpdateFrequency;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $dataset_id
  * @property string $description
- * @property string $accrual_periodicity
+ * @property DatasetUpdateFrequency|null $accrual_periodicity
  * @property array<int, string> $keywords
  * @property string $purpose
  * @property string $contact_point_name
@@ -31,6 +32,7 @@ class DatasetMeta extends Model
     {
         return [
             'keywords' => 'array',
+            'accrual_periodicity' => DatasetUpdateFrequency::class,
         ];
     }
 

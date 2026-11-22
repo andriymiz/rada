@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\DatasetResourceType;
 use App\Models\Dataset;
 use App\Models\DatasetMeta;
 use App\Models\DatasetResource;
@@ -387,37 +386,6 @@ class OpenDataPortal
         } catch (InvalidFormatException $exception) {
             throw new UnexpectedValueException("The open data resource [{$resourceId}] has an invalid {$key} date.", previous: $exception);
         }
-    }
-
-    public function getResourceDownloadUrl(DatasetResourceType $type): ?string
-    {
-        $configuredResource = DatasetResource::query()
-            ->with('dataset')
-            ->where('name', $type)
-            ->first();
-
-        if (! $configuredResource) {
-            return null;
-        }
-
-        $packageId = $configuredResource->dataset->external_id;
-
-        if (! is_string($packageId) || blank($packageId)) {
-            return null;
-        }
-
-        $resource = $this->getPackageResources($packageId)
-            ->first(fn (mixed $resource): bool => is_array($resource)
-                && ($resource['id'] ?? null) === $configuredResource->external_id);
-        $url = is_array($resource) ? ($resource['url'] ?? null) : null;
-
-        if (! is_string($url) || filter_var($url, FILTER_VALIDATE_URL) === false) {
-            return null;
-        }
-
-        return in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true)
-            ? $url
-            : null;
     }
 
     /**

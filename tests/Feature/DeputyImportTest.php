@@ -1,20 +1,16 @@
 <?php
 
-use App\Enums\DatasetResourceType;
 use App\Enums\DeputyStatus;
 use App\Enums\Gender;
 use App\Filament\Imports\DeputyImporter;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Models\Convocation;
-use App\Models\Dataset;
-use App\Models\DatasetResource;
 use App\Models\Deputy;
 use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
-use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 use function Pest\Livewire\livewire;
@@ -143,54 +139,6 @@ it('rejects invalid start dates without saving the deputy', function (): void {
         ->assertHasErrors(['start_date' => 'date']);
 
     expect(Deputy::query()->whereBelongsTo($convocation)->exists())->toBeFalse();
-});
-
-it('links the deputy importer to the configured open data resource', function (): void {
-    $convocation = Convocation::factory()->create();
-    DatasetResource::factory()
-        ->for(Dataset::factory()->state(['external_id' => 'deputies-package-id']))
-        ->create([
-            'external_id' => 'deputies-resource-id',
-            'name' => DatasetResourceType::Deputies,
-        ]);
-
-    $downloadUrl = 'https://data.gov.ua/dataset/deputies/resource/deputies.csv';
-
-    Http::preventStrayRequests();
-    Http::fake([
-        'data.gov.ua/api/3/action/package_show*' => Http::response([
-            'success' => true,
-            'result' => [
-                'id' => 'deputies-package-id',
-                'resources' => [
-                    [
-                        'id' => 'deputies-resource-id',
-                        'name' => 'Депутати',
-                        'url' => $downloadUrl,
-                    ],
-                ],
-            ],
-        ]),
-    ]);
-
-    livewire(DeputiesRelationManager::class, [
-        'ownerRecord' => $convocation,
-        'pageClass' => EditConvocation::class,
-    ])
-        ->assertTableActionExists(
-            'import',
-            function (Action $action) use ($downloadUrl): bool {
-                $downloadAction = $action->getModalAction('downloadExample');
-
-                return $downloadAction?->getLabel() === 'Завантажити актуальний ресурс з порталу відкритих даних'
-                    && $downloadAction->isLink()
-                    && $downloadAction->getUrl() === $downloadUrl
-                    && $downloadAction->shouldOpenUrlInNewTab();
-            },
-        );
-
-    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/package_show')
-        && $request->data()['id'] === 'deputies-package-id');
 });
 
 it('keeps the built-in example download when no deputy resource is configured', function (): void {

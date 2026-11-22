@@ -115,26 +115,6 @@ it('hides the portal metadata section for datasets without a saved portal identi
         ->assertSchemaComponentHidden('portalMetadata');
 });
 
-it('displays the update frequency as a label without hiding unrecognized portal values', function (string $frequency, string $display): void {
-    $dataset = Dataset::factory()->create([
-        'external_id' => 'c65f219b-4f4e-4e51-8dc6-7a1df3001259',
-    ]);
-    $dataset->meta()->create([
-        'description' => 'Опис набору.',
-        'accrual_periodicity' => $frequency,
-        'keywords' => ['реєстр'],
-        'purpose' => 'Підстава.',
-        'contact_point_name' => 'Контакт',
-        'contact_point_email' => 'contact@example.gov.ua',
-    ]);
-
-    livewire(EditDataset::class, ['record' => $dataset->getKey()])
-        ->assertSee($display);
-})->with([
-    'known portal code' => ['once a year', 'Щороку'],
-    'unknown portal value' => ['special schedule', 'special schedule'],
-]);
-
 it('does not allow non-administrators to create datasets when the portal is configured', function (): void {
     config(['services.open_data.organization_id' => '11111111-2222-4333-8444-555555555555']);
     $this->actingAs(User::factory()->create());
