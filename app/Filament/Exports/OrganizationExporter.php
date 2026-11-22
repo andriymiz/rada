@@ -44,6 +44,10 @@ class OrganizationExporter extends Exporter
             ExportColumn::make('phone')->label('contactPointTelephone'),
             ExportColumn::make('opening_hours')->label('openingHours'),
             ExportColumn::make('availability_restriction')->label('availabilityRestriction'),
+
+            ExportColumn::make('short_name')->label('shortName')->enabledByDefault(false),
+            ExportColumn::make('group.name')->label('groupName')->enabledByDefault(false),
+            ExportColumn::make('additional_contacts')->label('additionalContacts')->enabledByDefault(false),
         ];
     }
 
@@ -55,6 +59,7 @@ class OrganizationExporter extends Exporter
     {
         return $query->with([
             'head.person',
+            'group',
             'parentOrganization',
             'territorialUnit.parent.parent.parent',
         ]);

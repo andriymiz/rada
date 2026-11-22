@@ -388,6 +388,7 @@ it('stores singular and additional contacts for every contactable entity', funct
 
 it('imports organizations and resolves their official head and parent', function (): void {
     $territorialUnits = createOrganizationTerritorialUnitHierarchy();
+    $group = OrganizationGroup::factory()->create(['name' => 'Місцеві ради']);
     $parent = Organization::factory()->create([
         'edrpou' => '11112222',
         'full_name' => 'Батьківська організація',
@@ -397,6 +398,8 @@ it('imports organizations and resolves their official head and parent', function
         'edrpou' => 'Id',
         'full_name' => 'name',
         'short_name' => 'shortName',
+        'group' => 'groupName',
+        'additional_contacts' => 'additionalContacts',
         'description' => 'description',
         'constituent_doc' => 'constituentDocUrl',
         'homepage' => 'homepage',
@@ -417,6 +420,8 @@ it('imports organizations and resolves their official head and parent', function
             'Id' => '33334444',
             'name' => 'Повна назва установи',
             'shortName' => 'Установа',
+            'groupName' => 'Місцеві ради',
+            'additionalContacts' => 'Кабінет 12, reception@example.com',
             'description' => 'Опис установи',
             'constituentDocUrl' => 'null',
             'homepage' => 'https://example.com',
@@ -438,6 +443,9 @@ it('imports organizations and resolves their official head and parent', function
     $organization = Organization::query()->where('edrpou', '33334444')->firstOrFail();
 
     expect($organization->full_name)->toBe('Повна назва установи')
+        ->and($organization->short_name)->toBe('Установа')
+        ->and($organization->group->is($group))->toBeTrue()
+        ->and($organization->additional_contacts)->toBe(['Кабінет 12', 'reception@example.com'])
         ->and($organization->constituent_doc)->toBeNull()
         ->and($organization->social_accounts)->toBe([
             'https://social.example.com/one',
@@ -453,6 +461,34 @@ it('imports organizations and resolves their official head and parent', function
         ->and($organization->head->position)->toBe('Директор')
         ->and($organization->head->is_post)->toBeTrue()
         ->and($organization->head->person->full_name)->toBe('Коваль Олена Вікторівна');
+});
+
+it('imports an organization when optional columns are absent', function (): void {
+    $territorialUnits = createOrganizationTerritorialUnitHierarchy();
+
+    OrganizationImporter::test(columnMap: [
+        'edrpou' => 'Id',
+        'full_name' => 'name',
+        'description' => 'description',
+        'phone' => 'contactPointTelephone',
+        'email' => 'contactPointEmail',
+        'territorialUnit' => 'CATUTTC',
+    ])
+        ->import([
+            'Id' => '33334444',
+            'name' => 'Установа без необов’язкових колонок',
+            'description' => 'Опис установи',
+            'contactPointTelephone' => '+380501234567',
+            'contactPointEmail' => 'office@example.com',
+            'CATUTTC' => $territorialUnits['settlement']->katottg_code,
+        ])
+        ->assertImported();
+
+    $organization = Organization::query()->where('edrpou', '33334444')->firstOrFail();
+
+    expect($organization->short_name)->toBeNull()
+        ->and($organization->group_id)->toBeNull()
+        ->and($organization->additional_contacts)->toBeNull();
 });
 
 it('does not import a territorial unit above the settlement level', function (): void {
@@ -489,6 +525,8 @@ it('exports organization rows using the structure csv columns', function (): voi
         'edrpou' => '33334444',
         'full_name' => 'Повна назва установи',
         'short_name' => 'Установа',
+        'group_id' => OrganizationGroup::factory()->create(['name' => 'Місцеві ради'])->getKey(),
+        'additional_contacts' => ['Кабінет 12', 'reception@example.com'],
         'description' => 'Опис установи',
         'constituent_doc' => 'https://example.com/statut',
         'homepage' => 'https://example.com',
@@ -516,14 +554,47 @@ it('exports organization rows using the structure csv columns', function (): voi
     $organization->head()->associate($head);
     $organization->parentOrganization()->associate($parent);
     $organization->save();
-    $organization->load(['head.person', 'parentOrganization', 'territorialUnit.parent.parent.parent']);
+    $organization->load(['head.person', 'group', 'parentOrganization', 'territorialUnit.parent.parent.parent']);
 
     expect($organization->territorial_unit_id)->toBe($territorialUnits['settlement']->getKey())
         ->and($organization->territorialUnit?->katottg_code)->toBe($territorialUnits['settlement']->katottg_code);
 
-    expect(OrganizationExporter::test()->export($organization))->toBe([
+    expect(OrganizationExporter::test(columnMap: [
+        'edrpou' => 'Id',
+        'full_name' => 'name',
+        'short_name' => 'shortName',
+        'group.name' => 'groupName',
+        'additional_contacts' => 'additionalContacts',
+        'description' => 'description',
+        'constituent_doc' => 'constituentDocUrl',
+        'homepage' => 'homepage',
+        'social_accounts' => 'socialAccount',
+        'logo' => 'logo',
+        'head.person.full_name' => 'headName',
+        'head.position' => 'headPost',
+        'parentOrganization.edrpou' => 'subOrgOfId',
+        'parentOrganization.full_name' => 'subOrgOfName',
+        'territorialUnit.katottg_code' => 'CATUTTC',
+        'territorialUnit.parent.parent.parent.name' => 'addressAdminUnitL1',
+        'territorialUnit.parent.parent.name' => 'addressAdminUnitL2',
+        'territorialUnit.parent.name' => 'addressAdminUnitL3',
+        'territorialUnit.name' => 'addressAdminUnitL4',
+        'addressPostName' => 'addressPostName',
+        'addressThoroughfare' => 'addressThoroughfare',
+        'addressLocatorDesignator' => 'addressLocatorDesignator',
+        'addressLocatorName' => 'addressLocatorName',
+        'addressPostCode' => 'addressPostCode',
+        'contact_point' => 'contactPointName',
+        'email' => 'contactPointEmail',
+        'phone' => 'contactPointTelephone',
+        'opening_hours' => 'openingHours',
+        'availability_restriction' => 'availabilityRestriction',
+    ])->export($organization))->toBe([
         '33334444',
         'Повна назва установи',
+        'Установа',
+        'Місцеві ради',
+        'Кабінет 12, reception@example.com',
         'Опис установи',
         'https://example.com/statut',
         'https://example.com',
