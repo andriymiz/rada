@@ -2,6 +2,7 @@
 
 use App\Enums\DeputyStatus;
 use App\Enums\Gender;
+use App\Enums\TerritorialUnitCategory;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Models\Convocation;
@@ -11,6 +12,7 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PoliticalParty;
 use App\Models\Reception;
+use App\Models\TerritorialUnit;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Schema;
@@ -21,7 +23,52 @@ use function Pest\Livewire\livewire;
 beforeEach(function () {
     Filament::setCurrentPanel('rada');
     $this->actingAs(User::factory()->admin()->create());
+    createDeputyTerritorialUnitHierarchy();
 });
+
+function createDeputyTerritorialUnitHierarchy(): void
+{
+    $region = TerritorialUnit::query()->create([
+        'system_number' => 13043,
+        'katottg_code' => 'UA01000000000013043',
+        'category' => TerritorialUnitCategory::FirstLevel,
+        'name' => 'Тестова область',
+    ]);
+    $district = TerritorialUnit::query()->create([
+        'system_number' => 22387,
+        'parent_number' => $region->getKey(),
+        'katottg_code' => 'UA01020000000022387',
+        'category' => TerritorialUnitCategory::SecondLevel,
+        'name' => 'Тестовий район',
+    ]);
+    $community = TerritorialUnit::query()->create([
+        'system_number' => 48857,
+        'parent_number' => $district->getKey(),
+        'katottg_code' => 'UA01020010000048857',
+        'category' => TerritorialUnitCategory::ThirdLevel,
+        'name' => 'Тестова громада',
+    ]);
+    TerritorialUnit::query()->create([
+        'system_number' => 75540,
+        'parent_number' => $community->getKey(),
+        'katottg_code' => 'UA01020010010075540',
+        'category' => TerritorialUnitCategory::Village,
+        'name' => 'Тестове село',
+    ]);
+}
+
+/**
+ * @return array<string, int>
+ */
+function deputyTerritorialAddressData(): array
+{
+    return [
+        'territorial_unit_level_1' => 13043,
+        'territorial_unit_level_2' => 22387,
+        'territorial_unit_level_3' => 48857,
+        'territorial_unit_id' => 75540,
+    ];
+}
 
 it('derives a short political party name without changing the full name', function (string $name, string $shortName): void {
     $party = PoliticalParty::factory()->make(['name' => $name]);
@@ -62,6 +109,7 @@ it('creates a deputy profile without requiring reception details', function () {
             'biography' => 'Біографія депутата.',
             'email' => 'deputy@example.com',
             'phone' => '+380501234567',
+            ...deputyTerritorialAddressData(),
         ])
         ->callMountedTableAction();
 
@@ -79,6 +127,7 @@ it('creates a deputy profile without requiring reception details', function () {
         ->and($deputy->full_name)->toBe('Тестове Ім’я ПоБатькові')
         ->and($deputy->number)->toBe(1)
         ->and($deputy->voting_identifier)->toBe('1')
+        ->and($deputy->territorial_unit_id)->toBe(75540)
         ->and($deputy->reception)->toBeNull()
         ->and($deputy->getAttributes())->not->toHaveKey('last_name')
         ->and($deputy->getAttributes())->not->toHaveKey('name')
@@ -91,6 +140,7 @@ it('creates a deputy profile without requiring reception details', function () {
         ->and(Schema::hasColumn('people', 'last_name'))->toBeTrue();
 
     expect(Schema::hasColumn('deputies', 'homepage'))->toBeTrue()
+        ->and(Schema::hasColumn('deputies', 'territorial_unit_id'))->toBeTrue()
         ->and(Schema::hasColumn('people', 'homepage'))->toBeFalse();
 
     expect($deputy->email)->toBe('deputy@example.com')
@@ -112,6 +162,7 @@ it('saves each selected deputy status', function (DeputyStatus $status) {
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
         'status' => $status->value,
+        ...deputyTerritorialAddressData(),
     ]);
 
     expect(Deputy::query()->firstOrFail()->status)->toBe($status);
@@ -137,6 +188,7 @@ it('rejects deputy homepage and image values that are not HTTP URLs', function (
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ])
         ->assertHasTableActionErrors(['homepage', 'image']);
 
@@ -163,6 +215,7 @@ it('links an existing person to a new deputy', function () {
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ]);
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
@@ -188,6 +241,7 @@ it('defaults a new deputy term start date to its convocation start date', functi
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ]);
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
@@ -222,6 +276,7 @@ it('defaults a new deputy number and pult number after the current highest value
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ]);
 
     $deputy = Deputy::query()->where('person_id', $person->id)->firstOrFail();
@@ -244,6 +299,7 @@ it('rejects a deputy number already used in the same convocation', function () {
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ])
         ->assertHasTableActionErrors(['number']);
 
@@ -264,6 +320,7 @@ it('rejects linking the same person to two deputy records in one convocation', f
         'biography' => 'Біографія депутата.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ])
         ->assertHasTableActionErrors(['person_id']);
 
@@ -285,6 +342,7 @@ it('allows one person to have a deputy record in each convocation', function () 
         'biography' => 'Біографія наступного скликання.',
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ]);
 
     expect($person->deputies()->count())->toBe(2)
@@ -371,6 +429,7 @@ it('stores gender code 9 for a person created from the dropdown', function () {
             'biography' => 'Біографія депутата.',
             'email' => 'deputy@example.com',
             'phone' => '+380501234567',
+            ...deputyTerritorialAddressData(),
         ])
         ->callMountedTableAction()
         ->assertHasNoTableActionErrors();
@@ -398,6 +457,7 @@ it('keeps the person and convocation fixed when editing a deputy', function () {
             'image' => 'https://example.gov.ua/photos/updated.png',
             'email' => 'deputy@example.com',
             'phone' => '+380501234567',
+            ...deputyTerritorialAddressData(),
         ])
         ->assertHasNoTableActionErrors();
 
@@ -451,6 +511,7 @@ it('saves contact details directly in the deputy edit form', function () {
         'social_accounts' => [['url' => 'https://council.example.gov.ua']],
         'opening_hours' => 'Пн 09:00–18:00',
         'availability_restriction' => 'За записом',
+        ...deputyTerritorialAddressData(),
     ])->assertHasNoTableActionErrors();
 
     $deputy->refresh();
@@ -473,6 +534,7 @@ it('validates email in the deputy edit form', function () {
             'political_party_id' => $deputy->political_party_id,
             'email' => 'not-an-email',
             'phone' => '+380501234567',
+            ...deputyTerritorialAddressData(),
         ])
         ->assertHasTableActionErrors();
 
@@ -490,6 +552,7 @@ it('validates each contact in the deputy form', function (): void {
         'political_party_id' => $party->id,
         'email' => 'not-an-email',
         'phone' => '123,456',
+        ...deputyTerritorialAddressData(),
     ])->assertHasTableActionErrors(['email', 'phone']);
 
     expect($deputy->refresh()->email)->toBeNull();
@@ -506,6 +569,7 @@ it('requires email and telephone lists in the deputy form', function (): void {
         'political_party_id' => $party->id,
         'email' => '',
         'phone' => '',
+        ...deputyTerritorialAddressData(),
     ])->assertHasTableActionErrors(['email' => 'required', 'phone' => 'required']);
 
     expect($deputy->refresh()->email)->toBeNull();
@@ -527,6 +591,7 @@ it('updates deputy details without changing its linked person or reception', fun
             'biography' => 'Оновлена біографія.',
             'email' => 'deputy@example.com',
             'phone' => '+380501234567',
+            ...deputyTerritorialAddressData(),
         ])
         ->assertHasNoTableActionErrors();
 
@@ -607,6 +672,7 @@ it('saves term, faction, and commission-related data on the deputy', function ()
         'status' => DeputyStatus::Departed->value,
         'email' => 'deputy@example.com',
         'phone' => '+380501234567',
+        ...deputyTerritorialAddressData(),
     ])
         ->assertHasNoTableActionErrors();
 

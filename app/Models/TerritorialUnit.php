@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\TerritorialUnitCategory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -35,6 +37,29 @@ class TerritorialUnit extends Model
             'system_number' => 'integer',
             'parent_number' => 'integer',
         ];
+    }
+
+    /**
+     * @param  Builder<TerritorialUnit>  $query
+     */
+    #[Scope]
+    protected function whereLevel(Builder $query, int $level): void
+    {
+        $query->whereIn('category', match ($level) {
+            1 => [
+                TerritorialUnitCategory::FirstLevel->value,
+                TerritorialUnitCategory::SpecialStatusCity->value,
+            ],
+            2 => [TerritorialUnitCategory::SecondLevel->value],
+            3 => [TerritorialUnitCategory::ThirdLevel->value],
+            4 => [
+                TerritorialUnitCategory::City->value,
+                TerritorialUnitCategory::Settlement->value,
+                TerritorialUnitCategory::Village->value,
+            ],
+            5 => [TerritorialUnitCategory::CityDistrict->value],
+            default => throw new \InvalidArgumentException("Invalid level: $level"),
+        });
     }
 
     /**

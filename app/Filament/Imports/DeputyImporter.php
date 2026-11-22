@@ -8,6 +8,7 @@ use App\Models\Faction;
 use App\Models\PermanentCommission;
 use App\Models\Person;
 use App\Models\PoliticalParty;
+use App\Models\TerritorialUnit;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -172,12 +173,19 @@ class DeputyImporter extends Importer
                 ->guesses(['areaId'])
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->rules(['nullable', 'integer', 'min:0']),
+
+            ImportColumn::make('territorialUnit')
+                ->label('КАТОТТГ')
+                ->guesses(['CATUTTC'])
+                ->requiredMapping()
+                ->rules(['required', 'string', 'size:19'])
+                ->relationship(resolveUsing: fn (array $data): ?TerritorialUnit => TerritorialUnit::query()
+                    ->where('katottg_code', $data['territorialUnit'])
+                    ->whereLevel(4)
+                    ->first()),
         ];
 
-        // Place and reception schedule (CATUTTC, addressPostCode, addressAdminUnitL1, addressAdminUnitL2,
-        // addressAdminUnitL3, addressAdminUnitL4, addressPostName, addressThoroughfare, addressLocatorDesignator,
-        // addressLocatorBuilding, addressLocatorName)
-        // are intentionally not implemented yet.
+        // Reception-specific address fields are not imported here.
     }
 
     public function resolveRecord(): Deputy

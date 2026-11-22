@@ -4,6 +4,7 @@ namespace App\Filament\Imports;
 
 use App\Models\OrganizationUnit;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -46,6 +47,12 @@ class OrganizationUnitImporter extends Importer
             ImportColumn::make('subUnitOfName')->label('Назва батьківського підрозділу')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))->rules(['nullable', 'string', 'max:255'])
                 ->fillRecordUsing(fn (): null => null),
+            ImportColumn::make('territorialUnit')->label('КАТОТТГ')->guesses(['CATUTTC'])
+                ->requiredMapping()->rules(['required', 'string', 'size:19'])
+                ->relationship(resolveUsing: fn (array $data): ?TerritorialUnit => TerritorialUnit::query()
+                    ->where('katottg_code', $data['territorialUnit'])
+                    ->whereLevel(4)
+                    ->first()),
             ImportColumn::make('contact_point')->label('Контактна особа або підрозділ')->guesses(['contactPointName'])
                 ->requiredMapping()->rules(['required', 'string', 'max:255']),
             ImportColumn::make('email')->label('Електронна пошта')->guesses(['contactPointEmail'])

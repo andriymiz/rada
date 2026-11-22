@@ -5,6 +5,7 @@ namespace App\Filament\Imports;
 use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -105,10 +106,16 @@ class OrganizationImporter extends Importer
                         ->where('edrpou', $state)
                         ->first();
                 }),
-            // ImportColumn::make('catuttc')
-            //     ->label('Код КАТОТТГ')
-            //     ->guesses(['CATUTTC'])
-            //     ->rules(['required', 'string', 'size:19']),
+            ImportColumn::make('territorialUnit')
+                ->label('КАТОТТГ')
+                ->guesses(['CATUTTC'])
+                ->rules(['required', 'string', 'size:19'])
+                ->relationship(resolveUsing: function (array $data): ?TerritorialUnit {
+                    return TerritorialUnit::query()
+                        ->where('katottg_code', $data['territorialUnit'])
+                        ->whereLevel(4)
+                        ->first();
+                }),
         ];
     }
 

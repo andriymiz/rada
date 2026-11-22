@@ -45,7 +45,7 @@ class OfficialsTable
                                 ->whereColumn('people.id', 'employees.person_id'), $sortDirection);
                     }),
                 IconColumn::make('is_post')
-                    ->label('Працівник')
+                    ->label('Посадовець')
                     ->boolean(),
                 TextColumn::make('position')
                     ->label('Посада')

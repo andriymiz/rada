@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Officials\Schemas;
 use App\Filament\Resources\People\Schemas\PersonForm;
 use App\Models\Employee;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -13,7 +14,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class OfficialForm
 {
@@ -38,7 +42,8 @@ class OfficialForm
                     ->required()
                     ->maxLength(255),
                 Toggle::make('is_post')
-                    ->label('Працівник'),
+                    ->label('Посадова особа')
+                    ->columnSpanFull(),
                 TextInput::make('image')
                     ->label('Посилання на фото')
                     ->url()
@@ -71,6 +76,86 @@ class OfficialForm
                     ->simple(TextInput::make('value')->maxLength(255)->required()),
                 Textarea::make('opening_hours')->label('Графік прийому')->maxLength(2048),
                 Textarea::make('availability_restriction')->label('Обмеження доступності')->maxLength(2048),
+                Section::make('Територіальна адреса працівника')
+                    ->columns(2)
+                    ->schema([
+                        Select::make('territorial_unit_level_1')
+                            ->label('Область')
+                            ->options(fn (): array => TerritorialUnit::query()
+                                ->whereLevel(1)
+                                ->orderBy('name')
+                                ->pluck('name', 'system_number')
+                                ->all())
+                            ->searchable()
+                            ->live()
+                            ->required()
+                            ->dehydrated(false)
+                            ->rules(['exists:territorial_units,system_number'])
+                            ->afterStateUpdated(function (Set $set): void {
+                                $set('territorial_unit_level_2', null);
+                                $set('territorial_unit_level_3', null);
+                                $set('territorial_unit_id', null);
+                            }),
+                        Select::make('territorial_unit_level_2')
+                            ->label('Район')
+                            ->options(fn (Get $get): array => TerritorialUnit::query()
+                                ->where('parent_number', $get('territorial_unit_level_1'))
+                                ->whereLevel(2)
+                                ->orderBy('name')
+                                ->pluck('name', 'system_number')
+                                ->all())
+                            ->searchable()
+                            ->live()
+                            ->required()
+                            ->disabled(fn (Get $get): bool => blank($get('territorial_unit_level_1')))
+                            ->dehydrated(false)
+                            ->rules(['exists:territorial_units,system_number'])
+                            ->afterStateUpdated(function (Set $set): void {
+                                $set('territorial_unit_level_3', null);
+                                $set('territorial_unit_id', null);
+                            }),
+                        Select::make('territorial_unit_level_3')
+                            ->label('Громада')
+                            ->options(fn (Get $get): array => TerritorialUnit::query()
+                                ->where('parent_number', $get('territorial_unit_level_2'))
+                                ->whereLevel(3)
+                                ->orderBy('name')
+                                ->pluck('name', 'system_number')
+                                ->all())
+                            ->searchable()
+                            ->live()
+                            ->required()
+                            ->disabled(fn (Get $get): bool => blank($get('territorial_unit_level_2')))
+                            ->dehydrated(false)
+                            ->rules(['exists:territorial_units,system_number'])
+                            ->afterStateUpdated(fn (Set $set) => $set('territorial_unit_id', null)),
+                        Select::make('territorial_unit_id')
+                            ->label('Населений пункт')
+                            ->relationship(
+                                name: 'territorialUnit',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query, Get $get): Builder => $query
+                                    ->where('parent_number', $get('territorial_unit_level_3'))
+                                    ->whereLevel(4)
+                                    ->orderBy('name'),
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->disabled(fn (Get $get): bool => blank($get('territorial_unit_level_3')))
+                            ->rules(['exists:territorial_units,system_number'])
+                            ->afterStateHydrated(function (Set $set, ?Employee $record): void {
+                                $territorialUnit = $record?->territorialUnit;
+
+                                if ($territorialUnit === null) {
+                                    return;
+                                }
+
+                                $set('territorial_unit_level_1', $territorialUnit->parent?->parent?->parent?->getKey());
+                                $set('territorial_unit_level_2', $territorialUnit->parent?->parent?->getKey());
+                                $set('territorial_unit_level_3', $territorialUnit->parent?->getKey());
+                            }),
+                    ]),
                 Section::make('Місце прийому')
                     ->columnSpanFull()
                     ->relationship(

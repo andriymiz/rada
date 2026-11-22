@@ -27,11 +27,11 @@ class OrganizationUnitExporter extends Exporter
             ExportColumn::make('organization.full_name')->label('unitOfName'),
             ExportColumn::make('parentUnit.uid')->label('subUnitOfId'),
             ExportColumn::make('parentUnit.full_name')->label('subUnitOfName'),
-            ExportColumn::make('CATUTTC')->label('CATUTTC')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL1')->label('addressAdminUnitL1')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL2')->label('addressAdminUnitL2')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL3')->label('addressAdminUnitL3')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL4')->label('addressAdminUnitL4')->state(fn (): string => 'null'),
+            ExportColumn::make('territorialUnit.katottg_code')->label('CATUTTC'),
+            ExportColumn::make('territorialUnit.parent.parent.parent.name')->label('addressAdminUnitL1'),
+            ExportColumn::make('territorialUnit.parent.parent.name')->label('addressAdminUnitL2'),
+            ExportColumn::make('territorialUnit.parent.name')->label('addressAdminUnitL3'),
+            ExportColumn::make('territorialUnit.name')->label('addressAdminUnitL4'),
             ExportColumn::make('addressPostName')->label('addressPostName')->state(fn (): string => 'null'),
             ExportColumn::make('addressThoroughfare')->label('addressThoroughfare')->state(fn (): string => 'null'),
             ExportColumn::make('addressLocatorDesignator')->label('addressLocatorDesignator')->state(fn (): string => 'null'),
@@ -50,7 +50,12 @@ class OrganizationUnitExporter extends Exporter
      */
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['organization', 'head.person', 'parentUnit']);
+        return $query->with([
+            'organization',
+            'head.person',
+            'parentUnit',
+            'territorialUnit.parent.parent.parent',
+        ]);
     }
 
     public static function getCompletedNotificationBody(Export $export): string

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'uid', 'organization_id', 'head_id', 'parent_unit_id', 'full_name', 'short_name', 'description',
-    'constituent_doc', 'homepage', 'contact_point', 'email', 'phone', 'additional_contacts',
+    'constituent_doc', 'homepage', 'territorial_unit_id', 'contact_point', 'email', 'phone', 'additional_contacts',
     'opening_hours', 'availability_restriction',
 ])]
 class OrganizationUnit extends Model
@@ -34,6 +34,12 @@ class OrganizationUnit extends Model
     public function head(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'head_id');
+    }
+
+    /** @return BelongsTo<TerritorialUnit, $this> */
+    public function territorialUnit(): BelongsTo
+    {
+        return $this->belongsTo(TerritorialUnit::class, 'territorial_unit_id', 'system_number');
     }
 
     /** @return BelongsTo<OrganizationUnit, $this> */

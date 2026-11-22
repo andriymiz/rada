@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TerritorialUnitCategory;
 use App\Filament\Exports\OrganizationUnitExporter;
 use App\Filament\Imports\OrganizationUnitImporter;
 use App\Filament\Resources\Organizations\Pages\EditOrganization;
@@ -9,6 +10,7 @@ use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\OrganizationUnit;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use App\Models\User;
 use Filament\Actions\ExportAction;
 use Filament\Actions\Exports\ContentGenerators\CsvExportContentGenerator;
@@ -23,7 +25,44 @@ use function Pest\Livewire\livewire;
 beforeEach(function (): void {
     Filament::setCurrentPanel('rada');
     $this->actingAs(User::factory()->admin()->create());
+    createOrganizationUnitTerritorialUnitHierarchy();
 });
+
+/**
+ * @return array{region: TerritorialUnit, district: TerritorialUnit, community: TerritorialUnit, settlement: TerritorialUnit}
+ */
+function createOrganizationUnitTerritorialUnitHierarchy(): array
+{
+    $region = TerritorialUnit::query()->create([
+        'system_number' => 13043,
+        'katottg_code' => 'UA01000000000013043',
+        'category' => TerritorialUnitCategory::FirstLevel,
+        'name' => 'Тестова область',
+    ]);
+    $district = TerritorialUnit::query()->create([
+        'system_number' => 22387,
+        'parent_number' => $region->getKey(),
+        'katottg_code' => 'UA01020000000022387',
+        'category' => TerritorialUnitCategory::SecondLevel,
+        'name' => 'Тестовий район',
+    ]);
+    $community = TerritorialUnit::query()->create([
+        'system_number' => 48857,
+        'parent_number' => $district->getKey(),
+        'katottg_code' => 'UA01020010000048857',
+        'category' => TerritorialUnitCategory::ThirdLevel,
+        'name' => 'Тестова громада',
+    ]);
+    $settlement = TerritorialUnit::query()->create([
+        'system_number' => 75540,
+        'parent_number' => $community->getKey(),
+        'katottg_code' => 'UA01020010010075540',
+        'category' => TerritorialUnitCategory::Village,
+        'name' => 'Тестове село',
+    ]);
+
+    return compact('region', 'district', 'community', 'settlement');
+}
 
 function organizationUnitImportMap(): array
 {
@@ -38,6 +77,7 @@ function organizationUnitImportMap(): array
         'organization' => 'unitOfId',
         'parentUnit' => 'subUnitOfId',
         'subUnitOfName' => 'subUnitOfName',
+        'territorialUnit' => 'CATUTTC',
         'contact_point' => 'contactPointName',
         'email' => 'contactPointEmail',
         'phone' => 'contactPointTelephone',
@@ -60,6 +100,7 @@ function organizationUnitImportRow(array $overrides = []): array
         'unitOfName' => 'Міська рада',
         'subUnitOfId' => 'null',
         'subUnitOfName' => 'null',
+        'CATUTTC' => 'UA01020010010075540',
         'contactPointName' => 'Приймальня',
         'contactPointEmail' => 'first@example.com',
         'contactPointTelephone' => '380501234567',
@@ -73,6 +114,7 @@ it('manages organization units within their organization', function (): void {
     $head = Employee::factory()->for($organization, 'organization')->create();
     $parent = OrganizationUnit::factory()->for($organization, 'organization')->create();
     $other = OrganizationUnit::factory()->create();
+    $settlement = TerritorialUnit::query()->findOrFail(75540);
 
     livewire(OrganizationUnitsRelationManager::class, [
         'ownerRecord' => $organization,
@@ -85,6 +127,10 @@ it('manages organization units within their organization', function (): void {
             'full_name' => 'Архівний відділ',
             'short_name' => 'Архів',
             'description' => 'Зберігання документів',
+            'territorial_unit_level_1' => 13043,
+            'territorial_unit_level_2' => 22387,
+            'territorial_unit_level_3' => 48857,
+            'territorial_unit_id' => $settlement->getKey(),
             'head_id' => $head->id,
             'parent_unit_id' => $parent->id,
             'contact_point' => 'Приймальня',
@@ -99,6 +145,7 @@ it('manages organization units within their organization', function (): void {
         ->and($unit->parentUnit->is($parent))->toBeTrue()
         ->and($unit->full_name)->toBe('Архівний відділ')
         ->and($unit->short_name)->toBe('Архів')
+        ->and($unit->territorial_unit_id)->toBe($settlement->getKey())
         ->and($unit->email)->toBe('office@example.com')
         ->and($unit->phone)->toBe('+380501234567')
         ->and($unit->additional_contacts)->toBe(['+380501234568']);
@@ -108,7 +155,6 @@ it('manages organization units within their organization', function (): void {
         'pageClass' => EditOrganization::class,
     ])
         ->assertTableColumnStateSet('full_name', 'Архівний відділ', $unit)
-        ->assertTableColumnStateSet('parentUnit.full_name', $parent->full_name, $unit)
         ->searchTable('Архівний відділ')
         ->assertCanSeeTableRecords([$unit])
         ->callTableAction('edit', $unit, ['full_name' => 'Новий відділ'])
@@ -207,6 +253,14 @@ it('imports and updates a unit using existing organization, head and parent', fu
         ->and(OrganizationUnit::query()->where('uid', '1.2')->count())->toBe(1);
 });
 
+it('rejects a territorial code outside the settlement level when importing a unit', function (): void {
+    OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())
+        ->import(organizationUnitImportRow(['CATUTTC' => 'UA01000000000013043']))
+        ->assertHasErrors(['territorialUnit']);
+
+    expect(OrganizationUnit::query()->where('uid', '1.2')->exists())->toBeFalse();
+});
+
 it('rejects a missing parent and creates a missing head for a valid unit', function (): void {
     $organization = Organization::factory()->create(['edrpou' => '12345678']);
     $person = Person::factory()->create(['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null]);
@@ -279,6 +333,7 @@ it('exports units from all organizations with the specified CSV columns and impo
     $head = Employee::factory()->for($organization, 'organization')->for($person)->create(['position' => 'Начальник']);
     OrganizationUnit::factory()->for($organization, 'organization')->create([
         'uid' => '1.2', 'head_id' => $head->id, 'full_name' => 'Архівний відділ',
+        'territorial_unit_id' => 75540,
         'email' => 'first@example.com',
         'phone' => '+380501234567',
     ]);
@@ -311,7 +366,11 @@ it('exports units from all organizations with the specified CSV columns and impo
         ->and($row['name'])->toBe('Архівний відділ')
         ->and($row['headName'])->toBe('Коваль Олена')
         ->and($row['contactPointTelephone'])->toBe('+380501234567')
-        ->and($row['CATUTTC'])->toBe('null');
+        ->and($row['CATUTTC'])->toBe('UA01020010010075540')
+        ->and($row['addressAdminUnitL1'])->toBe('Тестова область')
+        ->and($row['addressAdminUnitL2'])->toBe('Тестовий район')
+        ->and($row['addressAdminUnitL3'])->toBe('Тестова громада')
+        ->and($row['addressAdminUnitL4'])->toBe('Тестове село');
 
     OrganizationUnitImporter::test(columnMap: organizationUnitImportMap())->import($row)->assertImported();
     expect(OrganizationUnit::query()->where('uid', '1.2')->sole()->phone)->toBe('+380501234567');

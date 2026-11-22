@@ -16,11 +16,14 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
  * @property string|null $email
  * @property string|null $phone
  * @property array<int, array{name: string, value: string}>|null $additional_contacts
+ * @property int|null $territorial_unit_id
+ * @property-read TerritorialUnit|null $territorialUnit
  * @property-read Reception|null $reception
  */
 #[Fillable([
     'person_id',
     'organization_id',
+    'territorial_unit_id',
     'position',
     'is_post',
     'image',
@@ -58,6 +61,12 @@ class Employee extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /** @return BelongsTo<TerritorialUnit, $this> */
+    public function territorialUnit(): BelongsTo
+    {
+        return $this->belongsTo(TerritorialUnit::class, 'territorial_unit_id', 'system_number');
     }
 
     /** @return HasMany<OrganizationUnit, $this> */

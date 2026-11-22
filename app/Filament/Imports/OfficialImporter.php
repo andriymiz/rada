@@ -6,6 +6,7 @@ use App\Enums\Gender;
 use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -96,6 +97,16 @@ class OfficialImporter extends Importer
                 ->label('Назва підрозділу')
                 ->castStateUsing(ImportHelper::normalizeNullCastState(...))
                 ->fillRecordUsing(fn (): null => null),
+
+            ImportColumn::make('territorialUnit')
+                ->label('КАТОТТГ')
+                ->guesses(['CATUTTC'])
+                ->requiredMapping()
+                ->rules(['required', 'string', 'size:19'])
+                ->relationship(resolveUsing: fn (array $data): ?TerritorialUnit => TerritorialUnit::query()
+                    ->where('katottg_code', $data['territorialUnit'])
+                    ->whereLevel(4)
+                    ->first()),
 
             ImportColumn::make('openingHours')
                 ->label('Графік прийому')

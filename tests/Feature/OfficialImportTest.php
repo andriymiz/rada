@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\Gender;
+use App\Enums\TerritorialUnitCategory;
 use App\Filament\Imports\OfficialImporter;
 use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use App\Models\User;
 use Filament\Facades\Filament;
 
@@ -13,7 +15,39 @@ beforeEach(function (): void {
     $this->actingAs(User::factory()->admin()->create());
 });
 
+function createOfficialImportTerritorialUnitHierarchy(): void
+{
+    $region = TerritorialUnit::query()->create([
+        'system_number' => 13043,
+        'katottg_code' => 'UA01000000000013043',
+        'category' => TerritorialUnitCategory::FirstLevel,
+        'name' => 'Тестова область',
+    ]);
+    $district = TerritorialUnit::query()->create([
+        'system_number' => 22387,
+        'parent_number' => $region->getKey(),
+        'katottg_code' => 'UA01020000000022387',
+        'category' => TerritorialUnitCategory::SecondLevel,
+        'name' => 'Тестовий район',
+    ]);
+    $community = TerritorialUnit::query()->create([
+        'system_number' => 48857,
+        'parent_number' => $district->getKey(),
+        'katottg_code' => 'UA01020010000048857',
+        'category' => TerritorialUnitCategory::ThirdLevel,
+        'name' => 'Тестова громада',
+    ]);
+    TerritorialUnit::query()->create([
+        'system_number' => 75540,
+        'parent_number' => $community->getKey(),
+        'katottg_code' => 'UA01020010010075540',
+        'category' => TerritorialUnitCategory::Village,
+        'name' => 'Тестове село',
+    ]);
+}
+
 it('imports an official from the posts csv row', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
         'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА ТЕРНОПІЛЬСЬКОГО РАЙОНУ ТЕРНОПІЛЬСЬКОЇ ОБЛАСТІ',
@@ -26,6 +60,7 @@ it('imports an official from the posts csv row', function (): void {
             'positionName' => 'Міський голова',
             'orgId' => '04058410',
             'orgName' => 'ЗБОРІВСЬКА МІСЬКА РАДА ТЕРНОПІЛЬСЬКОГО РАЙОНУ ТЕРНОПІЛЬСЬКОЇ ОБЛАСТІ',
+            'territorialUnit' => 'UA01020010010075540',
             'img' => 'https://example.com/photo.jpg',
             'homepage' => 'https://example.com/official',
             'socialAccount' => 'null',
@@ -56,12 +91,14 @@ it('imports an official from the posts csv row', function (): void {
         ->and($official->is_post)->toBeTrue();
 
     expect($official->email)->toBe('rada@example.com')
+        ->and($official->territorial_unit_id)->toBe(75540)
         ->and($official->phone)->toBe('+380354021743')
         ->and($official->opening_hours)->toBe('Пн 09:00-12:00')
         ->and($official->availability_restriction)->toBeNull();
 });
 
-it('treats string null values as absent without changing other strings', function (string $nullValue): void {
+it('rejects imported territorial units that are not level four', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
@@ -71,6 +108,27 @@ it('treats string null values as absent without changing other strings', functio
             'positionName' => 'Міський голова',
             'orgId' => '04058410',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01000000000013043',
+            'phone' => '+380501234567',
+            'email' => 'official@example.com',
+        ])
+        ->assertHasErrors(['territorialUnit']);
+
+    expect(Employee::query()->exists())->toBeFalse();
+});
+
+it('treats string null values as absent without changing other strings', function (string $nullValue): void {
+    createOfficialImportTerritorialUnitHierarchy();
+    Organization::factory()->create(['edrpou' => '04058410']);
+
+    OfficialImporter::test()
+        ->import([
+            'name' => 'Коваль Олена',
+            'gender' => '2',
+            'positionName' => 'Міський голова',
+            'orgId' => '04058410',
+            'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'img' => $nullValue,
             'homepage' => 'https://example.com/null',
             'socialAccount' => $nullValue,
@@ -92,6 +150,7 @@ it('treats string null values as absent without changing other strings', functio
 ]);
 
 it('treats a null homepage as absent', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
@@ -101,6 +160,7 @@ it('treats a null homepage as absent', function (): void {
             'positionName' => 'Міський голова',
             'orgId' => '04058410',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'homepage' => ' NULL ',
             'phone' => '+380501234567',
             'email' => 'official@example.com',
@@ -111,6 +171,7 @@ it('treats a null homepage as absent', function (): void {
 });
 
 it('requires a primary email and telephone when importing an official', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '04058410']);
 
     OfficialImporter::test()
@@ -120,6 +181,7 @@ it('requires a primary email and telephone when importing an official', function
             'positionName' => 'Міський голова',
             'orgId' => '04058410',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'email' => 'null',
             'phone' => '',
         ])
@@ -129,6 +191,7 @@ it('requires a primary email and telephone when importing an official', function
 });
 
 it('rejects comma-separated contacts in singular fields', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '12345678']);
 
     OfficialImporter::test()
@@ -138,6 +201,7 @@ it('rejects comma-separated contacts in singular fields', function (): void {
             'positionName' => 'Міський голова',
             'orgId' => '12345678',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'email' => ', office@example.com',
             'phone' => '+380501234567, ',
         ])
@@ -146,6 +210,7 @@ it('rejects comma-separated contacts in singular fields', function (): void {
 });
 
 it('rejects multiple email addresses and telephone numbers in singular fields', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '12345678']);
 
     OfficialImporter::test()
@@ -155,6 +220,7 @@ it('rejects multiple email addresses and telephone numbers in singular fields', 
             'positionName' => 'Міський голова',
             'orgId' => '12345678',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'email' => 'first@example.com,second@example.com',
             'phone' => '+380501234567,+380501234568',
         ])
@@ -164,6 +230,7 @@ it('rejects multiple email addresses and telephone numbers in singular fields', 
 });
 
 it('imports multiple social accounts from an officials csv row', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '12345678']);
 
     OfficialImporter::test()
@@ -173,6 +240,7 @@ it('imports multiple social accounts from an officials csv row', function (): vo
             'positionName' => 'Міський голова',
             'orgId' => '12345678',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'socialAccount' => 'https://facebook.com/koval, https://instagram.com/koval',
             'phone' => '+380501234567',
             'email' => 'official@example.com',
@@ -186,6 +254,7 @@ it('imports multiple social accounts from an officials csv row', function (): vo
 });
 
 it('rejects a null string in the singular email field', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '12345678']);
 
     OfficialImporter::test()
@@ -195,6 +264,7 @@ it('rejects a null string in the singular email field', function (): void {
             'positionName' => 'Міський голова',
             'orgId' => '12345678',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'email' => 'first@example.com,null',
         ])
         ->assertHasErrors(['email' => 'email']);
@@ -203,6 +273,7 @@ it('rejects a null string in the singular email field', function (): void {
 });
 
 it('imports names with missing or additional parts', function (string $name, string $lastName, ?string $firstName, ?string $middleName): void {
+    createOfficialImportTerritorialUnitHierarchy();
     Organization::factory()->create(['edrpou' => '12345678']);
 
     OfficialImporter::test()
@@ -212,6 +283,7 @@ it('imports names with missing or additional parts', function (string $name, str
             'positionName' => 'Міський голова',
             'orgId' => '12345678',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'phone' => '+380501234567',
             'email' => 'official@example.com',
         ])
@@ -230,6 +302,7 @@ it('imports names with missing or additional parts', function (string $name, str
 ]);
 
 it('updates the matching official in the requested organization', function (): void {
+    createOfficialImportTerritorialUnitHierarchy();
     $organization = Organization::factory()->create(['edrpou' => '12345678']);
     $otherOrganization = Organization::factory()->create();
     $name = ['last_name' => 'Коваль', 'first_name' => 'Олена', 'middle_name' => null];
@@ -253,6 +326,7 @@ it('updates the matching official in the requested organization', function (): v
             'positionName' => 'Нова посада',
             'orgId' => '12345678',
             'orgName' => 'Міська рада',
+            'territorialUnit' => 'UA01020010010075540',
             'email' => 'new@example.com',
             'phone' => '+380674445566',
             'socialAccount' => 'https://example.com/new',

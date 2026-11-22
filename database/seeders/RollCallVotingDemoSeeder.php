@@ -25,7 +25,6 @@ class RollCallVotingDemoSeeder extends Seeder
             ['edrpou' => 'TEST0001'],
             [
                 'full_name' => 'Демонстраційна міська рада',
-                'katoottg' => 'UA00000000000000000',
             ],
         );
 

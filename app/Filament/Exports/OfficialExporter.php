@@ -24,6 +24,11 @@ class OfficialExporter extends Exporter
             ExportColumn::make('position')->label('positionName'),
             ExportColumn::make('unitId')->label('unitId')->state(fn (): string => 'null'),
             ExportColumn::make('unitName')->label('unitName')->state(fn (): string => 'null'),
+            ExportColumn::make('territorialUnit.katottg_code')->label('CATUTTC'),
+            ExportColumn::make('territorialUnit.parent.parent.parent.name')->label('addressAdminUnitL1'),
+            ExportColumn::make('territorialUnit.parent.parent.name')->label('addressAdminUnitL2'),
+            ExportColumn::make('territorialUnit.parent.name')->label('addressAdminUnitL3'),
+            ExportColumn::make('territorialUnit.name')->label('addressAdminUnitL4'),
             ExportColumn::make('organization.edrpou')->label('orgId'),
             ExportColumn::make('organization.full_name')->label('orgName'),
             ExportColumn::make('image')->label('img'),
@@ -44,7 +49,11 @@ class OfficialExporter extends Exporter
     {
         return $query
             ->where('is_post', true)
-            ->with(['person', 'organization']);
+            ->with([
+                'person',
+                'organization',
+                'territorialUnit.parent.parent.parent',
+            ]);
     }
 
     public static function getCompletedNotificationBody(Export $export): string

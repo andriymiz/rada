@@ -18,6 +18,7 @@ use Illuminate\Validation\ValidationException;
  * @property-read Person $person
  * @property-read string $full_name
  * @property-read string $short_name
+ * @property int|null $territorial_unit_id
  * @property int|null $number
  * @property DeputyStatus $status
  * @property array<int, string>|null $social_accounts
@@ -25,10 +26,12 @@ use Illuminate\Validation\ValidationException;
  * @property string|null $phone
  * @property array<int, array{name: string, value: string}>|null $additional_contacts
  * @property Carbon|null $start_date
+ * @property-read TerritorialUnit|null $territorialUnit
  */
 #[Fillable([
     'person_id',
     'convocation_id',
+    'territorial_unit_id',
     'number',
     'political_party_id',
     'permanent_commission_id',
@@ -133,6 +136,12 @@ class Deputy extends Model
     public function permanentCommission(): BelongsTo
     {
         return $this->belongsTo(PermanentCommission::class);
+    }
+
+    /** @return BelongsTo<TerritorialUnit, $this> */
+    public function territorialUnit(): BelongsTo
+    {
+        return $this->belongsTo(TerritorialUnit::class, 'territorial_unit_id', 'system_number');
     }
 
     /** @return HasMany<Vote, $this> */

@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property string $full_name
  * @property string|null $short_name
  * @property string $edrpou
- * @property string|null $katoottg
+ * @property int|null $territorial_unit_id
  * @property string|null $description
  * @property string|null $constituent_doc
  * @property string|null $homepage
@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property int|null $head_id
  * @property int|null $group_id
  * @property-read Employee|null $head
+ * @property-read TerritorialUnit|null $territorialUnit
  * @property-read OrganizationGroup|null $group
  * @property-read Organization|null $parentOrganization
  */
@@ -34,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'full_name',
     'short_name',
     'edrpou',
-    'katoottg',
+    'territorial_unit_id',
     'description',
     'constituent_doc',
     'homepage',
@@ -92,6 +93,12 @@ class Organization extends Model
     public function head(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'head_id');
+    }
+
+    /** @return BelongsTo<TerritorialUnit, $this> */
+    public function territorialUnit(): BelongsTo
+    {
+        return $this->belongsTo(TerritorialUnit::class, 'territorial_unit_id', 'system_number');
     }
 
     /** @return BelongsTo<Organization, $this> */

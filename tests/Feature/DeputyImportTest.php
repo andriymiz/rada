@@ -2,12 +2,14 @@
 
 use App\Enums\DeputyStatus;
 use App\Enums\Gender;
+use App\Enums\TerritorialUnitCategory;
 use App\Filament\Imports\DeputyImporter;
 use App\Filament\Resources\Convocations\Pages\EditConvocation;
 use App\Filament\Resources\Convocations\RelationManagers\DeputiesRelationManager;
 use App\Models\Convocation;
 use App\Models\Deputy;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -18,7 +20,39 @@ use function Pest\Livewire\livewire;
 beforeEach(function () {
     Filament::setCurrentPanel('rada');
     $this->actingAs(User::factory()->admin()->create());
+    createDeputyImportTerritorialUnitHierarchy();
 });
+
+function createDeputyImportTerritorialUnitHierarchy(): void
+{
+    $region = TerritorialUnit::query()->create([
+        'system_number' => 13043,
+        'katottg_code' => 'UA01000000000013043',
+        'category' => TerritorialUnitCategory::FirstLevel,
+        'name' => 'Тестова область',
+    ]);
+    $district = TerritorialUnit::query()->create([
+        'system_number' => 22387,
+        'parent_number' => $region->getKey(),
+        'katottg_code' => 'UA01020000000022387',
+        'category' => TerritorialUnitCategory::SecondLevel,
+        'name' => 'Тестовий район',
+    ]);
+    $community = TerritorialUnit::query()->create([
+        'system_number' => 48857,
+        'parent_number' => $district->getKey(),
+        'katottg_code' => 'UA01020010000048857',
+        'category' => TerritorialUnitCategory::ThirdLevel,
+        'name' => 'Тестова громада',
+    ]);
+    TerritorialUnit::query()->create([
+        'system_number' => 75540,
+        'parent_number' => $community->getKey(),
+        'katottg_code' => 'UA01020010010075540',
+        'category' => TerritorialUnitCategory::Village,
+        'name' => 'Тестове село',
+    ]);
+}
 
 it('imports a deputy with open data attributes and related entities', function () {
     $convocation = Convocation::factory()->create();
@@ -28,6 +62,7 @@ it('imports a deputy with open data attributes and related entities', function (
     )
         ->import([
             'number' => 23,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Ковальчук',
             'first_name' => 'Віктор',
             'middle_name' => 'Зосимович',
@@ -70,6 +105,7 @@ it('imports a deputy with open data attributes and related entities', function (
         ->and($deputy->voting_identifier)->toBe('dep-23')
         ->and($deputy->start_date?->toDateString())->toBe('2020-12-01')
         ->and($deputy->area_id)->toBe(4)
+        ->and($deputy->territorial_unit_id)->toBe(75540)
         ->and($deputy->homepage)->toBe('https://council.example.gov.ua/deputy/kovalchuk')
         ->and($deputy->politicalParty->name)->toBe('Партія розвитку')
         ->and($deputy->politicalParty->edrpou)->toBe('12345678')
@@ -86,6 +122,28 @@ it('imports a deputy with open data attributes and related entities', function (
         ->and($deputy->availability_restriction)->toBe('За записом');
 });
 
+it('rejects imported territorial units that are not level four', function (): void {
+    $convocation = Convocation::factory()->create();
+
+    DeputyImporter::test(options: ['convocation' => $convocation])
+        ->import([
+            'number' => 24,
+            'territorialUnit' => 'UA01000000000013043',
+            'last_name' => 'Петренко',
+            'first_name' => 'Оксана',
+            'middle_name' => 'Іванівна',
+            'gender' => 2,
+            'date_of_birth' => '1990-01-01',
+            'biography' => 'Біографічні дані Оксани Петренко.',
+            'partyName' => 'Партія Петренко',
+            'email' => 'oksana@example.gov.ua',
+            'phone' => '+380501234567',
+        ])
+        ->assertHasErrors(['territorialUnit']);
+
+    expect(Deputy::query()->whereBelongsTo($convocation)->exists())->toBeFalse();
+});
+
 it('updates the start date and preserves it when the imported date is blank', function (): void {
     $convocation = Convocation::factory()->create();
     $deputy = Deputy::factory()->for($convocation, 'convocation')->create([
@@ -94,6 +152,7 @@ it('updates the start date and preserves it when the imported date is blank', fu
     ]);
     $row = [
         'number' => 23,
+        'territorialUnit' => 'UA01020010010075540',
         'last_name' => 'Ковальчук',
         'first_name' => 'Віктор',
         'middle_name' => 'Зосимович',
@@ -127,6 +186,7 @@ it('rejects invalid start dates without saving the deputy', function (): void {
     DeputyImporter::test(options: ['convocation' => $convocation])
         ->import([
             'number' => 23,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Ковальчук',
             'first_name' => 'Віктор',
             'middle_name' => 'Зосимович',
@@ -169,6 +229,7 @@ it('handles nullable optional values with Filament default casting', function ()
     )
         ->import([
             'number' => 1,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Шевченко',
             'first_name' => 'Олена',
             'middle_name' => 'Іванівна',
@@ -220,6 +281,7 @@ it('normalizes mixed-case null values while preserving other contact values', fu
     DeputyImporter::test(options: ['convocation' => $convocation])
         ->import([
             'number' => '1',
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Шевченко',
             'first_name' => 'Олена',
             'middle_name' => 'Іванівна',
@@ -272,6 +334,7 @@ it('updates existing deputy and person on repeated import', function () {
     )
         ->import([
             'number' => 1,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Мельник',
             'first_name' => 'Андрій',
             'middle_name' => 'Петрович',
@@ -328,6 +391,7 @@ it('matches a deputy by its convocation number when the imported name changes', 
     )
         ->import([
             'number' => 23,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Ковальчук',
             'first_name' => 'Олена',
             'middle_name' => 'Іванівна',
@@ -365,6 +429,7 @@ it('reuses a deputy person across convocations without duplicating them within a
 
     $row = [
         'number' => 8,
+        'territorialUnit' => 'UA01020010010075540',
         'last_name' => 'Кравченко',
         'first_name' => 'Ірина',
         'middle_name' => 'Олегівна',
@@ -412,6 +477,7 @@ it('allows voting identifiers to repeat across deputy records', function () {
     )
         ->import([
             'number' => 2,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Сидоренко',
             'first_name' => 'Сергій',
             'middle_name' => 'Олексійович',
@@ -440,6 +506,7 @@ it('parses multiple comma-separated social accounts', function () {
     )
         ->import([
             'number' => 3,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Бондар',
             'first_name' => 'Марія',
             'middle_name' => 'Іванівна',
@@ -467,6 +534,7 @@ it('rejects comma-separated contacts in the singular import fields', function ()
     )
         ->import([
             'number' => 4,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Романюк',
             'first_name' => 'Тетяна',
             'middle_name' => 'Петрівна',
@@ -488,6 +556,7 @@ it('requires a primary email and telephone when importing a deputy', function ()
     DeputyImporter::test(options: ['convocation' => $convocation])
         ->import([
             'number' => 4,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Романюк',
             'first_name' => 'Тетяна',
             'middle_name' => 'Петрівна',
@@ -511,6 +580,7 @@ it('rejects a deputy row without a party name', function () {
     )
         ->import([
             'number' => 5,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Петренко',
             'first_name' => 'Оксана',
             'middle_name' => 'Іванівна',
@@ -527,6 +597,7 @@ it('rejects a deputy row when a required personal field is missing', function (s
     $convocation = Convocation::factory()->create();
     $row = [
         'last_name' => 'Петренко',
+        'territorialUnit' => 'UA01020010010075540',
         'first_name' => 'Оксана',
         'middle_name' => 'Іванівна',
         'gender' => 2,
@@ -560,6 +631,7 @@ it('rejects gender values that are not standard numeric codes', function (int|st
     )
         ->import([
             'number' => 7,
+            'territorialUnit' => 'UA01020010010075540',
             'last_name' => 'Петренко',
             'first_name' => 'Оксана',
             'middle_name' => 'Іванівна',

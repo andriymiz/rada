@@ -21,7 +21,6 @@ class OrganizationFactory extends Factory
             'full_name' => fake()->company().' міська рада',
             'short_name' => fake()->company(),
             'edrpou' => fake()->unique()->numerify('########'),
-            'katoottg' => 'UA'.fake()->unique()->numerify('#################'),
         ];
     }
 }

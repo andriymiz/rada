@@ -36,11 +36,11 @@ class DeputyExporter extends Exporter
             ExportColumn::make('permanentCommission.name')->label('commissionName'),
             ExportColumn::make('commission_position')->label('commissionPost'),
             ExportColumn::make('area_id')->label('areaId'),
-            ExportColumn::make('CATUTTC')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL1')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL2')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL3')->state(fn (): string => 'null'),
-            ExportColumn::make('addressAdminUnitL4')->state(fn (): string => 'null'),
+            ExportColumn::make('territorialUnit.katottg_code')->label('CATUTTC'),
+            ExportColumn::make('territorialUnit.parent.parent.parent.name')->label('addressAdminUnitL1'),
+            ExportColumn::make('territorialUnit.parent.parent.name')->label('addressAdminUnitL2'),
+            ExportColumn::make('territorialUnit.parent.name')->label('addressAdminUnitL3'),
+            ExportColumn::make('territorialUnit.name')->label('addressAdminUnitL4'),
             ExportColumn::make('addressPostName')->state(fn (): string => 'null'),
             ExportColumn::make('addressThoroughfare')->state(fn (): string => 'null'),
             ExportColumn::make('addressLocatorDesignator')->state(fn (): string => 'null'),
@@ -58,7 +58,13 @@ class DeputyExporter extends Exporter
      */
     public static function modifyQuery(Builder $query): Builder
     {
-        return $query->with(['person', 'politicalParty', 'faction', 'permanentCommission']);
+        return $query->with([
+            'person',
+            'politicalParty',
+            'faction',
+            'permanentCommission',
+            'territorialUnit.parent.parent.parent',
+        ]);
     }
 
     public static function getCompletedNotificationBody(Export $export): string

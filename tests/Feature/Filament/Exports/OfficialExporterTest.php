@@ -1,12 +1,14 @@
 <?php
 
 use App\Enums\Gender;
+use App\Enums\TerritorialUnitCategory;
 use App\Filament\Exports\OfficialExporter;
 use App\Filament\Imports\OrganizationImporter;
 use App\Filament\Resources\Organizations\Pages\ListOrganizations;
 use App\Models\Employee;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\TerritorialUnit;
 use App\Models\User;
 use Filament\Actions\ExportAction;
 use Filament\Actions\Exports\ContentGenerators\CsvExportContentGenerator;
@@ -24,7 +26,39 @@ beforeEach(function (): void {
     $this->actingAs(User::factory()->admin()->create());
 });
 
+function createOfficialExporterTerritorialUnitHierarchy(): void
+{
+    $region = TerritorialUnit::query()->create([
+        'system_number' => 13043,
+        'katottg_code' => 'UA01000000000013043',
+        'category' => TerritorialUnitCategory::FirstLevel,
+        'name' => 'Тестова область',
+    ]);
+    $district = TerritorialUnit::query()->create([
+        'system_number' => 22387,
+        'parent_number' => $region->getKey(),
+        'katottg_code' => 'UA01020000000022387',
+        'category' => TerritorialUnitCategory::SecondLevel,
+        'name' => 'Тестовий район',
+    ]);
+    $community = TerritorialUnit::query()->create([
+        'system_number' => 48857,
+        'parent_number' => $district->getKey(),
+        'katottg_code' => 'UA01020010000048857',
+        'category' => TerritorialUnitCategory::ThirdLevel,
+        'name' => 'Тестова громада',
+    ]);
+    TerritorialUnit::query()->create([
+        'system_number' => 75540,
+        'parent_number' => $community->getKey(),
+        'katottg_code' => 'UA01020010010075540',
+        'category' => TerritorialUnitCategory::Village,
+        'name' => 'Тестове село',
+    ]);
+}
+
 it('exports officials using the posts csv schema', function (): void {
+    createOfficialExporterTerritorialUnitHierarchy();
     $organization = Organization::factory()->create([
         'edrpou' => '04058410',
         'full_name' => 'ЗБОРІВСЬКА МІСЬКА РАДА',
@@ -39,6 +73,7 @@ it('exports officials using the posts csv schema', function (): void {
         ->for($person)
         ->for($organization, 'organization')
         ->create([
+            'territorial_unit_id' => 75540,
             'position' => 'Міський голова',
             'is_post' => true,
             'image' => 'https://example.com/photo.jpg',
@@ -49,7 +84,7 @@ it('exports officials using the posts csv schema', function (): void {
             'opening_hours' => 'Пн 09:00-12:00',
             'availability_restriction' => 'За попереднім записом',
         ]);
-    $official->load(['person', 'organization']);
+    $official->load(['person', 'organization', 'territorialUnit.parent.parent.parent']);
 
     expect(OfficialExporter::test()->export($official))->toBe([
         (string) $official->id,
@@ -58,6 +93,11 @@ it('exports officials using the posts csv schema', function (): void {
         'Міський голова',
         'null',
         'null',
+        'UA01020010010075540',
+        'Тестова область',
+        'Тестовий район',
+        'Тестова громада',
+        'Тестове село',
         '04058410',
         'ЗБОРІВСЬКА МІСЬКА РАДА',
         'https://example.com/photo.jpg',
@@ -78,6 +118,11 @@ it('exports officials using the posts csv schema', function (): void {
         'positionName',
         'unitId',
         'unitName',
+        'CATUTTC',
+        'addressAdminUnitL1',
+        'addressAdminUnitL2',
+        'addressAdminUnitL3',
+        'addressAdminUnitL4',
         'orgId',
         'orgName',
         'img',
@@ -117,6 +162,11 @@ it('exports null optional values and unknown gender when the official has no add
         'Коваль Олена',
         '0',
         'Секретар',
+        'null',
+        'null',
+        'null',
+        'null',
+        'null',
         'null',
         'null',
         '04058410',
